@@ -242,6 +242,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "idle_seeding_limit"sv, // rpc, tr_session::Settings
     "idle_seeding_limit_enabled"sv, // rpc, tr_session::Settings
     "ids"sv, // rpc
+    "ih"sv, // BEP 46 mutable item value key
     "incomplete"sv, // BEP0048; BT protocol
     "incomplete-dir"sv, // .resume, daemon, gtk app, rpc, tr_session::Settings
     "incomplete-dir-enabled"sv, // daemon, rpc, tr_session::Settings

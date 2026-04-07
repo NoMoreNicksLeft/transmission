@@ -255,6 +255,7 @@ enum // NOLINT(performance-enum-size)
     TR_KEY_idle_seeding_limit,
     TR_KEY_idle_seeding_limit_enabled,
     TR_KEY_ids,
+    TR_KEY_ih, // BEP 46 mutable item value key
     TR_KEY_incomplete,
     TR_KEY_incomplete_dir_kebab_APICOMPAT,
     TR_KEY_incomplete_dir_enabled_kebab_APICOMPAT,
