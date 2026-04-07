@@ -62,15 +62,14 @@ extern "C"
         return 0;
     }
 
-    void dht_hash(
-        void* hash_return,
-        int hash_size,
-        void const* v1,
-        int len1,
-        void const* v2,
-        int len2,
-        void const* v3,
-        int len3)
+    void dht_hash(void* hash_return,
+                  int hash_size,
+                  void const* v1,
+                  int len1,
+                  void const* v2,
+                  int len2,
+                  void const* v3,
+                  int len3)
     {
         auto* setme = reinterpret_cast<std::byte*>(hash_return);
         std::fill_n(static_cast<char*>(hash_return), hash_size, '\0');
@@ -192,6 +191,33 @@ public:
             sin6.sin6_port = port.network();
             mediator_.api().ping_node(reinterpret_cast<sockaddr*>(&sin6), sizeof(sin6));
         }
+    }
+
+    void get_item(unsigned char const* target, int64_t seq_known) override
+    {
+        mediator_.api().bep44_get(
+            target,
+            seq_known,
+            [](void* closure, dht_bep44_item const* item)
+            {
+                if (item != nullptr)
+                {
+                    auto* self = static_cast<tr_dht_impl*>(closure);
+                    self->mediator_.on_bep44_item(*item);
+                }
+            },
+            this);
+    }
+
+    void put_mutable(unsigned char const* key,
+                     unsigned char const* sig,
+                     unsigned char const* salt,
+                     int salt_len,
+                     int64_t seq,
+                     unsigned char const* v,
+                     int v_len) override
+    {
+        mediator_.api().bep44_put_mutable(key, sig, salt, salt_len, seq, v, v_len, nullptr, nullptr);
     }
 
     void handle_message(unsigned char const* msg, size_t msglen, struct sockaddr* from, socklen_t fromlen) override
@@ -363,11 +389,10 @@ private:
         periodic_timer_->start_single_shot(interval);
     }
 
-    [[nodiscard]] std::chrono::seconds periodic(
-        unsigned char const* msg,
-        size_t msglen,
-        struct sockaddr const* from,
-        socklen_t fromlen)
+    [[nodiscard]] std::chrono::seconds periodic(unsigned char const* msg,
+                                                size_t msglen,
+                                                struct sockaddr const* from,
+                                                socklen_t fromlen)
     {
         TR_ASSERT_MSG(msglen == 0 || msg[msglen] == '\0', "libdht requires zero-terminated msg");
 
@@ -549,11 +574,9 @@ private:
 
             if (line_stream.bad() || std::empty(addrstr))
             {
-                tr_logAddWarn(
-                    fmt::format(
-                        fmt::runtime(_("Couldn't parse '{filename}' line: '{line}'")),
-                        fmt::arg("filename", filename),
-                        fmt::arg("line", line)));
+                tr_logAddWarn(fmt::format(fmt::runtime(_("Couldn't parse '{filename}' line: '{line}'")),
+                                          fmt::arg("filename", filename),
+                                          fmt::arg("line", line)));
             }
             else
             {
@@ -574,13 +597,11 @@ private:
         addrinfo* info = nullptr;
         if (int const rc = getaddrinfo(name, port_str.c_str(), &hints, &info); rc != 0)
         {
-            tr_logAddWarn(
-                fmt::format(
-                    fmt::runtime(_("Couldn't look up '{address}:{port}': {error} ({error_code})")),
-                    fmt::arg("address", name),
-                    fmt::arg("port", port_in.host()),
-                    fmt::arg("error", gai_strerror(rc)),
-                    fmt::arg("error_code", rc)));
+            tr_logAddWarn(fmt::format(fmt::runtime(_("Couldn't look up '{address}:{port}': {error} ({error_code})")),
+                                      fmt::arg("address", name),
+                                      fmt::arg("port", port_in.host()),
+                                      fmt::arg("error", gai_strerror(rc)),
+                                      fmt::arg("error_code", rc)));
             return;
         }
 
@@ -622,11 +643,10 @@ private:
     std::map<tr_torrent_id_t, AnnounceInfo> announce_times_;
 };
 
-[[nodiscard]] std::unique_ptr<tr_dht> tr_dht::create(
-    Mediator& mediator,
-    tr_port peer_port,
-    tr_socket_t udp4_socket,
-    tr_socket_t udp6_socket)
+[[nodiscard]] std::unique_ptr<tr_dht> tr_dht::create(Mediator& mediator,
+                                                     tr_port peer_port,
+                                                     tr_socket_t udp4_socket,
+                                                     tr_socket_t udp6_socket)
 {
     return std::make_unique<tr_dht_impl>(mediator, peer_port, udp4_socket, udp6_socket);
 }

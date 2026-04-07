@@ -56,15 +56,13 @@ void log_openssl_error(char const* file, int line)
 
     auto buf = std::array<char, 512>{};
     ERR_error_string_n(error_code, std::data(buf), std::size(buf));
-    tr_logAddMessage(
-        file,
-        line,
-        TR_LOG_ERROR,
-        fmt::format(
-            fmt::runtime(_("{crypto_library} error: {error} ({error_code})")),
-            fmt::arg("crypto_library", "OpenSSL"),
-            fmt::arg("error", std::data(buf)),
-            fmt::arg("error_code", error_code)));
+    tr_logAddMessage(file,
+                     line,
+                     TR_LOG_ERROR,
+                     fmt::format(fmt::runtime(_("{crypto_library} error: {error} ({error_code})")),
+                                 fmt::arg("crypto_library", "OpenSSL"),
+                                 fmt::arg("error", std::data(buf)),
+                                 fmt::arg("error_code", error_code)));
 }
 
 #define log_error() log_openssl_error(__FILE__, __LINE__)
@@ -219,4 +217,73 @@ bool tr_rand_buffer_crypto(void* buffer, size_t length)
     TR_ASSERT(buffer != nullptr);
 
     return check_result(RAND_bytes(static_cast<unsigned char*>(buffer), (int)length));
+}
+
+// --- BEP 44 ed25519
+
+bool tr_ed25519_keypair_generate(uint8_t* key_public, uint8_t* key_private)
+{
+    EVP_PKEY* pkey = nullptr;
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+    if (ctx == nullptr)
+        return false;
+
+    bool ok = check_result(EVP_PKEY_keygen_init(ctx)) && check_result(EVP_PKEY_keygen(ctx, &pkey));
+
+    if (ok && pkey != nullptr)
+    {
+        size_t pub_len = 32;
+        size_t priv_len = 64;
+        ok = check_result(EVP_PKEY_get_raw_public_key(pkey, key_public, &pub_len)) &&
+            check_result(EVP_PKEY_get_raw_private_key(pkey, key_private, &priv_len));
+        // Store as seed||public (64 bytes) for signing convenience
+        if (ok)
+            memcpy(key_private + 32, key_public, 32);
+        EVP_PKEY_free(pkey);
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    return ok;
+}
+
+bool tr_ed25519_sign(uint8_t* sig, uint8_t const* msg, size_t msg_len, uint8_t const* key_private)
+{
+    // key_private is 64 bytes: first 32 are the seed/secret scalar
+    EVP_PKEY* pkey = EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519, nullptr, key_private, 32);
+    if (pkey == nullptr)
+        return false;
+
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    bool ok = false;
+
+    if (md_ctx != nullptr)
+    {
+        size_t sig_len = 64;
+        ok = check_result(EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, pkey)) &&
+            check_result(EVP_DigestSign(md_ctx, sig, &sig_len, msg, msg_len));
+        EVP_MD_CTX_free(md_ctx);
+    }
+
+    EVP_PKEY_free(pkey);
+    return ok;
+}
+
+bool tr_ed25519_verify(uint8_t const* sig, uint8_t const* msg, size_t msg_len, uint8_t const* key_public)
+{
+    EVP_PKEY* pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, key_public, 32);
+    if (pkey == nullptr)
+        return false;
+
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    bool ok = false;
+
+    if (md_ctx != nullptr)
+    {
+        ok = check_result(EVP_DigestVerifyInit(md_ctx, nullptr, nullptr, nullptr, pkey)) &&
+            (EVP_DigestVerify(md_ctx, sig, 64, msg, msg_len) == 1);
+        EVP_MD_CTX_free(md_ctx);
+    }
+
+    EVP_PKEY_free(pkey);
+    return ok;
 }

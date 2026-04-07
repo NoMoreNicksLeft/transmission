@@ -51,6 +51,7 @@ target_sources(${TR_NAME}
         crypto-utils-openssl.cc
         crypto-utils-wolfssl.cc
         crypto-utils.cc
+        crypto-utils-ed25519.cc
         crypto-utils.h
         error-types.h
         error.cc
@@ -279,6 +280,7 @@ target_link_libraries(${TR_NAME}
         natpmp::natpmp
         miniupnpc::libminiupnpc
         dht::dht
+        ed25519::ed25519
         libutp::libutp
         libb64::libb64
         ${Intl_LIBRARIES}

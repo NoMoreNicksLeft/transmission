@@ -13,6 +13,8 @@
 #include <string_view>
 #include <unordered_set>
 
+#include <ed25519.h>
+
 #include <libtransmission/peer-mse.h>
 #include <libtransmission/crypto-utils.h>
 #include <libtransmission/tr-macros.h>
@@ -97,12 +99,10 @@ TEST(Crypto, encryptDecrypt)
 TEST(Crypto, sha1)
 {
     auto hash1 = tr_sha1::digest("test"sv);
-    EXPECT_EQ(
-        0,
-        memcmp(
-            std::data(hash1),
-            "\xa9\x4a\x8f\xe5\xcc\xb1\x9b\xa6\x1c\x4c\x08\x73\xd3\x91\xe9\x87\x98\x2f\xbb\xd3",
-            std::size(hash1)));
+    EXPECT_EQ(0,
+              memcmp(std::data(hash1),
+                     "\xa9\x4a\x8f\xe5\xcc\xb1\x9b\xa6\x1c\x4c\x08\x73\xd3\x91\xe9\x87\x98\x2f\xbb\xd3",
+                     std::size(hash1)));
 
     auto hash2 = tr_sha1::digest("test"sv);
     EXPECT_EQ(hash1, hash2);
@@ -110,12 +110,10 @@ TEST(Crypto, sha1)
     hash1 = tr_sha1::digest("1"sv, "22"sv, "333"sv);
     hash2 = tr_sha1::digest("1"sv, "22"sv, "333"sv);
     EXPECT_EQ(hash1, hash2);
-    EXPECT_EQ(
-        0,
-        memcmp(
-            std::data(hash1),
-            "\x1f\x74\x64\x8e\x50\xa6\xa6\x70\x8e\xc5\x4a\xb3\x27\xa1\x63\xd5\x53\x6b\x7c\xed",
-            std::size(hash1)));
+    EXPECT_EQ(0,
+              memcmp(std::data(hash1),
+                     "\x1f\x74\x64\x8e\x50\xa6\xa6\x70\x8e\xc5\x4a\xb3\x27\xa1\x63\xd5\x53\x6b\x7c\xed",
+                     std::size(hash1)));
 
     auto const hash3 = tr_sha1::digest("test"sv);
     EXPECT_EQ("a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"sv, tr_sha1_to_string(hash3));
@@ -275,11 +273,10 @@ TEST_P(CryptoRandBufferTest, randBuf)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    Crypto,
-    CryptoRandBufferTest,
-    ::testing::Values(32, 100, 1024, 3000),
-    ::testing::PrintToStringParamName{});
+INSTANTIATE_TEST_SUITE_P(Crypto,
+                         CryptoRandBufferTest,
+                         ::testing::Values(32, 100, 1024, 3000),
+                         ::testing::PrintToStringParamName{});
 
 TEST(Crypto, base64)
 {
@@ -308,4 +305,138 @@ TEST(Crypto, base64)
         }
         EXPECT_EQ(buf, tr_base64_decode(tr_base64_encode(buf)));
     }
+}
+
+// ── BEP 44 ed25519 tests ─────────────────────────────────────────────────────
+
+// Test vectors from BEP 44 spec
+// https://www.bittorrent.org/beps/bep_0044.html
+
+TEST(Crypto, Ed25519KeypairGenerate)
+{
+    uint8_t pub[32], priv[64];
+    EXPECT_TRUE(tr_ed25519_keypair_generate(pub, priv));
+
+    // Two generations must produce different keys
+    uint8_t pub2[32], priv2[64];
+    EXPECT_TRUE(tr_ed25519_keypair_generate(pub2, priv2));
+    EXPECT_NE(memcmp(pub, pub2, 32), 0);
+}
+
+TEST(Crypto, Ed25519SignVerifyRoundTrip)
+{
+    uint8_t pub[32], priv[96];
+    ASSERT_TRUE(tr_ed25519_keypair_generate(pub, priv));
+
+    auto const msg = std::string_view{ "3:seqi1e1:v12:Hello World!" };
+    uint8_t sig[64];
+    ASSERT_TRUE(tr_ed25519_sign(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), priv));
+    EXPECT_TRUE(tr_ed25519_verify(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), pub));
+}
+
+TEST(Crypto, Ed25519VerifyFailsOnTamperedMessage)
+{
+    uint8_t pub[32], priv[96];
+    ASSERT_TRUE(tr_ed25519_keypair_generate(pub, priv));
+
+    auto msg = std::string{ "3:seqi1e1:v12:Hello World!" };
+    uint8_t sig[64];
+    ASSERT_TRUE(tr_ed25519_sign(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), priv));
+
+    msg[0] = 'X'; // tamper
+    EXPECT_FALSE(tr_ed25519_verify(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), pub));
+}
+
+TEST(Crypto, Ed25519VerifyFailsOnTamperedSignature)
+{
+    uint8_t pub[32], priv[96];
+    ASSERT_TRUE(tr_ed25519_keypair_generate(pub, priv));
+
+    auto const msg = std::string_view{ "3:seqi1e1:v12:Hello World!" };
+    uint8_t sig[64];
+    ASSERT_TRUE(tr_ed25519_sign(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), priv));
+
+    sig[0] ^= 0xFF; // tamper
+    EXPECT_FALSE(tr_ed25519_verify(sig, reinterpret_cast<uint8_t const*>(msg.data()), msg.size(), pub));
+}
+
+// BEP 44 spec test vector 1 (mutable, no salt)
+// public key:  77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548
+// private key: e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d
+//              b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d
+// signing buf: 3:seqi1e1:v12:Hello World!
+// signature:   305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff
+//              1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01
+static auto hexdecode(std::string_view hex)
+{
+    std::vector<uint8_t> out;
+    out.reserve(hex.size() / 2);
+    for (size_t i = 0; i + 1 < hex.size(); i += 2)
+    {
+        auto byte = std::string{ hex.substr(i, 2) };
+        out.push_back(static_cast<uint8_t>(std::stoul(byte, nullptr, 16)));
+    }
+    return out;
+}
+
+TEST(Crypto, Ed25519BEP44TestVector1)
+{
+    auto const pub_hex = std::string_view{ "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548" };
+    auto const priv_hex = std::string_view{ "e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d" };
+    auto const sig_hex = std::string_view{
+        "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
+        "1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01"
+    };
+
+    auto pub_bytes = hexdecode(pub_hex);
+    auto seed_bytes = hexdecode(priv_hex); // spec "private key" is the 32-byte seed
+    auto expected_sig = hexdecode(sig_hex);
+
+    ASSERT_EQ(32U, pub_bytes.size());
+    ASSERT_EQ(32U, seed_bytes.size());
+    ASSERT_EQ(64U, expected_sig.size());
+
+    auto const signing_buf = std::string_view{ "3:seqi1e1:v12:Hello World!" };
+
+    // Verify the known signature against the known public key
+    EXPECT_TRUE(tr_ed25519_verify(expected_sig.data(),
+                                  reinterpret_cast<uint8_t const*>(signing_buf.data()),
+                                  signing_buf.size(),
+                                  pub_bytes.data()));
+
+    // Reconstruct the 96-byte private key from the spec seed,
+    // then sign and verify with our own signature.
+    uint8_t reconstructed_pub[32];
+    uint8_t reconstructed_priv[96];
+    ed25519_create_keypair(reconstructed_pub, reconstructed_priv, seed_bytes.data());
+    memcpy(reconstructed_priv + 64, reconstructed_pub, 32);
+
+    uint8_t sig[64];
+    ASSERT_TRUE(
+        tr_ed25519_sign(sig, reinterpret_cast<uint8_t const*>(signing_buf.data()), signing_buf.size(), reconstructed_priv));
+
+    EXPECT_TRUE(
+        tr_ed25519_verify(sig, reinterpret_cast<uint8_t const*>(signing_buf.data()), signing_buf.size(), reconstructed_pub));
+}
+
+// BEP 44 spec test vector 2 (mutable, with salt "foobar")
+// signing buf: 4:salt6:foobar3:seqi1e1:v12:Hello World!
+// same keys, different expected signature
+TEST(Crypto, Ed25519BEP44TestVector2)
+{
+    auto const pub_hex = std::string_view{ "77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548" };
+    auto const sig_hex = std::string_view{
+        "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
+        "df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08"
+    };
+
+    auto pub = hexdecode(pub_hex);
+    auto expected_sig = hexdecode(sig_hex);
+
+    auto const signing_buf = std::string_view{ "4:salt6:foobar3:seqi1e1:v12:Hello World!" };
+
+    EXPECT_TRUE(tr_ed25519_verify(expected_sig.data(),
+                                  reinterpret_cast<uint8_t const*>(signing_buf.data()),
+                                  signing_buf.size(),
+                                  pub.data()));
 }

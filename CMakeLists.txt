@@ -544,6 +544,7 @@ endif()
 unset(TR_MINIUPNPC_LIBNAME)
 
 add_subdirectory(${TR_THIRD_PARTY_SOURCE_DIR}/madler-crcany)
+add_subdirectory(${TR_THIRD_PARTY_SOURCE_DIR}/ed25519)
 add_subdirectory(${TR_THIRD_PARTY_SOURCE_DIR}/wildmat)
 
 tr_add_external_auto_library(DHT dht dht

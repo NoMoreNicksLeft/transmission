@@ -18,6 +18,7 @@ target_sources(libtransmission-test
         copy-test.cc
         crypto-test.cc
         dht-test.cc
+        dht-bep44-test.cc
         error-test.cc
         file-piece-map-test.cc
         file-test.cc
@@ -77,6 +78,7 @@ target_link_libraries(libtransmission-test
         ${TR_NAME}
         gtestall
         dht::dht
+        ed25519::ed25519
         fmt::fmt-header-only
         libevent::event
         WideInteger::WideInteger)

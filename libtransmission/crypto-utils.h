@@ -267,6 +267,15 @@ template<class T>
     return dist(rng, typename dist_type::param_type(0, upper_bound - 1));
 }
 
+// BEP 44 ed25519 primitives
+//   key_public  : 32 bytes
+//   key_private : 96 bytes = [nightcracker_private(64) | public_key(32)]
+//                 tr_ed25519_keypair_generate fills both buffers at once.
+//   sig         : 64 bytes
+bool tr_ed25519_keypair_generate(uint8_t* key_public, uint8_t* key_private);
+bool tr_ed25519_sign(uint8_t* sig, uint8_t const* msg, size_t msg_len, uint8_t const* key_private);
+bool tr_ed25519_verify(uint8_t const* sig, uint8_t const* msg, size_t msg_len, uint8_t const* key_public);
+
 /** @} */
 
 #endif /* TR_CRYPTO_UTILS_H */

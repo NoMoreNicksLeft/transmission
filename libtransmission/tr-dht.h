@@ -20,7 +20,7 @@
 #include <sys/socket.h>
 #endif
 
-#include <dht/dht.h>
+#include <dht/dht.h> // dht_callback_t, dht_bep44_item, dht_bep44_callback
 
 #include "libtransmission/transmission.h"
 
@@ -53,14 +53,13 @@ public:
             return ::dht_nodes(af, good_return, dubious_return, cached_return, incoming_return);
         }
 
-        virtual int periodic(
-            void const* buf,
-            size_t buflen,
-            struct sockaddr const* from,
-            int fromlen,
-            time_t* tosleep,
-            dht_callback_t callback,
-            void* closure)
+        virtual int periodic(void const* buf,
+                             size_t buflen,
+                             struct sockaddr const* from,
+                             int fromlen,
+                             time_t* tosleep,
+                             dht_callback_t callback,
+                             void* closure)
         {
             return ::dht_periodic(buf, buflen, from, fromlen, tosleep, callback, closure);
         }
@@ -73,6 +72,29 @@ public:
         virtual int search(unsigned char const* id, int port, int af, dht_callback_t callback, void* closure)
         {
             return ::dht_search(id, port, af, callback, closure);
+        }
+
+        virtual int bep44_get(unsigned char const* target, int64_t seq_known, dht_bep44_callback callback, void* closure)
+        {
+            return ::dht_get(target, seq_known, callback, closure);
+        }
+
+        virtual int bep44_put_mutable(unsigned char const* key,
+                                      unsigned char const* sig,
+                                      unsigned char const* salt,
+                                      int salt_len,
+                                      int64_t seq,
+                                      unsigned char const* v,
+                                      int v_len,
+                                      dht_bep44_callback callback,
+                                      void* closure)
+        {
+            return ::dht_put_mutable(key, sig, salt, salt_len, seq, v, v_len, callback, closure);
+        }
+
+        virtual int bep44_put_immutable(unsigned char const* v, int v_len, dht_bep44_callback callback, void* closure)
+        {
+            return ::dht_put_immutable(v, v_len, callback, closure);
         }
 
         virtual int init(int s, int s6, unsigned char const* id, unsigned char const* v)
@@ -103,17 +125,31 @@ public:
 
         virtual void add_pex(tr_sha1_digest_t const&, tr_pex const* pex, size_t n_pex) = 0;
 
+        // Called when a BEP 44 get resolves a mutable item
+        virtual void on_bep44_item(struct dht_bep44_item const& item)
+        {
+        }
+
     private:
         API api_;
     };
 
-    [[nodiscard]] static std::unique_ptr<tr_dht> create(
-        Mediator& mediator,
-        tr_port peer_port,
-        tr_socket_t udp4_socket,
-        tr_socket_t udp6_socket);
+    [[nodiscard]] static std::unique_ptr<tr_dht> create(Mediator& mediator,
+                                                        tr_port peer_port,
+                                                        tr_socket_t udp4_socket,
+                                                        tr_socket_t udp6_socket);
     virtual ~tr_dht() = default;
 
     virtual void maybe_add_node(tr_address const& address, tr_port port) = 0;
     virtual void handle_message(unsigned char const* msg, size_t msglen, struct sockaddr* from, socklen_t fromlen) = 0;
+
+    // BEP 44
+    virtual void get_item(unsigned char const* target, int64_t seq_known) = 0;
+    virtual void put_mutable(unsigned char const* key,
+                             unsigned char const* sig,
+                             unsigned char const* salt,
+                             int salt_len,
+                             int64_t seq,
+                             unsigned char const* v,
+                             int v_len) = 0;
 };

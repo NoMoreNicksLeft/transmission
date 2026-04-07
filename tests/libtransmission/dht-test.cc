@@ -176,14 +176,13 @@ protected:
             return 0;
         }
 
-        int periodic(
-            void const* /*buf*/,
-            size_t /*buflen*/,
-            sockaddr const /*from*/*,
-            int /*fromlen*/,
-            time_t* /*tosleep*/,
-            dht_callback_t /*callback*/,
-            void* /*closure*/) override
+        int periodic(void const* /*buf*/,
+                     size_t /*buflen*/,
+                     sockaddr const /*from*/*,
+                     int /*fromlen*/,
+                     time_t* /*tosleep*/,
+                     dht_callback_t /*callback*/,
+                     void* /*closure*/) override
         {
             ++n_periodic_calls_;
             return 0;
@@ -263,6 +262,48 @@ protected:
         int64_t id_timestamp_ = {};
         tr_socket_t dht_socket_ = TR_BAD_SOCKET;
         tr_socket_t dht_socket6_ = TR_BAD_SOCKET;
+
+        // BEP 44 tracking
+        struct Bep44Get
+        {
+            std::array<uint8_t, 20> target;
+            int64_t seq_known;
+        };
+        struct Bep44PutMutable
+        {
+            std::array<uint8_t, 32> key;
+            int64_t seq;
+            int salt_len;
+        };
+        std::vector<Bep44Get> bep44_gets_;
+        std::vector<Bep44PutMutable> bep44_puts_;
+
+        int bep44_get(unsigned char const* target, int64_t seq_known, dht_bep44_callback /*cb*/, void* /*closure*/) override
+        {
+            Bep44Get g;
+            std::copy_n(target, 20, g.target.begin());
+            g.seq_known = seq_known;
+            bep44_gets_.push_back(g);
+            return 0;
+        }
+
+        int bep44_put_mutable(unsigned char const* key,
+                              unsigned char const* /*sig*/,
+                              unsigned char const* /*salt*/,
+                              int salt_len,
+                              int64_t seq,
+                              unsigned char const* /*v*/,
+                              int /*v_len*/,
+                              dht_bep44_callback /*cb*/,
+                              void* /*closure*/) override
+        {
+            Bep44PutMutable p;
+            std::copy_n(key, 32, p.key.begin());
+            p.seq = seq;
+            p.salt_len = salt_len;
+            bep44_puts_.push_back(p);
+            return 0;
+        }
     };
 
     // Creates real timers, but with shortened intervals so that tests can run faster
@@ -671,6 +712,47 @@ TEST_F(DhtTest, callsPeriodicPeriodically)
     static auto constexpr Periods = 10;
     waitFor(event_base_, std::chrono::duration_cast<std::chrono::milliseconds>(MockTimerInterval * Periods));
     EXPECT_NEAR(mock_dht.n_periodic_calls_, baseline + Periods, Periods / 2.0);
+}
+
+TEST_F(DhtTest, bep44GetIsForwardedToApi)
+{
+    auto mediator = MockMediator{ event_base_ };
+    mediator.config_dir_ = sandboxDir();
+    mediator.mock_dht_.setHealthySwarm();
+    auto dht = tr_dht::create(mediator, ArbitraryPeerPort, ArbitrarySock4, ArbitrarySock6);
+
+    auto target = tr_rand_obj<std::array<uint8_t, 20>>();
+    dht->get_item(target.data(), -1);
+
+    ASSERT_EQ(1U, std::size(mediator.mock_dht_.bep44_gets_));
+    EXPECT_EQ(target, mediator.mock_dht_.bep44_gets_.front().target);
+    EXPECT_EQ(-1LL, mediator.mock_dht_.bep44_gets_.front().seq_known);
+}
+
+TEST_F(DhtTest, bep44PutMutableIsForwardedToApi)
+{
+    auto mediator = MockMediator{ event_base_ };
+    mediator.config_dir_ = sandboxDir();
+    mediator.mock_dht_.setHealthySwarm();
+    auto dht = tr_dht::create(mediator, ArbitraryPeerPort, ArbitrarySock4, ArbitrarySock6);
+
+    auto key = tr_rand_obj<std::array<uint8_t, 32>>();
+    auto sig = tr_rand_obj<std::array<uint8_t, 64>>();
+    auto const v = std::string_view{ "12:Hello World!" };
+    int64_t const seq = 42;
+
+    dht->put_mutable(key.data(),
+                     sig.data(),
+                     nullptr,
+                     0,
+                     seq,
+                     reinterpret_cast<uint8_t const*>(v.data()),
+                     static_cast<int>(v.size()));
+
+    ASSERT_EQ(1U, std::size(mediator.mock_dht_.bep44_puts_));
+    EXPECT_EQ(key, mediator.mock_dht_.bep44_puts_.front().key);
+    EXPECT_EQ(42LL, mediator.mock_dht_.bep44_puts_.front().seq);
+    EXPECT_EQ(0, mediator.mock_dht_.bep44_puts_.front().salt_len);
 }
 
 } // namespace libtransmission::test
