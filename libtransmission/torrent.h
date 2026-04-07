@@ -180,11 +180,10 @@ struct tr_torrent
 
     void set_location(std::string_view location, bool move_from_old_path, int volatile* setme_state);
 
-    void rename_path(
-        std::string_view oldpath,
-        std::string_view newname,
-        tr_torrent_rename_done_func&& callback,
-        void* callback_user_data);
+    void rename_path(std::string_view oldpath,
+                     std::string_view newname,
+                     tr_torrent_rename_done_func&& callback,
+                     void* callback_user_data);
 
     // these functions should become private when possible,
     // but more refactoring is needed before that can happen
@@ -755,6 +754,11 @@ struct tr_torrent
 
     void set_labels(labels_t const& new_labels);
 
+    // BEP 46: update the torrent's infohash when a mutable DHT item resolves
+    // a new version. Updates internal metainfo state and rewrites the .magnet
+    // file on disk. The existing DHT announce timer picks up the new hash.
+    void update_btpk_infohash(tr_sha1_digest_t const& new_hash);
+
     /** Return the mime-type (e.g. "audio/x-flac") that matches more of the
         torrent's content than any other mime-type. */
     [[nodiscard]] std::string_view primary_mime_type() const;
@@ -1044,11 +1048,10 @@ private:
     friend tr_torrent* tr_torrentNew(tr_ctor* ctor, tr_torrent** setme_duplicate_of);
     friend uint64_t tr_torrentGetBytesLeftToAllocate(tr_torrent const* tor);
     friend void tr_torrentFreeInSessionThread(tr_torrent* tor);
-    friend void tr_torrentRemoveInSessionThread(
-        tr_torrent* tor,
-        bool delete_flag,
-        tr_fileFunc delete_func,
-        void* delete_user_data);
+    friend void tr_torrentRemoveInSessionThread(tr_torrent* tor,
+                                                bool delete_flag,
+                                                tr_fileFunc delete_func,
+                                                void* delete_user_data);
     friend void tr_torrentRemove(tr_torrent* tor, bool delete_flag, tr_fileFunc delete_func, void* delete_user_data);
     friend void tr_torrentSetDownloadDir(tr_torrent* tor, char const* path);
     friend void tr_torrentSetPriority(tr_torrent* tor, tr_priority_t priority);
@@ -1326,11 +1329,10 @@ private:
 
     void set_location_in_session_thread(std::string_view path, bool move_from_old_path, int volatile* setme_state);
 
-    void rename_path_in_session_thread(
-        std::string_view oldpath,
-        std::string_view newname,
-        tr_torrent_rename_done_func const& callback,
-        void* callback_user_data);
+    void rename_path_in_session_thread(std::string_view oldpath,
+                                       std::string_view newname,
+                                       tr_torrent_rename_done_func const& callback,
+                                       void* callback_user_data);
 
     void start_in_session_thread();
 

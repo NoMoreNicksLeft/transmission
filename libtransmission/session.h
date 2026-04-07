@@ -18,6 +18,7 @@
 #include <cstdint> // uintX_t
 #include <ctime> // time_t
 #include <future>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -62,7 +63,9 @@
 #include "libtransmission/torrent-queue.h"
 #include "libtransmission/torrents.h"
 #include "libtransmission/tr-assert.h"
+#include "libtransmission/magnet-metainfo.h"
 #include "libtransmission/tr-dht.h"
+#include "libtransmission/tr-dht-mutable.h"
 #include "libtransmission/tr-lpd.h"
 #include "libtransmission/tr-macros.h"
 #include "libtransmission/utils-ev.h"
@@ -188,8 +191,20 @@ private:
 
         void add_pex(tr_sha1_digest_t const& info_hash, tr_pex const* pex, size_t n_pex) override;
 
+        // BEP 46: route incoming DHT mutable items to the matching resolver.
+        void on_bep44_item(dht_bep44_item const& item) override;
+
+        // Register or refresh a btpk: subscription for the given torrent.
+        void add_btpk_subscription(tr_torrent_id_t tor_id, tr_magnet_metainfo::BtpkKey const& key, std::string_view salt);
+
+        // Remove the subscription for the given torrent, if any.
+        void remove_btpk_subscription(tr_torrent_id_t tor_id);
+
     private:
         tr_session& session_;
+
+        // BEP 46: active mutable-item subscriptions keyed by torrent id.
+        std::map<tr_torrent_id_t, libtransmission::tr_mutable_resolver> btpk_subscriptions_;
     };
 
     class PortForwardingMediator final : public tr_port_forwarding::Mediator
@@ -1165,6 +1180,17 @@ public:
 
     void addTorrent(tr_torrent* tor);
 
+    // BEP 46: forwarding wrappers so tr_torrent can register/remove
+    // mutable-item subscriptions without touching private dht_mediator_.
+    void add_btpk_subscription(tr_torrent_id_t id, tr_magnet_metainfo::BtpkKey const& key, std::string_view salt)
+    {
+        dht_mediator_.add_btpk_subscription(id, key, salt);
+    }
+    void remove_btpk_subscription(tr_torrent_id_t id)
+    {
+        dht_mediator_.remove_btpk_subscription(id);
+    }
+
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void maybe_add_dht_node(tr_address const& addr, tr_port port)
     {
@@ -1246,10 +1272,9 @@ private:
     friend size_t tr_sessionGetAltSpeed_KBps(tr_session const* session, tr_direction dir);
     friend tr_port_forwarding_state tr_sessionGetPortForwarding(tr_session const* session);
     friend tr_sched_day tr_sessionGetAltSpeedDay(tr_session const* session);
-    friend tr_session* tr_sessionInit(
-        std::string_view config_dir,
-        bool message_queueing_enabled,
-        tr_variant const& client_settings);
+    friend tr_session* tr_sessionInit(std::string_view config_dir,
+                                      bool message_queueing_enabled,
+                                      tr_variant const& client_settings);
     friend uint16_t tr_sessionGetPeerPort(tr_session const* session);
     friend uint16_t tr_sessionGetRPCPort(tr_session const* session);
     friend uint16_t tr_sessionSetPeerPortRandom(tr_session* session);

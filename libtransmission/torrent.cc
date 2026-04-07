@@ -152,12 +152,11 @@ bool tr_torrentSetMetainfoFromFile(tr_torrent* tor, tr_torrent_metainfo const* m
     if (error)
     {
         tor->error().set_local_error(
-            fmt::format(
-                fmt::runtime(_("Couldn't use metainfo from '{path}' for '{magnet}': {error} ({error_code})")),
-                fmt::arg("path", filename),
-                fmt::arg("magnet", tor->magnet()),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+            fmt::format(fmt::runtime(_("Couldn't use metainfo from '{path}' for '{magnet}': {error} ({error_code})")),
+                        fmt::arg("path", filename),
+                        fmt::arg("magnet", tor->magnet()),
+                        fmt::arg("error", error.message()),
+                        fmt::arg("error_code", error.code())));
         return false;
     }
 
@@ -426,13 +425,11 @@ void torrentCallScript(tr_torrent const* tor, std::string const& script)
     auto error = tr_error{};
     if (!tr_spawn_async(std::data(cmd), env, TR_IF_WIN32("\\", "/"), &error))
     {
-        tr_logAddWarnTor(
-            tor,
-            fmt::format(
-                fmt::runtime(_("Couldn't call script '{path}': {error} ({error_code})")),
-                fmt::arg("path", script),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+        tr_logAddWarnTor(tor,
+                         fmt::format(fmt::runtime(_("Couldn't call script '{path}': {error} ({error_code})")),
+                                     fmt::arg("path", script),
+                                     fmt::arg("error", error.message()),
+                                     fmt::arg("error_code", error.code())));
     }
 }
 } // namespace script_helpers
@@ -572,6 +569,9 @@ void freeTorrent(tr_torrent* tor)
     tor->doomed_.emit(tor);
 
     session->announcer_->removeTorrent(tor);
+
+    // BEP 46: clean up any active mutable-item subscription.
+    session->remove_btpk_subscription(tor->id());
 
     session->torrents().remove(tor, tr_time());
 
@@ -731,12 +731,10 @@ void tr_torrentRemoveInSessionThread(tr_torrent* tor, bool delete_flag, tr_fileF
         tor->files().remove(tor->current_dir(), tor->name(), delete_func_wrapper, &error);
         if (error)
         {
-            tr_logAddWarnTor(
-                tor,
-                fmt::format(
-                    fmt::runtime(_("Couldn't remove all torrent files: {error} ({error_code})")),
-                    fmt::arg("error", error.message()),
-                    fmt::arg("error_code", error.code())));
+            tr_logAddWarnTor(tor,
+                             fmt::format(fmt::runtime(_("Couldn't remove all torrent files: {error} ({error_code})")),
+                                         fmt::arg("error", error.message()),
+                                         fmt::arg("error_code", error.code())));
         }
     }
 
@@ -967,10 +965,9 @@ void tr_torrent::init(tr_ctor const& ctor)
     {
         // if tr_resume::load() loaded progress info, then initCheckedPieces()
         // has already looked for local data on the filesystem
-        has_any_local_data = std::any_of(
-            std::begin(file_mtimes_),
-            std::end(file_mtimes_),
-            [](auto mtime) { return mtime > 0; });
+        has_any_local_data = std::any_of(std::begin(file_mtimes_),
+                                         std::end(file_mtimes_),
+                                         [](auto mtime) { return mtime > 0; });
     }
 
     auto const file_path = store_file();
@@ -995,13 +992,18 @@ void tr_torrent::init(tr_ctor const& ctor)
 
         if (error)
         {
-            this->error().set_local_error(
-                fmt::format(
-                    fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
-                    fmt::arg("path", file_path),
-                    fmt::arg("error", error.message()),
-                    fmt::arg("error_code", error.code())));
+            this->error().set_local_error(fmt::format(fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
+                                                      fmt::arg("path", file_path),
+                                                      fmt::arg("error", error.message()),
+                                                      fmt::arg("error_code", error.code())));
         }
+    }
+
+    // BEP 46: if this is a btpk: magnet with no metainfo yet, register a
+    // mutable-item subscription so the DHT can resolve the current infohash.
+    if (metainfo_.has_btpk() && !has_metainfo())
+    {
+        session->add_btpk_subscription(id(), *metainfo_.btpk_key(), metainfo_.btpk_salt());
     }
 
     torrent_announcer = session->announcer_->addTorrent(this, &tr_torrent::on_tracker_response);
@@ -1095,12 +1097,11 @@ void tr_torrent::set_location_in_session_thread(std::string_view const path, boo
         if (error)
         {
             this->error().set_local_error(
-                fmt::format(
-                    fmt::runtime(_("Couldn't move '{old_path}' to '{path}': {error} ({error_code})")),
-                    fmt::arg("old_path", current_dir()),
-                    fmt::arg("path", path),
-                    fmt::arg("error", error.message()),
-                    fmt::arg("error_code", error.code())));
+                fmt::format(fmt::runtime(_("Couldn't move '{old_path}' to '{path}': {error} ({error_code})")),
+                            fmt::arg("old_path", current_dir()),
+                            fmt::arg("path", path),
+                            fmt::arg("error", error.message()),
+                            fmt::arg("error_code", error.code())));
             tr_torrentStop(this);
         }
     }
@@ -1615,14 +1616,12 @@ void tr_torrent::update_file_path(tr_file_index_t file, std::optional<bool> has_
 
     if (auto error = tr_error{}; !tr_sys_path_rename(oldpath, newpath, &error))
     {
-        tr_logAddErrorTor(
-            this,
-            fmt::format(
-                fmt::runtime(_("Couldn't move '{old_path}' to '{path}': {error} ({error_code})")),
-                fmt::arg("old_path", oldpath),
-                fmt::arg("path", newpath),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+        tr_logAddErrorTor(this,
+                          fmt::format(fmt::runtime(_("Couldn't move '{old_path}' to '{path}': {error} ({error_code})")),
+                                      fmt::arg("old_path", oldpath),
+                                      fmt::arg("path", newpath),
+                                      fmt::arg("error", error.message()),
+                                      fmt::arg("error_code", error.code())));
     }
 }
 
@@ -1659,13 +1658,11 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
     {
         auto const total_size = tor_->total_size();
         auto const duration_secs = tr_time() - *time_started_;
-        tr_logAddDebugTor(
-            tor_,
-            fmt::format(
-                "Verification is done. It took {} seconds to verify {} bytes ({} bytes per second)",
-                duration_secs,
-                total_size,
-                total_size / (1 + duration_secs)));
+        tr_logAddDebugTor(tor_,
+                          fmt::format("Verification is done. It took {} seconds to verify {} bytes ({} bytes per second)",
+                                      duration_secs,
+                                      total_size,
+                                      total_size / (1 + duration_secs)));
     }
 
     tor_->set_verify_state(VerifyState::None);
@@ -1801,12 +1798,10 @@ void tr_torrent::recheck_completeness()
             return;
         }
 
-        tr_logAddTraceTor(
-            this,
-            fmt::format(
-                "State changed from {} to {}",
-                get_completion_string(completeness_),
-                get_completion_string(new_completeness)));
+        tr_logAddTraceTor(this,
+                          fmt::format("State changed from {} to {}",
+                                      get_completion_string(completeness_),
+                                      get_completion_string(new_completeness)));
 
         completeness_ = new_completeness;
 
@@ -1870,6 +1865,37 @@ void tr_torrent::set_labels(labels_t const& new_labels)
     labels_.shrink_to_fit();
     set_dirty();
     mark_edited();
+}
+
+void tr_torrent::update_btpk_infohash(tr_sha1_digest_t const& new_hash)
+{
+    // Ignore if we already have full metainfo — the torrent is fully resolved.
+    if (has_metainfo())
+    {
+        return;
+    }
+
+    // Ignore if the hash hasn't actually changed.
+    if (metainfo_.info_hash() == new_hash)
+    {
+        return;
+    }
+
+    metainfo_.set_info_hash(new_hash);
+
+    // Rewrite the .magnet file with the updated infohash so it persists across
+    // restarts. The existing DHT announce timer will pick up the new hash on its
+    // next cycle and issue a peer search, which triggers BEP 9 metadata fetch.
+    auto const file_path = store_file();
+    auto const magnet_link = magnet();
+    auto error = tr_error{};
+    tr_file_save(file_path, magnet_link, &error);
+    if (error)
+    {
+        tr_logAddWarnTor(this, fmt::format("Couldn't save updated magnet '{}': {}", file_path, error.message()));
+    }
+
+    mark_changed();
 }
 
 // ---
@@ -1956,10 +1982,9 @@ tr_block_span_t tr_torrent::block_span_for_file(tr_file_index_t const file) cons
 
 void tr_torrent::set_file_priorities(tr_file_index_t const* files, tr_file_index_t file_count, tr_priority_t priority)
 {
-    if (std::any_of(
-            files,
-            files + file_count,
-            [this, priority](tr_file_index_t file) { return priority != file_priorities_.file_priority(file); }))
+    if (std::any_of(files,
+                    files + file_count,
+                    [this, priority](tr_file_index_t file) { return priority != file_priorities_.file_priority(file); }))
     {
         file_priorities_.set(files, file_count, priority);
         priority_changed_.emit(this, files, file_count, priority);
@@ -2011,12 +2036,10 @@ bool tr_torrent::set_announce_list(tr_announce_list announce_list)
 
     if (save_error.has_value())
     {
-        error().set_local_error(
-            fmt::format(
-                fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
-                fmt::arg("path", filename),
-                fmt::arg("error", save_error.message()),
-                fmt::arg("error_code", save_error.code())));
+        error().set_local_error(fmt::format(fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
+                                            fmt::arg("path", filename),
+                                            fmt::arg("error", save_error.message()),
+                                            fmt::arg("error_code", save_error.code())));
         return false;
     }
 
@@ -2031,10 +2054,9 @@ void tr_torrent::on_announce_list_changed()
     if (auto const& error_url = error_.announce_url(); !std::empty(error_url))
     {
         auto const& ann = metainfo().announce_list();
-        if (std::none_of(
-                std::begin(ann),
-                std::end(ann),
-                [error_url](auto const& tracker) { return tracker.announce == error_url; }))
+        if (std::none_of(std::begin(ann),
+                         std::end(ann),
+                         [error_url](auto const& tracker) { return tracker.announce == error_url; }))
         {
             error_.clear();
         }
@@ -2063,12 +2085,10 @@ void tr_torrent::on_tracker_response(tr_tracker_event const* event)
         break;
 
     case tr_tracker_event::Type::Warning:
-        tr_logAddWarnTor(
-            this,
-            fmt::format(
-                fmt::runtime(_("Tracker warning: '{warning}' ({url})")),
-                fmt::arg("warning", event->text),
-                fmt::arg("url", tr_urlTrackerLogName(event->announce_url))));
+        tr_logAddWarnTor(this,
+                         fmt::format(fmt::runtime(_("Tracker warning: '{warning}' ({url})")),
+                                     fmt::arg("warning", event->text),
+                                     fmt::arg("url", tr_urlTrackerLogName(event->announce_url))));
         error_.set_tracker_warning(event->announce_url, event->text);
         break;
 
@@ -2431,11 +2451,10 @@ void renameTorrentFileString(tr_torrent* tor, std::string_view oldpath, std::str
 } // namespace rename_helpers
 } // namespace
 
-void tr_torrent::rename_path_in_session_thread(
-    std::string_view const oldpath,
-    std::string_view const newname,
-    tr_torrent_rename_done_func const& callback,
-    void* const callback_user_data)
+void tr_torrent::rename_path_in_session_thread(std::string_view const oldpath,
+                                               std::string_view const newname,
+                                               tr_torrent_rename_done_func const& callback,
+                                               void* const callback_user_data)
 {
     using namespace rename_helpers;
 
@@ -2482,23 +2501,21 @@ void tr_torrent::rename_path_in_session_thread(
     }
 }
 
-void tr_torrent::rename_path(
-    std::string_view oldpath,
-    std::string_view newname,
-    tr_torrent_rename_done_func&& callback,
-    void* callback_user_data)
+void tr_torrent::rename_path(std::string_view oldpath,
+                             std::string_view newname,
+                             tr_torrent_rename_done_func&& callback,
+                             void* callback_user_data)
 {
     this->session->run_in_session_thread(
         [this, oldpath = std::string(oldpath), newname = std::string(newname), cb = std::move(callback), callback_user_data]()
         { rename_path_in_session_thread(oldpath, newname, std::move(cb), callback_user_data); });
 }
 
-void tr_torrentRenamePath(
-    tr_torrent* tor,
-    char const* oldpath,
-    char const* newname,
-    tr_torrent_rename_done_func callback,
-    void* callback_user_data)
+void tr_torrentRenamePath(tr_torrent* tor,
+                          char const* oldpath,
+                          char const* newname,
+                          tr_torrent_rename_done_func callback,
+                          void* callback_user_data)
 {
     tr_return_if_fail(tr_isTorrent(tor));
 
@@ -2510,11 +2527,10 @@ void tr_torrentRenamePath(
 
 // ---
 
-void tr_torrentSetFilePriorities(
-    tr_torrent* tor,
-    tr_file_index_t const* files,
-    tr_file_index_t file_count,
-    tr_priority_t priority)
+void tr_torrentSetFilePriorities(tr_torrent* tor,
+                                 tr_file_index_t const* files,
+                                 tr_file_index_t file_count,
+                                 tr_priority_t priority)
 {
     tr_return_if_fail(tr_isTorrent(tor));
 

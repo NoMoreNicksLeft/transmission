@@ -19,6 +19,7 @@ target_sources(libtransmission-test
         crypto-test.cc
         dht-test.cc
         dht-bep44-test.cc
+    dht-layer5-test.cc
     dht-mutable-test.cc
     magnet-btpk-test.cc
         error-test.cc

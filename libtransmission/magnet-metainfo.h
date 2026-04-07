@@ -72,6 +72,13 @@ public:
 
     void add_webseed(std::string_view webseed);
 
+    // BEP 46: update the parsed infohash (used when mutable DHT resolves a new version).
+    void set_info_hash(tr_sha1_digest_t const& hash)
+    {
+        info_hash_ = hash;
+        info_hash_str_ = tr_sha1_to_string(hash);
+    }
+
     // BEP 46: mutable torrent public key (32 bytes) and optional salt.
     // Present when the magnet URI contains an xs=urn:btpk:<hex-key> parameter.
     static constexpr size_t BtpkKeyLen = 32U;

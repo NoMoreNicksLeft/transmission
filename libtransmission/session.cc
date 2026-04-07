@@ -51,7 +51,9 @@
 #include "libtransmission/torrent.h"
 #include "libtransmission/torrent-ctor.h"
 #include "libtransmission/tr-assert.h"
+#include "libtransmission/magnet-metainfo.h"
 #include "libtransmission/tr-dht.h"
+#include "libtransmission/tr-dht-mutable.h"
 #include "libtransmission/tr-lpd.h"
 #include "libtransmission/tr-strbuf.h"
 #include "libtransmission/tr-utp.h"
@@ -245,6 +247,50 @@ void tr_session::DhtMediator::add_pex(tr_sha1_digest_t const& info_hash, tr_pex 
     }
 }
 
+void tr_session::DhtMediator::on_bep44_item(dht_bep44_item const& item)
+{
+    for (auto& [tor_id, resolver] : btpk_subscriptions_)
+    {
+        if (resolver.on_dht_item(item))
+        {
+            break; // item consumed by this resolver
+        }
+    }
+}
+
+void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
+                                                    tr_magnet_metainfo::BtpkKey const& key,
+                                                    std::string_view salt)
+{
+    // Build the InfohashCallback: when the resolver fires with a new infohash,
+    // look up the torrent and update it.
+    auto cb = [this, tor_id](tr_sha1_digest_t const& new_hash)
+    {
+        if (auto* const tor = session_.torrents().get(tor_id); tor != nullptr)
+        {
+            tor->update_btpk_infohash(new_hash);
+        }
+    };
+
+    // Emplace-or-replace: if already subscribed (e.g. session restart), update.
+    btpk_subscriptions_.erase(tor_id);
+    btpk_subscriptions_.emplace(std::piecewise_construct,
+                                std::forward_as_tuple(tor_id),
+                                std::forward_as_tuple(key, salt, std::move(cb)));
+
+    // Issue the first DHT get immediately.
+    if (session_.dht_)
+    {
+        auto const& resolver = btpk_subscriptions_.at(tor_id);
+        session_.dht_->get_item(resolver.target().data(), resolver.last_seq());
+    }
+}
+
+void tr_session::DhtMediator::remove_btpk_subscription(tr_torrent_id_t tor_id)
+{
+    btpk_subscriptions_.erase(tor_id);
+}
+
 // ---
 
 std::string tr_session::QueueMediator::store_filename(tr_torrent_id_t id) const
@@ -402,12 +448,11 @@ void tr_session::onIncomingPeerConnection(tr_socket_t fd, void* vsession)
     }
 }
 
-tr_session::BoundSocket::BoundSocket(
-    struct event_base* evbase,
-    tr_address const& addr,
-    tr_port port,
-    IncomingCallback cb,
-    void* cb_data)
+tr_session::BoundSocket::BoundSocket(struct event_base* evbase,
+                                     tr_address const& addr,
+                                     tr_port port,
+                                     IncomingCallback cb,
+                                     void* cb_data)
     : cb_{ cb }
     , cb_data_{ cb_data }
     , socket_{ tr_netBindTCP(addr, port, false) }
@@ -418,10 +463,8 @@ tr_session::BoundSocket::BoundSocket(
         return;
     }
 
-    tr_logAddInfo(
-        fmt::format(
-            fmt::runtime(_("Listening to incoming peer connections on {hostport}")),
-            fmt::arg("hostport", tr_socket_address::display_name(addr, port))));
+    tr_logAddInfo(fmt::format(fmt::runtime(_("Listening to incoming peer connections on {hostport}")),
+                              fmt::arg("hostport", tr_socket_address::display_name(addr, port))));
     event_add(ev_.get(), nullptr);
 }
 
@@ -629,11 +672,10 @@ std::vector<tr_torrent*> get_next_queued_torrents(tr_torrents& torrents, tr_dire
     num_wanted = std::min(num_wanted, std::size(candidates));
     if (num_wanted < candidates.size())
     {
-        std::partial_sort(
-            std::begin(candidates),
-            std::begin(candidates) + num_wanted,
-            std::end(candidates),
-            tr_torrent::CompareQueuePosition);
+        std::partial_sort(std::begin(candidates),
+                          std::begin(candidates) + num_wanted,
+                          std::end(candidates),
+                          tr_torrent::CompareQueuePosition);
         candidates.resize(num_wanted);
     }
 
@@ -939,9 +981,8 @@ void tr_session::Settings::fixup_to_preferred_transports()
         auto const remove_it = std::remove(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_UTP);
         preferred_transports.erase(remove_it, std::end(preferred_transports));
     }
-    else if (
-        std::find(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_UTP) ==
-        std::end(preferred_transports))
+    else if (std::find(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_UTP) ==
+             std::end(preferred_transports))
     {
         TR_ASSERT(std::size(preferred_transports) < preferred_transports.max_size());
         preferred_transports.emplace(std::begin(preferred_transports), TR_PREFER_UTP);
@@ -952,9 +993,8 @@ void tr_session::Settings::fixup_to_preferred_transports()
         auto const remove_it = std::remove(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_TCP);
         preferred_transports.erase(remove_it, std::end(preferred_transports));
     }
-    else if (
-        std::find(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_TCP) ==
-        std::end(preferred_transports))
+    else if (std::find(std::begin(preferred_transports), std::end(preferred_transports), TR_PREFER_TCP) ==
+             std::end(preferred_transports))
     {
         TR_ASSERT(std::size(preferred_transports) < preferred_transports.max_size());
         preferred_transports.emplace_back(TR_PREFER_TCP);
@@ -1180,11 +1220,10 @@ void tr_session::AltSpeedMediator::is_active_changed(bool is_active, tr_session_
 
         if (session->alt_speed_active_changed_func_ != nullptr)
         {
-            session->alt_speed_active_changed_func_(
-                session,
-                is_active,
-                reason == tr_session_alt_speeds::ChangeReason::User,
-                session->alt_speed_active_changed_func_user_data_);
+            session->alt_speed_active_changed_func_(session,
+                                                    is_active,
+                                                    reason == tr_session_alt_speeds::ChangeReason::User,
+                                                    session->alt_speed_active_changed_func_user_data_);
         }
     };
 
@@ -1417,15 +1456,14 @@ void tr_session::closeImplPart1(std::promise<void>* closed_promise, std::chrono:
     // so that the most important announce=stopped events are
     // fired out first...
     auto torrents = torrents_.get_all();
-    std::sort(
-        std::begin(torrents),
-        std::end(torrents),
-        [](auto const* a, auto const* b)
-        {
-            auto const a_cur = a->bytes_downloaded_.ever();
-            auto const b_cur = b->bytes_downloaded_.ever();
-            return a_cur > b_cur; // larger xfers go first
-        });
+    std::sort(std::begin(torrents),
+              std::end(torrents),
+              [](auto const* a, auto const* b)
+              {
+                  auto const a_cur = a->bytes_downloaded_.ever();
+                  auto const b_cur = b->bytes_downloaded_.ever();
+                  return a_cur > b_cur; // larger xfers go first
+              });
     for (auto* tor : torrents)
     {
         tr_torrentFreeInSessionThread(tor);
@@ -1510,19 +1548,17 @@ auto get_remaining_files(std::string_view folder, std::vector<std::string>& queu
     std::sort(std::begin(queue_order), std::end(queue_order));
     std::sort(std::begin(files), std::end(files));
 
-    std::set_difference(
-        std::begin(files),
-        std::end(files),
-        std::begin(queue_order),
-        std::end(queue_order),
-        std::back_inserter(ret));
+    std::set_difference(std::begin(files),
+                        std::end(files),
+                        std::begin(queue_order),
+                        std::end(queue_order),
+                        std::back_inserter(ret));
 
     // Read .torrent first if somehow a .magnet of the same hash exists
     // Example of possible cause: https://github.com/transmission/transmission/issues/5007
-    std::stable_partition(
-        std::begin(ret),
-        std::end(ret),
-        [](std::string_view name) { return tr_strv_ends_with(name, ".torrent"sv); });
+    std::stable_partition(std::begin(ret),
+                          std::end(ret),
+                          [](std::string_view name) { return tr_strv_ends_with(name, ".torrent"sv); });
 
     return ret;
 }
@@ -1566,10 +1602,8 @@ void session_load_torrents(tr_session* session, tr_ctor* ctor, std::promise<size
 
     if (n_torrents != 0U)
     {
-        tr_logAddInfo(
-            fmt::format(
-                fmt::runtime(tr_ngettext("Loaded {count} torrent", "Loaded {count} torrents", n_torrents)),
-                fmt::arg("count", n_torrents)));
+        tr_logAddInfo(fmt::format(fmt::runtime(tr_ngettext("Loaded {count} torrent", "Loaded {count} torrents", n_torrents)),
+                                  fmt::arg("count", n_torrents)));
     }
 
     loaded_promise->set_value(n_torrents);
