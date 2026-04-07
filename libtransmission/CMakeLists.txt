@@ -52,6 +52,7 @@ target_sources(${TR_NAME}
         crypto-utils-wolfssl.cc
         crypto-utils.cc
         crypto-utils-ed25519.cc
+    tr-dht-mutable.cc
         crypto-utils.h
         error-types.h
         error.cc
