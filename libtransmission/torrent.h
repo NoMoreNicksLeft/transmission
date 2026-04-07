@@ -489,6 +489,22 @@ struct tr_torrent
         return metainfo_.file_size(i);
     }
 
+    // BEP 47 per-file attribute accessors
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_padding(tr_file_index_t i) const
+    {
+        return metainfo_.file_is_padding(i);
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_symlink(tr_file_index_t i) const
+    {
+        return metainfo_.file_is_symlink(i);
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 std::string const& file_symlink_target(tr_file_index_t i) const
+    {
+        return metainfo_.file_symlink_target(i);
+    }
+
     void set_file_subpath(tr_file_index_t i, std::string_view subpath)
     {
         metainfo_.set_file_subpath(i, subpath);

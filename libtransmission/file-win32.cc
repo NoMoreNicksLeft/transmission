@@ -213,14 +213,13 @@ tr_sys_file_t open_file(std::string_view path, DWORD access, DWORD disposition, 
 
     if (auto const wide_path = path_to_native_path(path); !std::empty(wide_path))
     {
-        ret = CreateFileW(
-            wide_path.c_str(),
-            access,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            nullptr,
-            disposition,
-            flags,
-            nullptr);
+        ret = CreateFileW(wide_path.c_str(),
+                          access,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                          nullptr,
+                          disposition,
+                          flags,
+                          nullptr);
     }
 
     if (ret == TR_BAD_SYS_FILE)
@@ -328,11 +327,10 @@ std::optional<tr_sys_path_info> tr_sys_file_get_info_(tr_sys_file_t handle, tr_e
     auto attributes = BY_HANDLE_FILE_INFORMATION{};
     if (to_bool(GetFileInformationByHandle(handle, &attributes)))
     {
-        return stat_to_sys_path_info(
-            attributes.dwFileAttributes,
-            attributes.nFileSizeLow,
-            attributes.nFileSizeHigh,
-            attributes.ftLastWriteTime);
+        return stat_to_sys_path_info(attributes.dwFileAttributes,
+                                     attributes.nFileSizeLow,
+                                     attributes.nFileSizeHigh,
+                                     attributes.ftLastWriteTime);
     }
 
     set_system_error(error, GetLastError());
@@ -419,11 +417,10 @@ std::optional<tr_sys_path_info> tr_sys_path_get_info(std::string_view path, int 
         auto attributes = WIN32_FILE_ATTRIBUTE_DATA{};
         if (to_bool(GetFileAttributesExW(wide_path.c_str(), GetFileExInfoStandard, &attributes)))
         {
-            return stat_to_sys_path_info(
-                attributes.dwFileAttributes,
-                attributes.nFileSizeLow,
-                attributes.nFileSizeHigh,
-                attributes.ftLastWriteTime);
+            return stat_to_sys_path_info(attributes.dwFileAttributes,
+                                         attributes.nFileSizeLow,
+                                         attributes.nFileSizeHigh,
+                                         attributes.ftLastWriteTime);
         }
     }
     else if (auto const
@@ -489,14 +486,13 @@ std::string tr_sys_path_resolve(std::string_view path, tr_error* error)
 
     if (auto const wide_path = path_to_native_path(path); !std::empty(wide_path))
     {
-        if (auto const handle = CreateFileW(
-                wide_path.c_str(),
-                FILE_READ_EA,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                nullptr,
-                OPEN_EXISTING,
-                FILE_FLAG_BACKUP_SEMANTICS,
-                nullptr);
+        if (auto const handle = CreateFileW(wide_path.c_str(),
+                                            FILE_READ_EA,
+                                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                            nullptr,
+                                            OPEN_EXISTING,
+                                            FILE_FLAG_BACKUP_SEMANTICS,
+                                            nullptr);
             handle != INVALID_HANDLE_VALUE)
         {
             if (auto const wide_ret_size = GetFinalPathNameByHandleW(handle, nullptr, 0, 0); wide_ret_size != 0)
@@ -719,6 +715,45 @@ bool tr_sys_path_rename(char const* src_path, char const* dst_path, tr_error* er
     return ret;
 }
 
+bool tr_sys_path_create_symlink(char const* link_path, char const* target_path, tr_error* error)
+{
+    TR_ASSERT(link_path != nullptr);
+    TR_ASSERT(target_path != nullptr);
+
+    auto const wide_link = tr_win32_utf8_to_native(link_path);
+    auto const wide_target = tr_win32_utf8_to_native(target_path);
+
+    // Attempt native symbolic link (requires Developer Mode or SeCreateSymbolicLinkPrivilege)
+    // SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE (0x2) enables creation in Developer Mode.
+    if (CreateSymbolicLinkW(wide_link.c_str(), wide_target.c_str(), 0x2U))
+    {
+        return true;
+    }
+
+    DWORD const sym_err = GetLastError();
+
+    // Fallback 1: hardlink — works without privilege but only for files on the same volume.
+    // Note: hardlinks share inode, so changes to one affect the other — acceptable for
+    // BEP 47 read-only deduplication, but callers should be aware.
+    if (CreateHardLinkW(wide_link.c_str(), wide_target.c_str(), nullptr))
+    {
+        return true;
+    }
+
+    // Fallback 2: full copy — always works, costs disk space, but preserves semantics.
+    if (CopyFileW(wide_target.c_str(), wide_link.c_str(), /*bFailIfExists=*/FALSE))
+    {
+        return true;
+    }
+
+    // All strategies failed — report the original symlink error as most informative.
+    if (error != nullptr)
+    {
+        set_system_error(error, sym_err);
+    }
+    return false;
+}
+
 bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* error)
 {
     TR_ASSERT(src_path != nullptr);
@@ -896,13 +931,12 @@ bool tr_sys_file_read(tr_sys_file_t handle, void* buffer, uint64_t size, uint64_
     return ret;
 }
 
-bool tr_sys_file_read_at(
-    tr_sys_file_t handle,
-    void* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_read,
-    tr_error* error)
+bool tr_sys_file_read_at(tr_sys_file_t handle,
+                         void* buffer,
+                         uint64_t size,
+                         uint64_t offset,
+                         uint64_t* bytes_read,
+                         tr_error* error)
 {
     TR_ASSERT(handle != TR_BAD_SYS_FILE);
     TR_ASSERT(buffer != nullptr || size == 0);
@@ -969,13 +1003,12 @@ bool tr_sys_file_write(tr_sys_file_t handle, void const* buffer, uint64_t size, 
     return ret;
 }
 
-bool tr_sys_file_write_at(
-    tr_sys_file_t handle,
-    void const* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_written,
-    tr_error* error)
+bool tr_sys_file_write_at(tr_sys_file_t handle,
+                          void const* buffer,
+                          uint64_t size,
+                          uint64_t offset,
+                          uint64_t* bytes_written,
+                          tr_error* error)
 {
     TR_ASSERT(handle != TR_BAD_SYS_FILE);
     TR_ASSERT(buffer != nullptr || size == 0);

@@ -70,13 +70,12 @@ bool write_entire_buf(tr_sys_file_t const fd, uint64_t file_offset, uint8_t cons
     return true;
 }
 
-[[nodiscard]] std::optional<tr_sys_file_t> get_fd(
-    tr_session& session,
-    tr_open_files& open_files,
-    tr_torrent const& tor,
-    bool const writable,
-    tr_file_index_t const file_index,
-    tr_error& error)
+[[nodiscard]] std::optional<tr_sys_file_t> get_fd(tr_session& session,
+                                                  tr_open_files& open_files,
+                                                  tr_torrent const& tor,
+                                                  bool const writable,
+                                                  tr_file_index_t const file_index,
+                                                  tr_error& error)
 {
     auto const tor_id = tor.id();
 
@@ -112,32 +111,46 @@ bool write_entire_buf(tr_sys_file_t const fd, uint64_t file_offset, uint8_t cons
         err = errno;
     }
 
-    error.set(
-        err,
-        fmt::format(
-            fmt::runtime(_("Couldn't get '{path}': {error} ({error_code})")),
-            fmt::arg("path", tor.file_subpath(file_index)),
-            fmt::arg("error", tr_strerror(err)),
-            fmt::arg("error_code", err)));
+    error.set(err,
+              fmt::format(fmt::runtime(_("Couldn't get '{path}': {error} ({error_code})")),
+                          fmt::arg("path", tor.file_subpath(file_index)),
+                          fmt::arg("error", tr_strerror(err)),
+                          fmt::arg("error_code", err)));
     return {};
 }
 
-void read_or_write_bytes(
-    tr_session& session,
-    tr_open_files& open_files,
-    tr_torrent const& tor,
-    bool const writable,
-    tr_file_index_t const file_index,
-    uint64_t const file_offset,
-    uint8_t* const buf,
-    uint64_t const buflen,
-    tr_error& error)
+void read_or_write_bytes(tr_session& session,
+                         tr_open_files& open_files,
+                         tr_torrent const& tor,
+                         bool const writable,
+                         tr_file_index_t const file_index,
+                         uint64_t const file_offset,
+                         uint8_t* const buf,
+                         uint64_t const buflen,
+                         tr_error& error)
 {
     TR_ASSERT(file_index < tor.file_count());
     auto const file_size = tor.file_size(file_index);
     TR_ASSERT(file_size == 0U || file_offset < file_size);
     TR_ASSERT(file_offset + buflen <= file_size);
     if (file_size == 0U)
+    {
+        return;
+    }
+
+    // BEP 47: padding files are logically all-zeros and are never stored on disk.
+    // Writes are silently dropped; reads return zeros to satisfy piece verification.
+    if (tor.file_is_padding(file_index))
+    {
+        if (!writable && buf != nullptr)
+        {
+            std::fill_n(buf, buflen, uint8_t{ 0 });
+        }
+        return;
+    }
+
+    // BEP 47: symlinks have zero length and carry no piece data — nothing to do.
+    if (tor.file_is_symlink(file_index))
     {
         return;
     }
@@ -162,23 +175,20 @@ void read_or_write_bytes(
 
     if (error)
     {
-        tr_logAddErrorTor(
-            &tor,
-            fmt::format(
-                fmt::runtime(fmtstr),
-                fmt::arg("path", tor.file_subpath(file_index)),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+        tr_logAddErrorTor(&tor,
+                          fmt::format(fmt::runtime(fmtstr),
+                                      fmt::arg("path", tor.file_subpath(file_index)),
+                                      fmt::arg("error", error.message()),
+                                      fmt::arg("error_code", error.code())));
     }
 }
 
-void read_or_write_piece(
-    tr_torrent const& tor,
-    bool const writable,
-    tr_block_info::Location const loc,
-    uint8_t* buf,
-    uint64_t buflen,
-    tr_error& error)
+void read_or_write_piece(tr_torrent const& tor,
+                         bool const writable,
+                         tr_block_info::Location const loc,
+                         uint8_t* buf,
+                         uint64_t buflen,
+                         tr_error& error)
 {
     if (loc.piece >= tor.piece_count())
     {

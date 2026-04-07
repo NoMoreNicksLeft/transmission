@@ -326,6 +326,24 @@ bool tr_sys_path_rename(char const* src_path, char const* dst_path, tr_error* er
 /* We try to do a fast (in-kernel) copy using a variety of non-portable system
  * calls. If the current implementation does not support in-kernel copying, we
  * use a user-space fallback instead. */
+bool tr_sys_path_create_symlink(char const* link_path, char const* target_path, tr_error* error)
+{
+    TR_ASSERT(link_path != nullptr);
+    TR_ASSERT(target_path != nullptr);
+
+    // symlink(target, linkpath) — note the argument order is reversed from the name
+    if (symlink(target_path, link_path) == -1)
+    {
+        if (error != nullptr)
+        {
+            error->set_from_errno(errno);
+        }
+        return false;
+    }
+
+    return true;
+}
+
 bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* error)
 {
     TR_ASSERT(src_path != nullptr);
@@ -363,11 +381,10 @@ bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* erro
         return false;
     }
 
-    tr_sys_file_t const out = tr_sys_file_open(
-        dst_path,
-        TR_SYS_FILE_WRITE | TR_SYS_FILE_CREATE | TR_SYS_FILE_TRUNCATE,
-        0666,
-        error);
+    tr_sys_file_t const out = tr_sys_file_open(dst_path,
+                                               TR_SYS_FILE_WRITE | TR_SYS_FILE_CREATE | TR_SYS_FILE_TRUNCATE,
+                                               0666,
+                                               error);
     if (out == TR_BAD_SYS_FILE)
     {
         tr_sys_file_close(in);
@@ -653,13 +670,12 @@ bool tr_sys_file_read(tr_sys_file_t handle, void* buffer, uint64_t size, uint64_
     return ret;
 }
 
-bool tr_sys_file_read_at(
-    tr_sys_file_t handle,
-    void* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_read,
-    tr_error* error)
+bool tr_sys_file_read_at(tr_sys_file_t handle,
+                         void* buffer,
+                         uint64_t size,
+                         uint64_t offset,
+                         uint64_t* bytes_read,
+                         tr_error* error)
 {
     TR_ASSERT(handle != TR_BAD_SYS_FILE);
     TR_ASSERT(buffer != nullptr || size == 0);
@@ -724,13 +740,12 @@ bool tr_sys_file_write(tr_sys_file_t handle, void const* buffer, uint64_t size, 
     return ret;
 }
 
-bool tr_sys_file_write_at(
-    tr_sys_file_t handle,
-    void const* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_written,
-    tr_error* error)
+bool tr_sys_file_write_at(tr_sys_file_t handle,
+                          void const* buffer,
+                          uint64_t size,
+                          uint64_t offset,
+                          uint64_t* bytes_written,
+                          tr_error* error)
 {
     TR_ASSERT(handle != TR_BAD_SYS_FILE);
     TR_ASSERT(buffer != nullptr || size == 0);
@@ -872,19 +887,18 @@ bool tr_sys_file_preallocate(tr_sys_file_t handle, uint64_t size, int flags, tr_
         // TODO: these functions haven't been reviewed in awhile.
         // It's possible that some are faster now & should be promoted
         // to 'always try' and/or replaced with fresher platform API.
-        approaches.insert(
-            std::end(approaches),
-            {
+        approaches.insert(std::end(approaches),
+                          {
 #ifdef HAVE_XFS_XFS_H
-                full_preallocate_xfs,
+                              full_preallocate_xfs,
 #endif
 #ifdef __APPLE__
-                full_preallocate_apple,
+                              full_preallocate_apple,
 #endif
 #ifdef HAVE_POSIX_FALLOCATE
-                full_preallocate_posix,
+                              full_preallocate_posix,
 #endif
-            });
+                          });
     }
 
     for (auto& approach : approaches) // try until one of them works

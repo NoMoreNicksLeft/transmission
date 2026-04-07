@@ -45,6 +45,22 @@ public:
         return files_.at(file_index).size_;
     }
 
+    // BEP 47 accessors
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_padding(tr_file_index_t file_index) const
+    {
+        return files_.at(file_index).is_padding_;
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_symlink(tr_file_index_t file_index) const
+    {
+        return files_.at(file_index).is_symlink_;
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 std::string const& file_symlink_target(tr_file_index_t file_index) const
+    {
+        return files_.at(file_index).symlink_target_;
+    }
+
     [[nodiscard]] constexpr auto total_size() const noexcept
     {
         return total_size_;
@@ -91,11 +107,10 @@ public:
     {
         auto ret = std::vector<std::pair<std::string /*path*/, uint64_t /*size*/>>{};
         ret.reserve(std::size(files_));
-        std::transform(
-            std::begin(files_),
-            std::end(files_),
-            std::back_inserter(ret),
-            [](auto const& in) { return std::make_pair(in.path_, in.size_); });
+        std::transform(std::begin(files_),
+                       std::end(files_),
+                       std::back_inserter(ret),
+                       [](auto const& in) { return std::make_pair(in.path_, in.size_); });
 
         std::sort(std::begin(ret), std::end(ret), [](auto const& lhs, auto const& rhs) { return lhs.first < rhs.first; });
 
@@ -110,15 +125,33 @@ public:
         return ret;
     }
 
-    bool move(
-        std::string_view old_parent_in,
-        std::string_view parent_in,
-        std::string_view parent_name = "",
-        tr_error* error = nullptr) const;
+    // BEP 47: add a padding file (never written to disk).
+    tr_file_index_t add_padding(std::string_view path, uint64_t file_size)
+    {
+        auto const idx = add(path, file_size);
+        files_[idx].is_padding_ = true;
+        return idx;
+    }
+
+    // BEP 47: add a symlink entry (zero-length; points to symlink_target within torrent root).
+    tr_file_index_t add_symlink(std::string_view path, std::string_view symlink_target)
+    {
+        auto const idx = add(path, 0U);
+        files_[idx].is_symlink_ = true;
+        files_[idx].symlink_target_ = symlink_target;
+        return idx;
+    }
+
+    bool move(std::string_view old_parent_in,
+              std::string_view parent_in,
+              std::string_view parent_name = "",
+              tr_error* error = nullptr) const;
 
     using FileFunc = std::function<void(char const* filename)>;
-    void remove(std::string_view parent_in, std::string_view tmpdir_prefix, FileFunc const& func, tr_error* error = nullptr)
-        const;
+    void remove(std::string_view parent_in,
+                std::string_view tmpdir_prefix,
+                FileFunc const& func,
+                tr_error* error = nullptr) const;
 
     struct FoundFile : public tr_sys_path_info
     {
@@ -194,6 +227,11 @@ private:
 
         std::string path_;
         uint64_t size_ = 0;
+
+        // BEP 47 extended file attributes
+        std::string symlink_target_; // only meaningful when is_symlink_ == true
+        bool is_padding_ = false; // 'p' attr — synthetic zero-filled alignment file
+        bool is_symlink_ = false; // 'l' attr — filesystem symlink to symlink_target_
     };
 
     std::vector<file_t> files_;

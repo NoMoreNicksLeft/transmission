@@ -841,6 +841,17 @@ void tr_torrent::on_metainfo_updated()
     file_mtimes_.resize(file_count());
     file_priorities_ = tr_file_priorities{ &fpm_ };
     files_wanted_ = tr_files_wanted{ &fpm_ };
+
+    // BEP 47: padding files are synthetic zero-filled alignment files.
+    // They must never be downloaded or written to disk.
+    for (tr_file_index_t i = 0U, n = file_count(); i < n; ++i)
+    {
+        if (metainfo_.file_is_padding(i))
+        {
+            files_wanted_.set(i, false);
+        }
+    }
+
     checked_pieces_ = tr_bitfield{ size_t(piece_count()) };
 }
 
@@ -1759,6 +1770,12 @@ void tr_torrent::create_empty_files() const
             continue;
         }
 
+        // BEP 47: symlinks are handled in the separate pass below.
+        if (file_is_symlink(file_index))
+        {
+            continue;
+        }
+
         // torrent contains a wanted zero-bytes file and that file isn't on disk yet.
         // We attempt to create that file.
         auto filename = tr_pathbuf{};
@@ -1775,6 +1792,42 @@ void tr_torrent::create_empty_files() const
             fd != TR_BAD_SYS_FILE)
         {
             tr_sys_file_close(fd);
+        }
+    }
+
+    // BEP 47: create filesystem symlinks for symlink file entries.
+    // Symlinks have zero length (no piece data), so the loop above skips them.
+    // A symlink is only created if it doesn't already exist on disk.
+    for (tr_file_index_t file_index = 0U; file_index < file_count; ++file_index)
+    {
+        if (!file_is_symlink(file_index))
+        {
+            continue;
+        }
+
+        auto const link_path = tr_pathbuf{ base, '/', file_subpath(file_index) };
+
+        // Skip if already present (e.g. torrent restarted after previous run).
+        if (tr_sys_path_get_info(link_path.sv()))
+        {
+            continue;
+        }
+
+        // Resolve target relative to torrent root (BEP 47 requires target within root).
+        auto const& raw_target = file_symlink_target(file_index);
+        auto const target_path = tr_pathbuf{ base, '/', raw_target };
+
+        // Create parent directory if necessary.
+        auto dir = tr_pathbuf{ link_path.sv() };
+        dir.popdir();
+        tr_sys_dir_create(dir, TR_SYS_DIR_CREATE_PARENTS, 0777);
+
+        auto error = tr_error{};
+        if (!tr_sys_path_create_symlink(link_path.c_str(), target_path.c_str(), &error))
+        {
+            tr_logAddWarnTor(
+                this,
+                fmt::format("Couldn't create symlink '{}' -> '{}': {}", link_path.sv(), target_path.sv(), error.message()));
         }
     }
 }

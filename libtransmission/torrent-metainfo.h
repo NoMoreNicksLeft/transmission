@@ -55,6 +55,22 @@ public:
         return files().path(i);
     }
 
+    // BEP 47 per-file attribute accessors
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_padding(tr_file_index_t i) const
+    {
+        return files().file_is_padding(i);
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 bool file_is_symlink(tr_file_index_t i) const
+    {
+        return files().file_is_symlink(i);
+    }
+
+    [[nodiscard]] TR_CONSTEXPR20 std::string const& file_symlink_target(tr_file_index_t i) const
+    {
+        return files().file_symlink_target(i);
+    }
+
     void set_file_subpath(tr_file_index_t i, std::string_view subpath)
     {
         files_.set_path(i, subpath);
@@ -181,17 +197,15 @@ public:
         return make_filename(resume_dir, name(), info_hash_string(), BasenameFormat::Hash, ".resume");
     }
 
-    static bool migrate_file(
-        std::string_view dirname,
-        std::string_view name,
-        std::string_view info_hash_string,
-        std::string_view suffix);
+    static bool migrate_file(std::string_view dirname,
+                             std::string_view name,
+                             std::string_view info_hash_string,
+                             std::string_view suffix);
 
-    static void remove_file(
-        std::string_view dirname,
-        std::string_view name,
-        std::string_view info_hash_string,
-        std::string_view suffix);
+    static void remove_file(std::string_view dirname,
+                            std::string_view name,
+                            std::string_view info_hash_string,
+                            std::string_view suffix);
 
 private:
     friend struct MetainfoHandler;
@@ -204,12 +218,11 @@ private:
         NameAndPartialHash
     };
 
-    [[nodiscard]] static std::string make_filename(
-        std::string_view dirname,
-        std::string_view name,
-        std::string_view info_hash_string,
-        BasenameFormat format,
-        std::string_view suffix);
+    [[nodiscard]] static std::string make_filename(std::string_view dirname,
+                                                   std::string_view name,
+                                                   std::string_view info_hash_string,
+                                                   BasenameFormat format,
+                                                   std::string_view suffix);
 
     [[nodiscard]] auto make_filename(std::string_view dirname, BasenameFormat format, std::string_view suffix) const
     {

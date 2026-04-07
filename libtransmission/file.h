@@ -134,6 +134,21 @@ struct tr_sys_path_capacity
 bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* error = nullptr);
 
 /**
+ * @brief Create a filesystem symlink at @a link_path pointing to @a target_path.
+ *
+ * BEP 47 symlinks always target another file within the torrent root, so both
+ * paths are relative to the same base directory.
+ *
+ * On POSIX this calls symlink(2) which never requires elevated privileges.
+ * On Windows this attempts CreateSymbolicLink(); if that fails due to missing
+ * SeCreateSymbolicLinkPrivilege, it falls back to a hardlink (same-volume files)
+ * and finally to a full copy, setting @a error only when all fallbacks fail.
+ *
+ * @return true on success.
+ */
+bool tr_sys_path_create_symlink(char const* link_path, char const* target_path, tr_error* error = nullptr);
+
+/**
  * @brief Portability wrapper for `stat()`.
  *
  * @param[in]  path  Path to file or directory.
@@ -143,10 +158,9 @@ bool tr_sys_path_copy(char const* src_path, char const* dst_path, tr_error* erro
  *
  * @return info on success, or nullopt with `error` set accordingly.
  */
-[[nodiscard]] std::optional<tr_sys_path_info> tr_sys_path_get_info(
-    std::string_view path,
-    int flags = 0,
-    tr_error* error = nullptr);
+[[nodiscard]] std::optional<tr_sys_path_info> tr_sys_path_get_info(std::string_view path,
+                                                                   int flags = 0,
+                                                                   tr_error* error = nullptr);
 
 /**
  * @brief Get disk capacity and free disk space (in bytes) for the specified folder.
@@ -364,13 +378,12 @@ bool tr_sys_file_read(tr_sys_file_t handle, void* buffer, uint64_t size, uint64_
  *
  * @return `True` on success, `false` otherwise (with `error` set accordingly).
  */
-bool tr_sys_file_read_at(
-    tr_sys_file_t handle,
-    void* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_read,
-    tr_error* error = nullptr);
+bool tr_sys_file_read_at(tr_sys_file_t handle,
+                         void* buffer,
+                         uint64_t size,
+                         uint64_t offset,
+                         uint64_t* bytes_read,
+                         tr_error* error = nullptr);
 
 /**
  * @brief Portability wrapper for `write()`.
@@ -385,12 +398,11 @@ bool tr_sys_file_read_at(
  *
  * @return `True` on success, `false` otherwise (with `error` set accordingly).
  */
-bool tr_sys_file_write(
-    tr_sys_file_t handle,
-    void const* buffer,
-    uint64_t size,
-    uint64_t* bytes_written,
-    tr_error* error = nullptr);
+bool tr_sys_file_write(tr_sys_file_t handle,
+                       void const* buffer,
+                       uint64_t size,
+                       uint64_t* bytes_written,
+                       tr_error* error = nullptr);
 
 /**
  * @brief Like `pwrite()`, except that the position is undefined afterwards.
@@ -407,13 +419,12 @@ bool tr_sys_file_write(
  *
  * @return `True` on success, `false` otherwise (with `error` set accordingly).
  */
-bool tr_sys_file_write_at(
-    tr_sys_file_t handle,
-    void const* buffer,
-    uint64_t size,
-    uint64_t offset,
-    uint64_t* bytes_written,
-    tr_error* error = nullptr);
+bool tr_sys_file_write_at(tr_sys_file_t handle,
+                          void const* buffer,
+                          uint64_t size,
+                          uint64_t offset,
+                          uint64_t* bytes_written,
+                          tr_error* error = nullptr);
 
 /**
  * @brief Portability wrapper for `ftruncate()`.

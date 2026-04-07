@@ -69,6 +69,8 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
     tr_tracker_tier_t tier_ = 0;
     tr_pathbuf file_subpath_;
     int64_t file_length_ = 0;
+    std::string file_attr_; // BEP 47: raw attr string, e.g. "lp", "px"
+    tr_pathbuf symlink_path_; // BEP 47: accumulated symlink target path
 
     enum class State : uint8_t
     {
@@ -117,6 +119,8 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             state_ = State::FileTree;
             file_subpath_.clear();
             file_length_ = 0;
+            file_attr_.clear();
+            symlink_path_.clear();
         }
         else if (pathIs(PieceLayersKey))
         {
@@ -154,6 +158,7 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             }
 
             file_subpath_.clear();
+            // file_attr_ and symlink_path_ cleared in addFile()
         }
         else if (state_ == State::PieceLayers)
         {
@@ -170,6 +175,8 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             state_ = std::empty(tm_.files_) ? State::Files : State::FilesIgnored;
             file_subpath_.clear();
             file_length_ = 0;
+            file_attr_.clear();
+            symlink_path_.clear();
         }
         else if (pathStartsWith(InfoKey, FilesKey, ArrayKey, PathUtf8Key))
         {
@@ -243,21 +250,20 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             // TODO https://github.com/transmission/transmission/issues/458
             tm_.is_v2_ = value == 2;
         }
-        else if (
-            pathIs(DurationKey) || //
-            pathIs(EncodedRateKey) || //
-            pathIs(HeightKey) || //
-            pathIs(InfoKey, EntropyKey) || //
-            pathIs(InfoKey, UniqueKey) || //
-            pathIs(ProfilesKey, HeightKey) || //
-            pathIs(ProfilesKey, WidthKey) || //
-            pathIs(WidthKey) || //
-            pathStartsWith(AzureusPropertiesKey) || //
-            pathStartsWith(InfoKey, FileDurationKey) || //
-            pathStartsWith(InfoKey, FileMediaKey) || //
-            pathStartsWith(InfoKey, ProfilesKey) || //
-            pathStartsWith(LibtorrentResumeKey) || //
-            pathStartsWith(NodesKey))
+        else if (pathIs(DurationKey) || //
+                 pathIs(EncodedRateKey) || //
+                 pathIs(HeightKey) || //
+                 pathIs(InfoKey, EntropyKey) || //
+                 pathIs(InfoKey, UniqueKey) || //
+                 pathIs(ProfilesKey, HeightKey) || //
+                 pathIs(ProfilesKey, WidthKey) || //
+                 pathIs(WidthKey) || //
+                 pathStartsWith(AzureusPropertiesKey) || //
+                 pathStartsWith(InfoKey, FileDurationKey) || //
+                 pathStartsWith(InfoKey, FileMediaKey) || //
+                 pathStartsWith(InfoKey, ProfilesKey) || //
+                 pathStartsWith(LibtorrentResumeKey) || //
+                 pathStartsWith(NodesKey))
         {
             // unused by Transmission
         }
@@ -286,10 +292,14 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
         }
         else if (state_ == State::FileTree)
         {
-            if (current_key == AttrKey || current_key == PiecesRootKey)
+            if (current_key == AttrKey)
             {
-                // currently unused. TODO support for bittorrent v2
-                // TODO https://github.com/transmission/transmission/issues/458
+                // BEP 47: file attribute flags ('l'=symlink, 'p'=padding, 'x'=executable, 'h'=hidden)
+                file_attr_ = value;
+            }
+            else if (current_key == PiecesRootKey)
+            {
+                // currently unused — bittorrent v2 merkle root
             }
             else
             {
@@ -307,19 +317,27 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
                 // BEP-3 says strings are UTF-8, so mask non-conformant path strings
                 tr_torrent_files::sanitize_subpath(tr_strv_convert_utf8(value), file_subpath_);
             }
+            else if (curdepth > 1 && key(curdepth - 1) == SymlinkPathKey)
+            {
+                // BEP 47: accumulate symlink path components (same pattern as regular path)
+                if (!std::empty(symlink_path_))
+                {
+                    symlink_path_ += '/';
+                }
+                tr_torrent_files::sanitize_subpath(tr_strv_convert_utf8(value), symlink_path_);
+            }
             else if (current_key == AttrKey)
             {
-                // currently unused. TODO support for bittorrent v2
-                // TODO https://github.com/transmission/transmission/issues/458
+                // BEP 47: file attribute flags
+                file_attr_ = value;
             }
-            else if (
-                pathIs(InfoKey, FilesKey, ""sv, Crc32Key) || //
-                pathIs(InfoKey, FilesKey, ""sv, Ed2kKey) || //
-                pathIs(InfoKey, FilesKey, ""sv, FilehashKey) || //
-                pathIs(InfoKey, FilesKey, ""sv, Md5Key) || //
-                pathIs(InfoKey, FilesKey, ""sv, Md5sumKey) || //
-                pathIs(InfoKey, FilesKey, ""sv, MtimeKey) || // (why a string?)
-                pathIs(InfoKey, FilesKey, ""sv, Sha1Key))
+            else if (pathIs(InfoKey, FilesKey, ""sv, Crc32Key) || //
+                     pathIs(InfoKey, FilesKey, ""sv, Ed2kKey) || //
+                     pathIs(InfoKey, FilesKey, ""sv, FilehashKey) || //
+                     pathIs(InfoKey, FilesKey, ""sv, Md5Key) || //
+                     pathIs(InfoKey, FilesKey, ""sv, Md5sumKey) || //
+                     pathIs(InfoKey, FilesKey, ""sv, MtimeKey) || // (why a string?)
+                     pathIs(InfoKey, FilesKey, ""sv, Sha1Key))
             {
                 // unused by Transmission
             }
@@ -336,10 +354,9 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
         {
             tm_.creator_ = tr_strv_convert_utf8(value);
         }
-        else if (
-            pathIs(SourceKey) || pathIs(InfoKey, SourceKey) || //
-            pathIs(PublisherKey) || pathIs(InfoKey, PublisherKey) || //
-            pathIs(PublisherUtf8Key) || pathIs(InfoKey, PublisherUtf8Key))
+        else if (pathIs(SourceKey) || pathIs(InfoKey, SourceKey) || //
+                 pathIs(PublisherKey) || pathIs(InfoKey, PublisherKey) || //
+                 pathIs(PublisherUtf8Key) || pathIs(InfoKey, PublisherUtf8Key))
         {
             // “publisher” is rare, but used by BitComet and appears
             // to have the same use as the 'source' key
@@ -410,32 +427,31 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
                 tm_.has_magnet_info_hash_ = true;
             }
         }
-        else if (
-            pathIs(ChecksumKey) || //
-            pathIs(ErrCallbackKey) || //
-            pathIs(InfoKey, CrossSeedEntryKey) || //
-            pathIs(InfoKey, Ed2kKey) || //
-            pathIs(InfoKey, EntropyKey) || //
-            pathIs(InfoKey, Md5sumKey) || //
-            pathIs(InfoKey, PublisherUrlKey) || //
-            pathIs(InfoKey, PublisherUrlUtf8Key) || //
-            pathIs(InfoKey, Sha1Key) || //
-            pathIs(InfoKey, UniqueKey) || //
-            pathIs(InfoKey, XCrossSeedKey) || //
-            pathIs(LocaleKey) || //
-            pathIs(LogCallbackKey) || //
-            pathIs(PublisherUrlKey) || //
-            pathIs(PublisherUrlUtf8Key) || //
-            pathIs(TitleKey) || //
-            pathIs(UidKey) || //
-            pathStartsWith(AzureusPrivatePropertiesKey) || //
-            pathStartsWith(AzureusPropertiesKey) || //
-            pathStartsWith(InfoKey, CollectionsKey) || //
-            pathStartsWith(InfoKey, FileDurationKey) || //
-            pathStartsWith(InfoKey, ProfilesKey) || //
-            pathStartsWith(LibtorrentResumeKey) || //
-            pathStartsWith(MagnetInfoKey) || //
-            pathStartsWith(NodesKey))
+        else if (pathIs(ChecksumKey) || //
+                 pathIs(ErrCallbackKey) || //
+                 pathIs(InfoKey, CrossSeedEntryKey) || //
+                 pathIs(InfoKey, Ed2kKey) || //
+                 pathIs(InfoKey, EntropyKey) || //
+                 pathIs(InfoKey, Md5sumKey) || //
+                 pathIs(InfoKey, PublisherUrlKey) || //
+                 pathIs(InfoKey, PublisherUrlUtf8Key) || //
+                 pathIs(InfoKey, Sha1Key) || //
+                 pathIs(InfoKey, UniqueKey) || //
+                 pathIs(InfoKey, XCrossSeedKey) || //
+                 pathIs(LocaleKey) || //
+                 pathIs(LogCallbackKey) || //
+                 pathIs(PublisherUrlKey) || //
+                 pathIs(PublisherUrlUtf8Key) || //
+                 pathIs(TitleKey) || //
+                 pathIs(UidKey) || //
+                 pathStartsWith(AzureusPrivatePropertiesKey) || //
+                 pathStartsWith(AzureusPropertiesKey) || //
+                 pathStartsWith(InfoKey, CollectionsKey) || //
+                 pathStartsWith(InfoKey, FileDurationKey) || //
+                 pathStartsWith(InfoKey, ProfilesKey) || //
+                 pathStartsWith(LibtorrentResumeKey) || //
+                 pathStartsWith(MagnetInfoKey) || //
+                 pathStartsWith(NodesKey))
         {
             // unused by Transmission
         }
@@ -464,10 +480,29 @@ private:
         }
         else
         {
-            tm_.files_.add(file_subpath_, file_length_);
+            bool const is_symlink = file_attr_.find('l') != std::string::npos;
+            bool const is_padding = file_attr_.find('p') != std::string::npos;
+
+            if (is_symlink)
+            {
+                // BEP 47: symlink — zero length, points to symlink_path_ within torrent root.
+                // symlink_path_ has already been sanitized (no ".." components).
+                tm_.files_.add_symlink(file_subpath_, symlink_path_.sv());
+            }
+            else if (is_padding)
+            {
+                // BEP 47: padding file — occupies piece space but is never written to disk.
+                tm_.files_.add_padding(file_subpath_, file_length_);
+            }
+            else
+            {
+                tm_.files_.add(file_subpath_, file_length_);
+            }
         }
 
         file_length_ = 0;
+        file_attr_.clear();
+        symlink_path_.clear();
         // NB: let caller decide how to clear file_tree_.
         // if we're in "files" mode we clear it; if in "file tree" we pop it
         return ok;
@@ -490,10 +525,9 @@ private:
         // FIXME: update for hybrid torrents with duplicate info between "file tree" and "files"
         // when "file tree" (bittorrent v2) supported
         auto sorted_paths = tm_.files_.sorted_by_path();
-        if (auto dupe = std::adjacent_find(
-                sorted_paths.begin(),
-                sorted_paths.end(),
-                [](auto const& p1, auto const& p2) { return p1.first == p2.first; });
+        if (auto dupe = std::adjacent_find(sorted_paths.begin(),
+                                           sorted_paths.end(),
+                                           [](auto const& p1, auto const& p2) { return p1.first == p2.first; });
             dupe != sorted_paths.end())
         {
             context.error.set(EINVAL, fmt::format("duplicate path [{:s}]", dupe->first));
@@ -563,12 +597,10 @@ private:
             {
                 if (!context.error)
                 {
-                    context.error.set(
-                        EINVAL,
-                        fmt::format(
-                            "'pieces' and torrent size mismatch: {}, {}",
-                            tm_.block_info_.piece_count(),
-                            std::size(tm_.pieces_)));
+                    context.error.set(EINVAL,
+                                      fmt::format("'pieces' and torrent size mismatch: {}, {}",
+                                                  tm_.block_info_.piece_count(),
+                                                  std::size(tm_.pieces_)));
                 }
                 return false;
             }
@@ -638,6 +670,8 @@ private:
     static constexpr std::string_view PublisherUrlUtf8Key = "publisher-url.utf-8"sv;
     static constexpr std::string_view Sha1Key = "sha1"sv;
     static constexpr std::string_view SourceKey = "source"sv;
+    static constexpr std::string_view SymlinkPathKey = "symlink path"sv; // BEP 47
+
     static constexpr std::string_view TitleKey = "title"sv;
     static constexpr std::string_view UidKey = "uid"sv;
     static constexpr std::string_view UniqueKey = "unique"sv;
@@ -690,12 +724,11 @@ bool tr_torrent_metainfo::parse_torrent_file(std::string_view filename, std::vec
     return tr_file_read(filename, *contents, error) && parse_benc({ std::data(*contents), std::size(*contents) }, error);
 }
 
-std::string tr_torrent_metainfo::make_filename(
-    std::string_view dirname,
-    std::string_view name,
-    std::string_view info_hash_string,
-    BasenameFormat format,
-    std::string_view suffix)
+std::string tr_torrent_metainfo::make_filename(std::string_view dirname,
+                                               std::string_view name,
+                                               std::string_view info_hash_string,
+                                               BasenameFormat format,
+                                               std::string_view suffix)
 {
     // `[${dirname}/]${name}.${info_hash}${suffix}`
     // `[${dirname}/]${info_hash}${suffix}`
@@ -712,11 +745,10 @@ std::string tr_torrent_metainfo::make_filename(
     return std::string{ filename.sv() };
 }
 
-bool tr_torrent_metainfo::migrate_file(
-    std::string_view dirname,
-    std::string_view name,
-    std::string_view info_hash_string,
-    std::string_view suffix)
+bool tr_torrent_metainfo::migrate_file(std::string_view dirname,
+                                       std::string_view name,
+                                       std::string_view info_hash_string,
+                                       std::string_view suffix)
 {
     auto const old_filename = make_filename(dirname, name, info_hash_string, BasenameFormat::NameAndPartialHash, suffix);
     if (!tr_sys_path_exists(old_filename))
@@ -734,23 +766,20 @@ bool tr_torrent_metainfo::migrate_file(
     auto const renamed = tr_sys_path_rename(old_filename, new_filename);
     if (!renamed)
     {
-        tr_logAddError(
-            fmt::format(
-                fmt::runtime(_("Migrated torrent file from '{old_path}' to '{path}'")),
-                fmt::arg("old_path", old_filename),
-                fmt::arg("path", new_filename)),
-            name);
+        tr_logAddError(fmt::format(fmt::runtime(_("Migrated torrent file from '{old_path}' to '{path}'")),
+                                   fmt::arg("old_path", old_filename),
+                                   fmt::arg("path", new_filename)),
+                       name);
         return true;
     }
 
     return renamed;
 }
 
-void tr_torrent_metainfo::remove_file(
-    std::string_view dirname,
-    std::string_view name,
-    std::string_view info_hash_string,
-    std::string_view suffix)
+void tr_torrent_metainfo::remove_file(std::string_view dirname,
+                                      std::string_view name,
+                                      std::string_view info_hash_string,
+                                      std::string_view suffix)
 {
     auto filename = make_filename(dirname, name, info_hash_string, BasenameFormat::NameAndPartialHash, suffix);
     tr_sys_path_remove(filename, nullptr);
