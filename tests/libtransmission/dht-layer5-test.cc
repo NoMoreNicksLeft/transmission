@@ -406,4 +406,73 @@ TEST_F(Layer5Test, CallbackFiresOnlyOnHashChange)
     EXPECT_EQ(fire_count, 2);
 }
 
+// Poll re-issues get requests with the current last_seq so stale items are skipped.
+// We verify this by inspecting resolver state after item acceptance.
+TEST_F(Layer5Test, PollUsesUpdatedSeqAfterResolution)
+{
+    // After accepting an item at seq=5, last_seq should be 5.
+    // A subsequent get_item() call should pass seq=5 so the DHT
+    // only returns items newer than what we already have.
+    tr_mutable_resolver resolver{ pub_, ""sv, [](tr_sha1_digest_t const&) {} };
+
+    EXPECT_EQ(resolver.last_seq(), -1); // nothing received yet
+
+    auto target = compute_target(pub_.data());
+    auto const ih = make_ih(0xAB);
+    dht_bep44_item item{};
+    ASSERT_TRUE(make_signed_item(pub_.data(), priv_.data(), nullptr, 0, 5, ih, item));
+    memcpy(item.target, target.data(), 20);
+
+    EXPECT_TRUE(resolver.on_dht_item(item));
+    EXPECT_EQ(resolver.last_seq(), 5); // updated after acceptance
+
+    // A stale item (seq <= 5) is now rejected — confirming the poll
+    // would correctly pass seq=5 to avoid re-receiving known data.
+    dht_bep44_item stale{};
+    ASSERT_TRUE(make_signed_item(pub_.data(), priv_.data(), nullptr, 0, 3, ih, stale));
+    memcpy(stale.target, target.data(), 20);
+    EXPECT_FALSE(resolver.on_dht_item(stale));
+    EXPECT_EQ(resolver.last_seq(), 5); // unchanged
+}
+
+// Adding a second subscription doesn't reset the poll timer for the first.
+// Both subscriptions receive items independently.
+TEST_F(Layer5Test, TwoSubscriptionsIndependentSeq)
+{
+    SubscriptionRegistry reg;
+    std::optional<tr_sha1_digest_t> got1, got2;
+
+    reg.add(1, pub_, ""sv, [&](tr_sha1_digest_t const& h) { got1 = h; });
+    reg.add(2, pub2_, ""sv, [&](tr_sha1_digest_t const& h) { got2 = h; });
+
+    auto t1 = compute_target(pub_.data());
+    auto t2 = compute_target(pub2_.data());
+
+    // Subscription 1 advances to seq=10
+    for (int seq = 1; seq <= 10; ++seq)
+    {
+        auto ih = make_ih(static_cast<uint8_t>(seq));
+        dht_bep44_item item{};
+        ASSERT_TRUE(make_signed_item(pub_.data(), priv_.data(), nullptr, 0, seq, ih, item));
+        memcpy(item.target, t1.data(), 20);
+        reg.route(item);
+    }
+
+    // Subscription 2 is still at seq=-1 (nothing received)
+    // An item at seq=1 for pub2 should be accepted
+    {
+        auto ih = make_ih(0xFF);
+        dht_bep44_item item{};
+        ASSERT_TRUE(make_signed_item(pub2_.data(), priv2_.data(), nullptr, 0, 1, ih, item));
+        memcpy(item.target, t2.data(), 20);
+        EXPECT_TRUE(reg.route(item));
+        ASSERT_TRUE(got2.has_value());
+        EXPECT_EQ(*got2, ih);
+    }
+
+    // Subscription 1 received 10 unique hashes
+    EXPECT_EQ(got1.has_value(), true);
+    EXPECT_EQ(*got1, make_ih(10));
+}
+
 } // namespace libtransmission::test

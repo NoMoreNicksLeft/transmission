@@ -284,11 +284,40 @@ void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
         auto const& resolver = btpk_subscriptions_.at(tor_id);
         session_.dht_->get_item(resolver.target().data(), resolver.last_seq());
     }
+
+    // Start the hourly re-poll timer if not already running.
+    // BEP 44: items MAY expire in 2 hours; publishers SHOULD re-announce every
+    // hour. We poll at the same cadence to detect updates within one publish cycle.
+    // Jitter of up to 5 minutes avoids synchronized storms across many clients.
+    if (!btpk_poll_timer_)
+    {
+        using namespace std::chrono_literals;
+        btpk_poll_timer_ = timer_maker().create([this]() { on_btpk_poll_timer(); });
+        auto const jitter_ms = tr_rand_int(5U * 60U * 1000U); // 0–5 min in ms
+        btpk_poll_timer_->start_repeating(60min + std::chrono::milliseconds{ jitter_ms });
+    }
 }
 
 void tr_session::DhtMediator::remove_btpk_subscription(tr_torrent_id_t tor_id)
 {
     btpk_subscriptions_.erase(tor_id);
+    if (btpk_subscriptions_.empty())
+    {
+        btpk_poll_timer_.reset(); // no active subscriptions — stop the timer
+    }
+}
+
+void tr_session::DhtMediator::on_btpk_poll_timer()
+{
+    if (!session_.dht_ || btpk_subscriptions_.empty())
+    {
+        return;
+    }
+
+    for (auto const& [tor_id, resolver] : btpk_subscriptions_)
+    {
+        session_.dht_->get_item(resolver.target().data(), resolver.last_seq());
+    }
 }
 
 // ---

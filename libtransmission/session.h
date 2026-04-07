@@ -201,10 +201,15 @@ private:
         void remove_btpk_subscription(tr_torrent_id_t tor_id);
 
     private:
+        void on_btpk_poll_timer();
+
         tr_session& session_;
 
         // BEP 46: active mutable-item subscriptions keyed by torrent id.
         std::map<tr_torrent_id_t, libtransmission::tr_mutable_resolver> btpk_subscriptions_;
+
+        // Fires every ~60 minutes to re-issue get_item() for each active subscription.
+        std::unique_ptr<libtransmission::Timer> btpk_poll_timer_;
     };
 
     class PortForwardingMediator final : public tr_port_forwarding::Mediator
