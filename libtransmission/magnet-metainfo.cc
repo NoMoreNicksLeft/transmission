@@ -164,6 +164,51 @@ std::optional<tr_sha256_digest_t> parseHash2(std::string_view sv)
     return {};
 }
 
+// Encode raw bytes to lowercase hex string.
+std::string bytes_to_hex(uint8_t const* data, size_t len)
+{
+    static constexpr auto Hex = "0123456789abcdef"sv;
+    std::string out;
+    out.reserve(len * 2);
+    for (size_t i = 0; i < len; ++i)
+    {
+        out += Hex[data[i] >> 4];
+        out += Hex[data[i] & 0xFU];
+    }
+    return out;
+}
+
+// Decode a lowercase/uppercase hex string into bytes.
+// Returns false if the string length is wrong or contains non-hex chars.
+bool hex_to_bytes(std::string_view hex, uint8_t* out, size_t expected_len)
+{
+    if (hex.size() != expected_len * 2)
+    {
+        return false;
+    }
+    for (size_t i = 0; i < expected_len; ++i)
+    {
+        auto nibble = [](char c) -> int
+        {
+            if (c >= '0' && c <= '9')
+                return c - '0';
+            if (c >= 'a' && c <= 'f')
+                return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F')
+                return c - 'A' + 10;
+            return -1;
+        };
+        int const hi = nibble(hex[i * 2]);
+        int const lo = nibble(hex[i * 2 + 1]);
+        if (hi < 0 || lo < 0)
+        {
+            return false;
+        }
+        out[i] = static_cast<uint8_t>((hi << 4) | lo);
+    }
+    return true;
+}
+
 } // namespace
 
 // ---
@@ -188,6 +233,18 @@ std::string tr_magnet_metainfo::magnet() const
     {
         buf += "&ws="sv;
         tr_urlPercentEncode(std::back_inserter(buf), webseed);
+    }
+
+    // BEP 46: append xs=urn:btpk:<hex-key>[&s=<salt>] if present
+    if (btpk_key_)
+    {
+        buf += "&xs=urn:btpk:"sv;
+        buf += bytes_to_hex(btpk_key_->data(), btpk_key_->size());
+        if (!btpk_salt_.empty())
+        {
+            buf += "&s="sv;
+            tr_urlPercentEncode(std::back_inserter(buf), btpk_salt_);
+        }
     }
 
     return std::string{ buf.sv() };
@@ -272,6 +329,21 @@ bool tr_magnet_metainfo::parseMagnet(std::string_view magnet_link, tr_error* err
             {
                 this->info_hash2_ = *hash;
             }
+        }
+        else if (static auto constexpr BtpkPrefix = "urn:btpk:"sv; key == "xs"sv && tr_strv_starts_with(value, BtpkPrefix))
+        {
+            // BEP 46: mutable torrent public key — xs=urn:btpk:<64-char hex>
+            auto const hex = value.substr(std::size(BtpkPrefix));
+            BtpkKey key_bytes{};
+            if (hex_to_bytes(hex, key_bytes.data(), BtpkKeyLen))
+            {
+                this->btpk_key_ = key_bytes;
+            }
+        }
+        else if (key == "s"sv && !value.empty())
+        {
+            // BEP 46: optional salt for the mutable item target
+            this->btpk_salt_ = tr_urlPercentDecode(value);
         }
     }
 

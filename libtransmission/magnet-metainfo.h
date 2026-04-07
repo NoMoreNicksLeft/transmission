@@ -5,7 +5,10 @@
 
 #pragma once
 
+#include <array>
 #include <cstddef> // size_t
+#include <cstdint> // uint8_t
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -69,6 +72,26 @@ public:
 
     void add_webseed(std::string_view webseed);
 
+    // BEP 46: mutable torrent public key (32 bytes) and optional salt.
+    // Present when the magnet URI contains an xs=urn:btpk:<hex-key> parameter.
+    static constexpr size_t BtpkKeyLen = 32U;
+    using BtpkKey = std::array<uint8_t, BtpkKeyLen>;
+
+    [[nodiscard]] bool has_btpk() const noexcept
+    {
+        return btpk_key_.has_value();
+    }
+
+    [[nodiscard]] std::optional<BtpkKey> const& btpk_key() const noexcept
+    {
+        return btpk_key_;
+    }
+
+    [[nodiscard]] std::string const& btpk_salt() const noexcept
+    {
+        return btpk_salt_;
+    }
+
 protected:
     tr_announce_list announce_list_;
     std::vector<std::string> webseed_urls_;
@@ -77,4 +100,8 @@ protected:
     tr_sha1_string info_hash_str_;
     tr_sha256_string info_hash2_str_;
     std::string name_;
+
+    // BEP 46 mutable torrent key (xs=urn:btpk:)
+    std::optional<BtpkKey> btpk_key_;
+    std::string btpk_salt_;
 };
