@@ -36,6 +36,7 @@ static ToolbarTab const ToolbarTabBandwidth = @"TOOLBAR_BANDWIDTH";
 static ToolbarTab const ToolbarTabPeers = @"TOOLBAR_PEERS";
 static ToolbarTab const ToolbarTabNetwork = @"TOOLBAR_NETWORK";
 static ToolbarTab const ToolbarTabRemote = @"TOOLBAR_REMOTE";
+static ToolbarTab const ToolbarTabUpdates = @"TOOLBAR_UPDATES";
 
 static char const* const kRPCKeychainService = "Transmission:Remote";
 static char const* const kRPCKeychainName = "Remote";
@@ -55,6 +56,16 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
 @property(nonatomic) IBOutlet NSView* fNetworkView;
 @property(nonatomic) IBOutlet NSView* fRemoteView;
 @property(nonatomic) IBOutlet NSView* fGroupsView;
+@property(nonatomic) IBOutlet NSView* fUpdatesView;
+@property(nonatomic) IBOutlet NSButton* fMutableNeverRadio;
+@property(nonatomic) IBOutlet NSButton* fMutableWhenOfferedRadio;
+@property(nonatomic) IBOutlet NSButton* fMutableVersionedRadio;
+@property(nonatomic) IBOutlet NSButton* fMutableAllowAdditionalCheck;
+@property(nonatomic) IBOutlet NSButton* fMutableAllowRenamingCheck;
+@property(nonatomic) IBOutlet NSButton* fMutableAllowOverwritesCheck;
+@property(nonatomic) IBOutlet NSButton* fMutableAllowDeletionsCheck;
+@property(nonatomic) IBOutlet NSTextField* fMutableVersionsField;
+@property(nonatomic) IBOutlet NSTextField* fMutableMaxStorageField;
 
 @property(nonatomic, copy) NSString* fInitialString;
 
@@ -214,6 +225,7 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
     [self setWindowSize];
     [self.window center];
 
+    [self updateMutableRadioButtons];
     [self setPrefView:nil];
 
     [self updateDefaultsStates];
@@ -355,6 +367,14 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
         item.action = @selector(setPrefView:);
         item.autovalidates = NO;
     }
+    else if ([ident isEqualToString:ToolbarTabUpdates])
+    {
+        item.label = NSLocalizedString(@"Mutable", "Preferences -> toolbar item title");
+        item.image = [NSImage imageWithSystemSymbolName:@"arrow.triangle.2.circlepath" accessibilityDescription:nil];
+        item.target = self;
+        item.action = @selector(setPrefView:);
+        item.autovalidates = NO;
+    }
     else
     {
         return nil;
@@ -372,7 +392,8 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
         ToolbarTabBandwidth,
         ToolbarTabPeers,
         ToolbarTabNetwork,
-        ToolbarTabRemote
+        ToolbarTabRemote,
+        ToolbarTabUpdates
     ];
 }
 
@@ -495,7 +516,9 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
 {
     NSMutableArray* sounds = [NSMutableArray array];
 
-    NSArray* directories = NSSearchPathForDirectoriesInDomains(NSAllLibrariesDirectory, NSUserDomainMask | NSLocalDomainMask | NSSystemDomainMask, YES);
+    NSArray* directories = NSSearchPathForDirectoriesInDomains(NSAllLibrariesDirectory,
+                                                               NSUserDomainMask | NSLocalDomainMask | NSSystemDomainMask,
+                                                               YES);
 
     for (__strong NSString* directory in directories)
     {
@@ -649,6 +672,32 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
 - (void)setAutoStartDownloads:(id)sender
 {
     tr_sessionSetPaused(self.fHandle, ![self.fDefaults boolForKey:@"AutoStartDownload"]);
+}
+
+- (IBAction)setMutableUpdateBehavior:(id)sender
+{
+    NSInteger const tag = [sender tag];
+    [self.fDefaults setInteger:tag forKey:@"MutableUpdateBehavior"];
+    [self updateMutableRadioButtons];
+}
+
+- (void)updateMutableRadioButtons
+{
+    NSInteger const behavior = [self.fDefaults integerForKey:@"MutableUpdateBehavior"];
+    self.fMutableNeverRadio.state = (behavior == 0) ? NSControlStateValueOn : NSControlStateValueOff;
+    self.fMutableWhenOfferedRadio.state = (behavior == 1) ? NSControlStateValueOn : NSControlStateValueOff;
+    self.fMutableVersionedRadio.state = (behavior == 2) ? NSControlStateValueOn : NSControlStateValueOff;
+
+    // Enable/disable dependent controls
+    BOOL const whenOffered = (behavior == 1);
+    self.fMutableAllowAdditionalCheck.enabled = whenOffered;
+    self.fMutableAllowRenamingCheck.enabled = whenOffered;
+    self.fMutableAllowOverwritesCheck.enabled = whenOffered;
+    self.fMutableAllowDeletionsCheck.enabled = whenOffered;
+
+    BOOL const versioned = (behavior == 2);
+    self.fMutableVersionsField.enabled = versioned;
+    self.fMutableMaxStorageField.enabled = versioned;
 }
 
 - (void)applySpeedSettings:(id)sender
@@ -1026,9 +1075,8 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
         //always show the add window for magnet links when the download location is the same as the torrent file
         self.fShowMagnetAddWindowCheck.state = NSControlStateValueOn;
         self.fShowMagnetAddWindowCheck.enabled = NO;
-        self.fShowMagnetAddWindowCheck.toolTip = NSLocalizedString(
-            @"This option is not available if Default location is set to Same as torrent file.",
-            "Preferences -> Transfers -> Adding -> Magnet tooltip");
+        self.fShowMagnetAddWindowCheck.toolTip = NSLocalizedString(@"This option is not available if Default location is set to Same as torrent file.",
+                                                                   "Preferences -> Transfers -> Adding -> Magnet tooltip");
     }
     else
     {
@@ -1557,6 +1605,10 @@ static NSString* const kWebUIURLFormat = @"http://localhost:%ld/";
     {
         view = self.fRemoteView;
     }
+    else if ([identifier isEqualToString:ToolbarTabUpdates])
+    {
+        view = self.fUpdatesView;
+    }
     else
     {
         identifier = ToolbarTabGeneral; //general view is the default selected
@@ -1614,14 +1666,13 @@ static NSString* getOSStatusDescription(OSStatus errorCode)
 - (void)updateRPCPassword
 {
     CFTypeRef data;
-    OSStatus result = SecItemCopyMatching(
-        (CFDictionaryRef) @{
-            (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
-            (NSString*)kSecAttrAccount : @(kRPCKeychainName),
-            (NSString*)kSecAttrService : @(kRPCKeychainService),
-            (NSString*)kSecReturnData : @YES,
-        },
-        &data);
+    OSStatus result = SecItemCopyMatching((CFDictionaryRef) @{
+        (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
+        (NSString*)kSecAttrAccount : @(kRPCKeychainName),
+        (NSString*)kSecAttrService : @(kRPCKeychainService),
+        (NSString*)kSecReturnData : @YES,
+    },
+                                          &data);
     if (result != noErr && result != errSecItemNotFound)
     {
         NSLog(@"Problem accessing Keychain: %@", getOSStatusDescription(result));
@@ -1637,13 +1688,12 @@ static NSString* getOSStatusDescription(OSStatus errorCode)
 - (void)setKeychainPassword:(char const*)password
 {
     CFTypeRef item;
-    OSStatus result = SecItemCopyMatching(
-        (CFDictionaryRef) @{
-            (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
-            (NSString*)kSecAttrAccount : @(kRPCKeychainName),
-            (NSString*)kSecAttrService : @(kRPCKeychainService),
-        },
-        &item);
+    OSStatus result = SecItemCopyMatching((CFDictionaryRef) @{
+        (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
+        (NSString*)kSecAttrAccount : @(kRPCKeychainName),
+        (NSString*)kSecAttrService : @(kRPCKeychainService),
+    },
+                                          &item);
     if (result != noErr && result != errSecItemNotFound)
     {
         NSLog(@"Problem accessing Keychain: %@", getOSStatusDescription(result));
@@ -1655,15 +1705,14 @@ static NSString* getOSStatusDescription(OSStatus errorCode)
     {
         if (passwordLength > 0) // found and needed, so update it
         {
-            result = SecItemUpdate(
-                (CFDictionaryRef) @{
-                    (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
-                    (NSString*)kSecAttrAccount : @(kRPCKeychainName),
-                    (NSString*)kSecAttrService : @(kRPCKeychainService),
-                },
-                (CFDictionaryRef) @{
-                    (NSString*)kSecValueData : [NSData dataWithBytes:password length:passwordLength],
-                });
+            result = SecItemUpdate((CFDictionaryRef) @{
+                (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
+                (NSString*)kSecAttrAccount : @(kRPCKeychainName),
+                (NSString*)kSecAttrService : @(kRPCKeychainService),
+            },
+                                   (CFDictionaryRef) @{
+                                       (NSString*)kSecValueData : [NSData dataWithBytes:password length:passwordLength],
+                                   });
             if (result != noErr)
             {
                 NSLog(@"Problem updating Keychain item: %@", getOSStatusDescription(result));
@@ -1687,14 +1736,13 @@ static NSString* getOSStatusDescription(OSStatus errorCode)
     {
         if (passwordLength > 0) // not found and needed, so add it
         {
-            result = SecItemAdd(
-                (CFDictionaryRef) @{
-                    (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
-                    (NSString*)kSecAttrAccount : @(kRPCKeychainName),
-                    (NSString*)kSecAttrService : @(kRPCKeychainService),
-                    (NSString*)kSecValueData : [NSData dataWithBytes:password length:passwordLength],
-                },
-                nil);
+            result = SecItemAdd((CFDictionaryRef) @{
+                (NSString*)kSecClass : (NSString*)kSecClassGenericPassword,
+                (NSString*)kSecAttrAccount : @(kRPCKeychainName),
+                (NSString*)kSecAttrService : @(kRPCKeychainService),
+                (NSString*)kSecValueData : [NSData dataWithBytes:password length:passwordLength],
+            },
+                                nil);
             if (result != noErr)
             {
                 NSLog(@"Problem adding Keychain item: %@", getOSStatusDescription(result));
