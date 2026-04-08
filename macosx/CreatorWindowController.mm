@@ -108,9 +108,8 @@ static NSMutableSet* creatorWindowControllerSet;
             NSAlert* alert = [[NSAlert alloc] init];
             [alert addButtonWithTitle:NSLocalizedString(@"OK", "Create torrent -> no files -> button")];
             alert.messageText = NSLocalizedString(@"This folder contains no files.", "Create torrent -> no files -> title");
-            alert.informativeText = NSLocalizedString(
-                @"There must be at least one file in a folder to create a torrent file.",
-                "Create torrent -> no files -> warning");
+            alert.informativeText = NSLocalizedString(@"There must be at least one file in a folder to create a torrent file.",
+                                                      "Create torrent -> no files -> warning");
             alert.alertStyle = NSAlertStyleWarning;
 
             [alert runModal];
@@ -122,7 +121,8 @@ static NSMutableSet* creatorWindowControllerSet;
             NSAlert* alert = [[NSAlert alloc] init];
             [alert addButtonWithTitle:NSLocalizedString(@"OK", "Create torrent -> zero size -> button")];
             alert.messageText = NSLocalizedString(@"The total file size is zero bytes.", "Create torrent -> zero size -> title");
-            alert.informativeText = NSLocalizedString(@"A torrent file cannot be created for files with no size.", "Create torrent -> zero size -> warning");
+            alert.informativeText = NSLocalizedString(@"A torrent file cannot be created for files with no size.",
+                                                      "Create torrent -> zero size -> warning");
             alert.alertStyle = NSAlertStyleWarning;
 
             [alert runModal];
@@ -235,8 +235,7 @@ static NSMutableSet* creatorWindowControllerSet;
     self.fBtpkCopy.enabled = NO;
 
     // Use SF Symbol for the copy button — looks native and scales correctly
-    NSImage* copyImage = [NSImage imageWithSystemSymbolName:@"doc.on.doc"
-                                  accessibilityDescription:@"Copy to clipboard"];
+    NSImage* copyImage = [NSImage imageWithSystemSymbolName:@"doc.on.doc" accessibilityDescription:@"Copy to clipboard"];
     if (copyImage)
     {
         // Icon + label, icon on left
@@ -321,8 +320,7 @@ static NSMutableSet* creatorWindowControllerSet;
         std::copy_n(priv->data() + 64, 32, pub.data());
         self.fBuilder->set_btpk_public_key(pub);
         auto const fp = libtransmission::tr_btpk_fingerprint(pub);
-        self.fBtpkFingerprint.stringValue =
-            [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+        self.fBtpkFingerprint.stringValue = [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
         libtransmission::tr_btpk_zero_key(*priv);
         self.fBtpkCopy.enabled = YES;
     }
@@ -372,11 +370,9 @@ static NSMutableSet* creatorWindowControllerSet;
     self.fBtpkCopy.enabled = NO;
     self.fBtpkCopy.image = nil; // hide icon during feedback
     self.fBtpkCopy.title = @"Copied!";
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         self.fBtpkCopy.title = @"Copy";
-        NSImage* img = [NSImage imageWithSystemSymbolName:@"doc.on.doc"
-                                 accessibilityDescription:@"Copy to clipboard"];
+        NSImage* img = [NSImage imageWithSystemSymbolName:@"doc.on.doc" accessibilityDescription:@"Copy to clipboard"];
         self.fBtpkCopy.image = img;
         self.fBtpkCopy.imagePosition = NSImageLeft;
         self.fBtpkCopy.enabled = YES;
@@ -411,8 +407,7 @@ static NSMutableSet* creatorWindowControllerSet;
 
     // Show the fingerprint so the user can identify this key later.
     auto const fp = libtransmission::tr_btpk_fingerprint(pub);
-    self.fBtpkFingerprint.stringValue =
-        [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+    self.fBtpkFingerprint.stringValue = [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
 
     // Store the public key on the builder — the private key is NOT stored by the app.
     // The user must copy it to their password manager before closing this window.
@@ -725,12 +720,13 @@ static NSMutableSet* creatorWindowControllerSet;
     {
         NSAlert* alert = [[NSAlert alloc] init];
         [alert addButtonWithTitle:NSLocalizedString(@"OK", "Create torrent -> directory doesn't exist warning -> button")];
-        alert.messageText = NSLocalizedString(@"The chosen torrent file location does not exist.", "Create torrent -> directory doesn't exist warning -> title");
-        alert.informativeText = [NSString stringWithFormat:NSLocalizedString(
-                                                               @"The directory \"%@\" does not currently exist. "
-                                                                "Create this directory or choose a different one to create the torrent file.",
-                                                               "Create torrent -> directory doesn't exist warning -> warning"),
-                                                           self.fLocation.URLByDeletingLastPathComponent.path];
+        alert.messageText = NSLocalizedString(@"The chosen torrent file location does not exist.",
+                                              "Create torrent -> directory doesn't exist warning -> title");
+        alert.informativeText = [NSString
+            stringWithFormat:NSLocalizedString(@"The directory \"%@\" does not currently exist. "
+                                                "Create this directory or choose a different one to create the torrent file.",
+                                               "Create torrent -> directory doesn't exist warning -> warning"),
+                             self.fLocation.URLByDeletingLastPathComponent.path];
         alert.alertStyle = NSAlertStyleWarning;
 
         [alert beginSheetModalForWindow:self.window completionHandler:nil];
@@ -745,15 +741,14 @@ static NSMutableSet* creatorWindowControllerSet;
 
         NSAlert* alert = [[NSAlert alloc] init];
         [alert addButtonWithTitle:NSLocalizedString(@"OK", "Create torrent -> file already exists warning -> button")];
-        alert.messageText = NSLocalizedString(
-            @"A torrent file with this name and directory cannot be created.",
-            "Create torrent -> file already exists warning -> title");
-        alert.informativeText = [NSString stringWithFormat:NSLocalizedString(
-                                                               @"A file with the name \"%@\" already exists in the directory \"%@\". "
-                                                                "Choose a new name or directory to create the torrent file.",
-                                                               "Create torrent -> file already exists warning -> warning"),
-                                                           pathComponents[count - 1],
-                                                           pathComponents[count - 2]];
+        alert.messageText = NSLocalizedString(@"A torrent file with this name and directory cannot be created.",
+                                              "Create torrent -> file already exists warning -> title");
+        alert.informativeText = [NSString
+            stringWithFormat:NSLocalizedString(@"A file with the name \"%@\" already exists in the directory \"%@\". "
+                                                "Choose a new name or directory to create the torrent file.",
+                                               "Create torrent -> file already exists warning -> warning"),
+                             pathComponents[count - 1],
+                             pathComponents[count - 2]];
         alert.alertStyle = NSAlertStyleWarning;
 
         [alert beginSheetModalForWindow:self.window completionHandler:nil];
@@ -807,8 +802,7 @@ static NSMutableSet* creatorWindowControllerSet;
                 std::copy_n(priv->data() + 64, 32, pub.data());
                 self.fBuilder->set_btpk_public_key(pub);
                 auto const fp = libtransmission::tr_btpk_fingerprint(pub);
-                self.fBtpkFingerprint.stringValue =
-                    [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+                self.fBtpkFingerprint.stringValue = [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
                 libtransmission::tr_btpk_zero_key(*priv);
             }
         }
@@ -902,14 +896,11 @@ static NSMutableSet* creatorWindowControllerSet;
             {
                 NSString* magnetStr = [NSString stringWithUTF8String:magnet.c_str()];
                 NSAlert* magnetAlert = [[NSAlert alloc] init];
-                magnetAlert.messageText = NSLocalizedString(
-                    @"Updatable torrent created",
-                    @"btpk magnet link alert title");
-                magnetAlert.informativeText = [NSString stringWithFormat:
-                    NSLocalizedString(
-                        @"Share this btpk: magnet link. Anyone who adds it will automatically receive your updates:\n\n%@",
-                        @"btpk magnet link alert message"),
-                    magnetStr];
+                magnetAlert.messageText = NSLocalizedString(@"Updatable torrent created", @"btpk magnet link alert title");
+                magnetAlert.informativeText = [NSString
+                    stringWithFormat:NSLocalizedString(@"Share this btpk: magnet link. Anyone who adds it will automatically receive your updates:\n\n%@",
+                                                       @"btpk magnet link alert message"),
+                                     magnetStr];
                 [magnetAlert addButtonWithTitle:NSLocalizedString(@"Copy Link", @"btpk magnet copy button")];
                 [magnetAlert addButtonWithTitle:NSLocalizedString(@"OK", @"btpk magnet ok button")];
                 [magnetAlert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse resp) {
