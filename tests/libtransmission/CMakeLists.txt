@@ -20,6 +20,7 @@ target_sources(libtransmission-test
         dht-test.cc
         dht-bep44-test.cc
     bep47-test.cc
+    btpk-utils-test.cc
     dht-layer5-test.cc
     dht-mutable-test.cc
     magnet-btpk-test.cc

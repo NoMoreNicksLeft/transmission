@@ -51,6 +51,8 @@ target_sources(${TR_NAME}
         crypto-utils-openssl.cc
         crypto-utils-wolfssl.cc
         crypto-utils.cc
+        btpk-utils.cc
+        btpk-utils.h
         crypto-utils-ed25519.cc
     tr-dht-mutable.cc
         crypto-utils.h
