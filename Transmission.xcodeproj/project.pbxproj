@@ -129,9 +129,21 @@
 		A22B00B3116A9EA4003315FC /* connecthostport.c in Sources */ = {isa = PBXBuildFile; fileRef = A22B00AE116A9E90003315FC /* connecthostport.c */; };
 		A22BAE281388040500FB022F /* NSMutableArrayAdditions.mm in Sources */ = {isa = PBXBuildFile; fileRef = A22BAE271388040500FB022F /* NSMutableArrayAdditions.mm */; };
 		A22CFB820FB66EF30009BD3E /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A22CFB810FB66EF30009BD3E /* Carbon.framework */; };
+		BB02000800000008 /* crypto-utils-ed25519.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000700000007 /* crypto-utils-ed25519.cc */; };
+		BB02000300000003 /* btpk-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000100000001 /* btpk-utils.cc */; };
+		BB02000600000006 /* tr-dht-mutable.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000400000004 /* tr-dht-mutable.cc */; };
 		A22CFCA80FC24ED80009BD3E /* tr-dht.cc in Sources */ = {isa = PBXBuildFile; fileRef = A22CFCA60FC24ED80009BD3E /* tr-dht.cc */; };
 		A22CFCA90FC24ED80009BD3E /* tr-dht.h in Headers */ = {isa = PBXBuildFile; fileRef = A22CFCA70FC24ED80009BD3E /* tr-dht.h */; };
 		A22CFCC20FC24F890009BD3E /* dht.h in Headers */ = {isa = PBXBuildFile; fileRef = A22CFCC00FC24F890009BD3E /* dht.h */; };
+		BB03000200000002 /* ed25519/add_scalar.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000100000001 /* add_scalar.c */; };
+		BB03000400000004 /* ed25519/fe.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000300000003 /* fe.c */; };
+		BB03000600000006 /* ed25519/ge.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000500000005 /* ge.c */; };
+		BB03000800000008 /* ed25519/keypair.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000700000007 /* keypair.c */; };
+		BB03000A0000000A /* ed25519/sc.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000900000009 /* sc.c */; };
+		BB03000C0000000C /* ed25519/seed.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000B0000000B /* seed.c */; };
+		BB03000E0000000E /* ed25519/sha512.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000D0000000D /* sha512.c */; };
+		BB03001000000010 /* ed25519/sign.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03000F0000000F /* sign.c */; };
+		BB03001200000012 /* ed25519/verify.c in Sources */ = {isa = PBXBuildFile; fileRef = BB03001100000011 /* verify.c */; };
 		A22CFCC30FC24F890009BD3E /* dht.c in Sources */ = {isa = PBXBuildFile; fileRef = A22CFCC10FC24F890009BD3E /* dht.c */; };
 		A22CFCCB0FC24FDA0009BD3E /* libdht.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A22CFCBA0FC24F710009BD3E /* libdht.a */; };
 		A22CFCCD0FC250480009BD3E /* libevent.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BE75C3490C729E9500DBEFE0 /* libevent.a */; };
@@ -915,10 +927,24 @@
 		A22BAE271388040500FB022F /* NSMutableArrayAdditions.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NSMutableArrayAdditions.mm; sourceTree = "<group>"; };
 		A22CEF9E21CDC44400C5C1BA /* Transmission.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Transmission.entitlements; path = macosx/Transmission.entitlements; sourceTree = "<group>"; };
 		A22CFB810FB66EF30009BD3E /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		BB02000700000007 /* crypto-utils-ed25519.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "crypto-utils-ed25519.cc"; sourceTree = "<group>"; };
+		BB02000100000001 /* btpk-utils.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "btpk-utils.cc"; sourceTree = "<group>"; };
+		BB02000200000002 /* btpk-utils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = "btpk-utils.h"; sourceTree = "<group>"; };
+		BB02000400000004 /* tr-dht-mutable.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "tr-dht-mutable.cc"; sourceTree = "<group>"; };
+		BB02000500000005 /* tr-dht-mutable.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = "tr-dht-mutable.h"; sourceTree = "<group>"; };
 		A22CFCA60FC24ED80009BD3E /* tr-dht.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "tr-dht.cc"; sourceTree = "<group>"; };
 		A22CFCA70FC24ED80009BD3E /* tr-dht.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = "tr-dht.h"; sourceTree = "<group>"; };
 		A22CFCBA0FC24F710009BD3E /* libdht.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libdht.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A22CFCC00FC24F890009BD3E /* dht.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dht.h; sourceTree = "<group>"; };
+		BB03000100000001 /* add_scalar.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "add_scalar.c"; path = "third-party/ed25519/add_scalar.c"; sourceTree = SOURCE_ROOT; };
+		BB03000300000003 /* fe.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "fe.c"; path = "third-party/ed25519/fe.c"; sourceTree = SOURCE_ROOT; };
+		BB03000500000005 /* ge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "ge.c"; path = "third-party/ed25519/ge.c"; sourceTree = SOURCE_ROOT; };
+		BB03000700000007 /* keypair.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "keypair.c"; path = "third-party/ed25519/keypair.c"; sourceTree = SOURCE_ROOT; };
+		BB03000900000009 /* sc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "sc.c"; path = "third-party/ed25519/sc.c"; sourceTree = SOURCE_ROOT; };
+		BB03000B0000000B /* seed.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "seed.c"; path = "third-party/ed25519/seed.c"; sourceTree = SOURCE_ROOT; };
+		BB03000D0000000D /* sha512.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "sha512.c"; path = "third-party/ed25519/sha512.c"; sourceTree = SOURCE_ROOT; };
+		BB03000F0000000F /* sign.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "sign.c"; path = "third-party/ed25519/sign.c"; sourceTree = SOURCE_ROOT; };
+		BB03001100000011 /* verify.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "verify.c"; path = "third-party/ed25519/verify.c"; sourceTree = SOURCE_ROOT; };
 		A22CFCC10FC24F890009BD3E /* dht.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dht.c; sourceTree = "<group>"; };
 		A22F1E540E7DA8030065DB9D /* sparkle_dsa_pub.pem */ = {isa = PBXFileReference; lastKnownFileType = text; path = sparkle_dsa_pub.pem; sourceTree = "<group>"; };
 		A231274B0D11D0B7003F9AFF /* AboutWindow.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = AboutWindow.xib; sourceTree = "<group>"; };
@@ -2022,6 +2048,20 @@
 				C1425B321EE9C5EA001DB85F /* tr-assert.cc */,
 				C1425B331EE9C5EA001DB85F /* tr-assert.h */,
 				A263C6B1F6718E2486DB20E1 /* tr-buffer.h */,
+				BB02000700000007 /* crypto-utils-ed25519.cc */,
+				BB03000100000001 /* add_scalar.c */,
+				BB03000300000003 /* fe.c */,
+				BB03000500000005 /* ge.c */,
+				BB03000700000007 /* keypair.c */,
+				BB03000900000009 /* sc.c */,
+				BB03000B0000000B /* seed.c */,
+				BB03000D0000000D /* sha512.c */,
+				BB03000F0000000F /* sign.c */,
+				BB03001100000011 /* verify.c */,
+				BB02000100000001 /* btpk-utils.cc */,
+				BB02000200000002 /* btpk-utils.h */,
+				BB02000400000004 /* tr-dht-mutable.cc */,
+				BB02000500000005 /* tr-dht-mutable.h */,
 				A22CFCA60FC24ED80009BD3E /* tr-dht.cc */,
 				A22CFCA70FC24ED80009BD3E /* tr-dht.h */,
 				A25E03E10E4015380086C225 /* tr-getopt.cc */,
@@ -3404,6 +3444,9 @@
 				C1305EBE186A13B100F03351 /* file.cc in Sources */,
 				A21FBBAC0EDA78C300BC3C51 /* bandwidth.cc in Sources */,
 				C1033E081A3279B800EF44D8 /* crypto-utils-ccrypto.cc in Sources */,
+				BB02000800000008 /* crypto-utils-ed25519.cc in Sources */,
+				BB02000300000003 /* btpk-utils.cc in Sources */,
+				BB02000600000006 /* tr-dht-mutable.cc in Sources */,
 				A22CFCA80FC24ED80009BD3E /* tr-dht.cc in Sources */,
 				0A6169A70FE5C9A200C66CE6 /* bitfield.cc in Sources */,
 				ED67FB422B70FCE400D8A037 /* serializer.cc in Sources */,
@@ -3538,6 +3581,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB03000200000002 /* ed25519/add_scalar.c in Sources */,
+				BB03000400000004 /* ed25519/fe.c in Sources */,
+				BB03000600000006 /* ed25519/ge.c in Sources */,
+				BB03000800000008 /* ed25519/keypair.c in Sources */,
+				BB03000A0000000A /* ed25519/sc.c in Sources */,
+				BB03000C0000000C /* ed25519/seed.c in Sources */,
+				BB03000E0000000E /* ed25519/sha512.c in Sources */,
+				BB03001000000010 /* ed25519/sign.c in Sources */,
+				BB03001200000012 /* ed25519/verify.c in Sources */,
 				A22CFCC30FC24F890009BD3E /* dht.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -4239,6 +4291,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/wide-integer",
 					"third-party/libb64/include",
@@ -4263,6 +4316,7 @@
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/fmt/include",
 					"third-party/small/include",
@@ -4485,6 +4539,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/wide-integer",
 					"third-party/libb64/include",
@@ -4509,6 +4564,7 @@
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/fmt/include",
 					"third-party/small/include",
@@ -4810,6 +4866,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/wide-integer",
 					"third-party/libb64/include",
@@ -4834,6 +4891,7 @@
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"third-party/dht",
+					"third-party/ed25519",
 					"third-party/fast_float/include",
 					"third-party/fmt/include",
 					"third-party/small/include",

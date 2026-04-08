@@ -898,12 +898,11 @@ using tr_torrent_rename_done_func = std::function<
  *   If the path exists on disk but can't be renamed, the error argument
  *   will be the errno set by rename().
  */
-void tr_torrentRenamePath(
-    tr_torrent* tor,
-    char const* oldpath,
-    char const* newname,
-    tr_torrent_rename_done_func callback,
-    void* callback_user_data);
+void tr_torrentRenamePath(tr_torrent* tor,
+                          char const* oldpath,
+                          char const* newname,
+                          tr_torrent_rename_done_func callback,
+                          void* callback_user_data);
 
 enum : uint8_t
 {
@@ -1024,11 +1023,10 @@ void tr_torrentSetPeerLimit(tr_torrent* tor, uint16_t max_connected_peers);
  *
  * @param priority must be one of TR_PRI_NORMAL, _HIGH, or _LOW
  */
-void tr_torrentSetFilePriorities(
-    tr_torrent* torrent,
-    tr_file_index_t const* files,
-    tr_file_index_t file_count,
-    tr_priority_t priority);
+void tr_torrentSetFilePriorities(tr_torrent* torrent,
+                                 tr_file_index_t const* files,
+                                 tr_file_index_t file_count,
+                                 tr_priority_t priority);
 
 /** @brief Set a batch of files to be downloaded or not. */
 void tr_torrentSetFileDLs(tr_torrent* torrent, tr_file_index_t const* files, tr_file_index_t n_files, bool wanted);
@@ -1392,6 +1390,40 @@ void tr_torrentVerify(tr_torrent* torrent);
 
 bool tr_torrentHasMetadata(tr_torrent const* tor);
 bool tr_torrentHasBtpk(tr_torrent const* tor);
+
+// Replace a live btpk torrent's metainfo with a newly-published version.
+// The new metainfo must carry the same btpk public key as the existing one.
+// Returns false if the keys differ or either torrent is not a btpk torrent.
+bool tr_torrentReplaceBtpkMetainfo(tr_torrent* tor, tr_torrent_metainfo new_metainfo);
+
+// BEP 44 sequence number for the last value published by this torrent.
+// Returns -1 if never published.
+int64_t tr_torrentBtpkSeq(tr_torrent const* tor);
+void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq);
+
+// Sign the given BEP 46 value and push it to the DHT via the torrent's
+// session. Returns false if DHT is not running or signing fails.
+bool tr_torrentBtpkSignAndPut(tr_torrent* tor,
+                              uint8_t const* pubkey_32,
+                              uint8_t const* privkey_96,
+                              char const* salt,
+                              int salt_len,
+                              int64_t seq,
+                              uint8_t const* v,
+                              int v_len);
+
+// Copy the 32-byte btpk public key into buf (caller must provide at least 32 bytes).
+// Returns false if the torrent has no btpk key.
+bool tr_torrentBtpkGetPublicKey(tr_torrent const* tor, uint8_t* buf_32);
+
+// Copy the btpk salt into buf (caller provides buf_len bytes).
+// Returns the actual salt length (0 if no salt). Truncates if buf_len is too small.
+size_t tr_torrentBtpkGetSalt(tr_torrent const* tor, char* buf, size_t buf_len);
+
+// Returns a human-readable fingerprint string for the btpk public key,
+// e.g. "A3:F8:C2:01:9E:44:BB:20". Returns empty string if no btpk key.
+// Caller must free the returned string with tr_free().
+char* tr_torrentBtpkFingerprint(tr_torrent const* tor);
 
 /**
  * What the torrent is doing right now.

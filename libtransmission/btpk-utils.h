@@ -85,4 +85,23 @@ void tr_btpk_key_generate(BtpkPublicKey& key_public_out, BtpkPrivateKey& key_pri
 
 void tr_btpk_zero_key(BtpkPrivateKey& key);
 
+// Encode a 20-byte infohash as the BEP 46 DHT value: d1:ih20:<bytes>e
+std::string tr_btpk_encode_v(std::array<uint8_t, 20> const& infohash);
+
 } // namespace libtransmission
+
+#ifdef __TRANSMISSION__
+// Internal: sign a BEP 46 value and push it to the DHT.
+// Only callable from libtransmission (requires tr-dht.h).
+class tr_dht;
+namespace libtransmission
+{
+bool tr_btpk_sign_and_put(::tr_dht& dht,
+                          uint8_t const* v,
+                          int v_len,
+                          BtpkPublicKey const& pubKey,
+                          BtpkPrivateKey const& privKey,
+                          std::string_view salt,
+                          int64_t seq);
+} // namespace libtransmission
+#endif

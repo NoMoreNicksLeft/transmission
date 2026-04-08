@@ -26,6 +26,7 @@
 #include "libtransmission/bandwidth.h"
 #include "libtransmission/bitfield.h"
 #include "libtransmission/block-info.h"
+#include "libtransmission/btpk-utils.h"
 #include "libtransmission/completion.h"
 #include "libtransmission/crypto-utils.h"
 #include "libtransmission/file-piece-map.h"
@@ -775,6 +776,32 @@ struct tr_torrent
     // file on disk. The existing DHT announce timer picks up the new hash.
     void update_btpk_infohash(tr_sha1_digest_t const& new_hash);
 
+    // BEP 44 sequence number for the last published mutable item.
+    // -1 means never published (or unknown). Persisted to .resume.
+    [[nodiscard]] constexpr int64_t btpk_seq() const noexcept
+    {
+        return btpk_seq_;
+    }
+    constexpr void set_btpk_seq(int64_t seq) noexcept
+    {
+        btpk_seq_ = seq;
+    }
+
+    // Replace the torrent's metainfo with a new version from an updated btpk
+    // publish. The new metainfo must carry the same btpk public key.
+    // Returns false if the keys differ or the torrent is not a btpk torrent.
+    bool replace_btpk_metainfo(tr_torrent_metainfo new_metainfo);
+
+    // Sign the given BEP 46 value with privKey and push it to the DHT
+    // via this torrent's session. Returns false if DHT is not running
+    // or signing fails.
+    bool btpk_sign_and_put(libtransmission::BtpkPublicKey const& pubKey,
+                           libtransmission::BtpkPrivateKey const& privKey,
+                           std::string_view salt,
+                           int64_t seq,
+                           uint8_t const* v,
+                           int v_len);
+
     /** Return the mime-type (e.g. "audio/x-flac") that matches more of the
         torrent's content than any other mime-type. */
     [[nodiscard]] std::string_view primary_mime_type() const;
@@ -1454,6 +1481,7 @@ private:
     bool needs_completeness_check_ = true;
 
     bool sequential_download_ = false;
+    int64_t btpk_seq_ = -1; // BEP 44 seq for last published mutable item
 
     tr_piece_index_t sequential_download_from_piece_ = 0;
 

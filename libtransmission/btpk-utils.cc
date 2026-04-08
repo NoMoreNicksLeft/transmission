@@ -8,14 +8,17 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cinttypes> // PRId64
 #include <cstdint>
 #include <cstring>
+#include <cstdio> // snprintf
 #include <optional>
 #include <string>
 #include <string_view>
 
 #include "libtransmission/btpk-utils.h"
-#include "libtransmission/crypto-utils.h" // tr_ed25519_keypair_generate
+#include "libtransmission/crypto-utils.h" // tr_ed25519_keypair_generate, tr_ed25519_sign
+#include "libtransmission/tr-dht.h" // tr_dht::put_mutable
 
 using namespace std::literals;
 
@@ -293,6 +296,86 @@ void tr_btpk_zero_key(BtpkPrivateKey& key)
     {
         p[i] = 0U;
     }
+}
+
+// ---------------------------------------------------------------------------
+// BEP 46 value encoding: d1:ih20:<bytes>e
+
+std::string tr_btpk_encode_v(std::array<uint8_t, 20> const& infohash)
+{
+    // d1:ih20:<20 raw bytes>e
+    std::string v;
+    v.reserve(28);
+    v += "d1:ih20:";
+    v.append(reinterpret_cast<char const*>(infohash.data()), 20);
+    v += 'e';
+    return v;
+}
+
+// ---------------------------------------------------------------------------
+// BEP 44 signing buffer: [4:saltN:<salt>]3:seqi<seq>e1:v<vlen>:<v>
+// Mirrors the static bep44_signing_buf() in dht.c / tr-dht-mutable.cc.
+
+static int build_sign_buf(uint8_t const* salt, int salt_len, int64_t seq, uint8_t const* v, int v_len, char* buf, int bufmax)
+{
+    int i = 0;
+
+    if (salt != nullptr && salt_len > 0)
+    {
+        int rc = snprintf(buf + i, bufmax - i, "4:salt%d:", salt_len);
+        if (rc < 0 || rc >= bufmax - i)
+            return -1;
+        i += rc;
+        if (i + salt_len >= bufmax)
+            return -1;
+        std::memcpy(buf + i, salt, salt_len);
+        i += salt_len;
+    }
+
+    {
+        int rc = snprintf(buf + i, bufmax - i, "3:seqi%" PRId64 "e1:v%d:", seq, v_len);
+        if (rc < 0 || rc >= bufmax - i)
+            return -1;
+        i += rc;
+    }
+
+    if (i + v_len >= bufmax)
+        return -1;
+    std::memcpy(buf + i, v, v_len);
+    i += v_len;
+
+    return i;
+}
+
+// ---------------------------------------------------------------------------
+// tr_btpk_sign_and_put
+
+bool tr_btpk_sign_and_put(::tr_dht& dht,
+                          uint8_t const* v,
+                          int v_len,
+                          BtpkPublicKey const& pubKey,
+                          BtpkPrivateKey const& privKey,
+                          std::string_view salt,
+                          int64_t seq)
+{
+    auto const* salt_ptr = salt.empty() ? nullptr : reinterpret_cast<uint8_t const*>(salt.data());
+    int const salt_len = static_cast<int>(salt.size());
+
+    // Build signing buffer
+    char sign_buf[1100]; // DHT_BEP44_VALUE_MAX (1000) + header overhead
+    int const sign_len = build_sign_buf(salt_ptr, salt_len, seq, v, v_len, sign_buf, static_cast<int>(sizeof(sign_buf)));
+    if (sign_len <= 0)
+        return false;
+
+    // Sign with ed25519 using the 96-byte private key
+    uint8_t sig[64] = {};
+    if (!tr_ed25519_sign(sig, reinterpret_cast<uint8_t const*>(sign_buf), static_cast<size_t>(sign_len), privKey.data()))
+        return false;
+
+    // Push to DHT
+    dht.put_mutable(pubKey.data(), sig, salt_ptr, salt_len, seq, v, v_len);
+
+    return true;
 }
 
 } // namespace libtransmission

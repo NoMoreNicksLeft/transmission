@@ -118,8 +118,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 /// key in keyData, publish via DHT, and call the handler with the new btpk:
 /// magnet URI (or an error). The key bytes are zeroed inside before returning.
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
-               completionHandler:(void (^)(NSString* _Nullable magnetLink,
-                                           NSError* _Nullable error))handler;
+                   completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;
 
 @property(nonatomic, readonly) NSString* torrentLocation;
 @property(nonatomic, readonly) NSString* dataLocation;

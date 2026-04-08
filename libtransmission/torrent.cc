@@ -2604,6 +2604,115 @@ bool tr_torrentHasBtpk(tr_torrent const* tor)
     return tor->metainfo().has_btpk();
 }
 
+bool tr_torrentReplaceBtpkMetainfo(tr_torrent* tor, tr_torrent_metainfo new_metainfo)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), false);
+    return tor->replace_btpk_metainfo(std::move(new_metainfo));
+}
+
+int64_t tr_torrentBtpkSeq(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), -1);
+    return tor->btpk_seq();
+}
+
+void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq)
+{
+    tr_return_if_fail(tr_isTorrent(tor));
+    tor->set_btpk_seq(seq);
+}
+
+bool tr_torrentBtpkSignAndPut(tr_torrent* tor,
+                              uint8_t const* pubkey_32,
+                              uint8_t const* privkey_96,
+                              char const* salt,
+                              int salt_len,
+                              int64_t seq,
+                              uint8_t const* v,
+                              int v_len)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), false);
+    tr_return_val_if_fail(pubkey_32 != nullptr, false);
+    tr_return_val_if_fail(privkey_96 != nullptr, false);
+
+    libtransmission::BtpkPublicKey pub;
+    libtransmission::BtpkPrivateKey priv;
+    std::copy(pubkey_32, pubkey_32 + 32, pub.begin());
+    std::copy(privkey_96, privkey_96 + 96, priv.begin());
+    auto const saltSv = std::string_view{ salt, static_cast<size_t>(salt_len >= 0 ? salt_len : 0) };
+    return tor->btpk_sign_and_put(pub, priv, saltSv, seq, v, v_len);
+}
+
+bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
+{
+    // Only valid for btpk torrents where the public key hasn't changed.
+    if (!new_metainfo.has_btpk() || !metainfo_.has_btpk())
+        return false;
+    if (new_metainfo.btpk_key() != metainfo_.btpk_key())
+        return false;
+
+    metainfo_ = std::move(new_metainfo);
+    on_metainfo_updated();
+    on_announce_list_changed();
+    set_dirty();
+    mark_edited();
+
+    // Refresh the DHT subscription so the resolver's last_seq advances
+    // to match what we just published, preventing it from re-downloading
+    // the version we just created.
+    if (metainfo_.has_btpk() && session)
+    {
+        session->add_btpk_subscription(id(), *metainfo_.btpk_key(), metainfo_.btpk_salt());
+    }
+
+    return true;
+}
+
+bool tr_torrentBtpkGetPublicKey(tr_torrent const* tor, uint8_t* buf_32)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), false);
+    tr_return_val_if_fail(buf_32 != nullptr, false);
+    auto const& key = tor->metainfo().btpk_key();
+    if (!key)
+        return false;
+    std::copy(key->begin(), key->end(), buf_32);
+    return true;
+}
+
+size_t tr_torrentBtpkGetSalt(tr_torrent const* tor, char* buf, size_t buf_len)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), 0);
+    auto const& salt = tor->metainfo().btpk_salt();
+    if (salt.empty() || buf == nullptr || buf_len == 0)
+        return salt.size();
+    size_t const copy_len = std::min(salt.size(), buf_len);
+    std::memcpy(buf, salt.data(), copy_len);
+    return salt.size();
+}
+
+char* tr_torrentBtpkFingerprint(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), strdup(""));
+    auto const& key = tor->metainfo().btpk_key();
+    if (!key)
+        return strdup("");
+    auto const fp = libtransmission::tr_btpk_fingerprint(*key);
+    return strdup(fp.c_str());
+}
+
+bool tr_torrent::btpk_sign_and_put(libtransmission::BtpkPublicKey const& pubKey,
+                                   libtransmission::BtpkPrivateKey const& privKey,
+                                   std::string_view salt,
+                                   int64_t seq,
+                                   uint8_t const* v,
+                                   int v_len)
+{
+    if (!session || !session->dht_)
+        return false;
+
+    return libtransmission::tr_btpk_sign_and_put(*session->dht_, v, v_len, pubKey, privKey, salt, seq);
+}
+
 void tr_torrent::mark_edited()
 {
     auto const now = tr_time();
