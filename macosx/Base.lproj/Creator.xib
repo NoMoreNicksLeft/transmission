@@ -303,7 +303,7 @@ Gw
                         <constraints>
                             <constraint firstAttribute="height" constant="62" id="btpk-fld-h"/>
                         </constraints>
-                        <textFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="Paste private key (hex or PEM), or click Generate" drawsBackground="YES" id="btpk-fld-cell">
+                        <textFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="Paste private key (PEM format), or click Generate" drawsBackground="YES" id="btpk-fld-cell">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>

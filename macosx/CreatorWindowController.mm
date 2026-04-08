@@ -337,13 +337,36 @@ static NSMutableSet* creatorWindowControllerSet;
 
 - (IBAction)copyBtpkKeyToClipboard:(id)sender
 {
-    NSString* const key = self.fBtpkKeyField.stringValue;
-    if (key.length == 0)
+    NSString* const displayed = self.fBtpkKeyField.stringValue;
+    if (displayed.length == 0)
     {
         return;
     }
+
+    // Parse whatever is in the field (PEM or hex) and copy as PEM —
+    // the format suitable for password managers and secure notes.
+    auto const key_str = std::string{ displayed.UTF8String };
+    auto priv = libtransmission::tr_btpk_private_key_from_pem(key_str);
+    if (!priv)
+    {
+        priv = libtransmission::tr_btpk_private_key_from_hex(key_str);
+    }
+
+    NSString* to_copy;
+    if (priv)
+    {
+        auto const pem = libtransmission::tr_btpk_private_key_to_pem(*priv);
+        libtransmission::tr_btpk_zero_key(*priv);
+        to_copy = [NSString stringWithUTF8String:pem.c_str()];
+    }
+    else
+    {
+        // Fallback: copy as-is if we can't parse it
+        to_copy = displayed;
+    }
+
     [NSPasteboard.generalPasteboard clearContents];
-    [NSPasteboard.generalPasteboard setString:key forType:NSPasteboardTypeString];
+    [NSPasteboard.generalPasteboard setString:to_copy forType:NSPasteboardTypeString];
 
     // Brief visual feedback — disable the button momentarily
     self.fBtpkCopy.enabled = NO;
@@ -382,9 +405,9 @@ static NSMutableSet* creatorWindowControllerSet;
     libtransmission::BtpkPrivateKey priv{};
     libtransmission::tr_btpk_key_generate(pub, priv);
 
-    // Show the private key in the text field so the user can copy it to their password manager.
-    auto const hex = libtransmission::tr_btpk_private_key_to_hex(priv);
-    self.fBtpkKeyField.stringValue = [NSString stringWithUTF8String:hex.c_str()];
+    // Show the private key as PEM — the format password managers expect.
+    auto const pem = libtransmission::tr_btpk_private_key_to_pem(priv);
+    self.fBtpkKeyField.stringValue = [NSString stringWithUTF8String:pem.c_str()];
 
     // Show the fingerprint so the user can identify this key later.
     auto const fp = libtransmission::tr_btpk_fingerprint(pub);
