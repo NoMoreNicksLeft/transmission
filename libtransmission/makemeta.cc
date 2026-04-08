@@ -368,6 +368,14 @@ std::string tr_metainfo_builder::benc(tr_error* error) const
     }
 
     top.try_emplace(TR_KEY_info, std::move(info_dict));
+
+    // BEP 46: store the public key as a top-level field so it survives
+    // .torrent file round-trips (doesn't affect infohash, outside info dict)
+    if (btpk_public_key_)
+    {
+        top.try_emplace(TR_KEY_btpk_pub, tr_variant::make_raw(btpk_public_key_->data(), btpk_public_key_->size()));
+    }
+
     return tr_variant_serde::benc().to_string(tr_variant{ std::move(top) });
 }
 

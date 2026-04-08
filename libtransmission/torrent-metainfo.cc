@@ -16,6 +16,7 @@
 #include "libtransmission/transmission.h"
 
 #include "libtransmission/benc.h"
+#include "libtransmission/btpk-utils.h"
 #include "libtransmission/crypto-utils.h"
 #include "libtransmission/error.h"
 #include "libtransmission/file.h"
@@ -350,6 +351,15 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
         {
             tm_.comment_ = tr_strv_convert_utf8(value);
         }
+        else if (pathIs(BtpkPubKey) && value.size() == 32)
+        {
+            // BEP 46: restore the public key stored as a top-level .torrent field
+            libtransmission::BtpkPublicKey pub;
+            std::copy(reinterpret_cast<uint8_t const*>(value.data()),
+                      reinterpret_cast<uint8_t const*>(value.data()) + 32,
+                      pub.begin());
+            tm_.btpk_key_ = pub;
+        }
         else if (pathIs(CreatedByKey) || pathIs(CreatedByUtf8Key))
         {
             tm_.creator_ = tr_strv_convert_utf8(value);
@@ -617,6 +627,7 @@ private:
     static constexpr std::string_view AnnounceKey = "announce"sv;
     static constexpr std::string_view AnnounceListKey = "announce-list"sv;
     static constexpr std::string_view AttrKey = "attr"sv;
+    static constexpr std::string_view BtpkPubKey = "btpk_pub"sv;
     static constexpr std::string_view AzureusPrivatePropertiesKey = "azureus_private_properties"sv;
     static constexpr std::string_view AzureusPropertiesKey = "azureus_properties"sv;
     static constexpr std::string_view ChecksumKey = "checksum"sv;
