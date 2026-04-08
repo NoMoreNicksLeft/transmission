@@ -165,13 +165,11 @@ tr_resume::fields_t load_dnd(tr_variant::Map const& map, tr_torrent* tor)
     auto const n = tor->file_count();
     if (std::size(*list) != n)
     {
-        tr_logAddDebugTor(
-            tor,
-            fmt::format(
-                "Couldn't load DND flags. DND list {} has {} children; torrent has {} files",
-                fmt::ptr(list),
-                std::size(*list),
-                n));
+        tr_logAddDebugTor(tor,
+                          fmt::format("Couldn't load DND flags. DND list {} has {} children; torrent has {} files",
+                                      fmt::ptr(list),
+                                      std::size(*list),
+                                      n));
         return {};
     }
 
@@ -782,6 +780,10 @@ tr_resume::fields_t load_from_file(tr_torrent* tor, tr_torrent::ResumeHelper& he
         }
     }
 
+    // btpk_seq is always loaded when present — no fields_to_load flag needed
+    if (auto i = map.value_if<int64_t>(TR_KEY_btpk_seq); i)
+        tor->set_btpk_seq(*i);
+
     if ((fields_to_load & tr_resume::Peers) != 0)
     {
         fields_loaded |= load_peers(map, tor);
@@ -846,12 +848,11 @@ tr_resume::fields_t load_from_file(tr_torrent* tor, tr_torrent::ResumeHelper& he
     return fields_loaded;
 }
 
-auto set_from_ctor(
-    tr_torrent* tor,
-    tr_torrent::ResumeHelper& helper,
-    tr_resume::fields_t const fields,
-    tr_ctor const& ctor,
-    tr_ctorMode const mode)
+auto set_from_ctor(tr_torrent* tor,
+                   tr_torrent::ResumeHelper& helper,
+                   tr_resume::fields_t const fields,
+                   tr_ctor const& ctor,
+                   tr_ctorMode const mode)
 {
     auto ret = tr_resume::fields_t{};
 
@@ -903,20 +904,18 @@ auto set_from_ctor(
     return ret;
 }
 
-auto use_mandatory_fields(
-    tr_torrent* const tor,
-    tr_torrent::ResumeHelper& helper,
-    tr_resume::fields_t const fields,
-    tr_ctor const& ctor)
+auto use_mandatory_fields(tr_torrent* const tor,
+                          tr_torrent::ResumeHelper& helper,
+                          tr_resume::fields_t const fields,
+                          tr_ctor const& ctor)
 {
     return set_from_ctor(tor, helper, fields, ctor, TR_FORCE);
 }
 
-auto use_fallback_fields(
-    tr_torrent* const tor,
-    tr_torrent::ResumeHelper& helper,
-    tr_resume::fields_t const fields,
-    tr_ctor const& ctor)
+auto use_fallback_fields(tr_torrent* const tor,
+                         tr_torrent::ResumeHelper& helper,
+                         tr_resume::fields_t const fields,
+                         tr_ctor const& ctor)
 {
     return set_from_ctor(tor, helper, fields, ctor, TR_FALLBACK);
 }
@@ -966,6 +965,8 @@ void save(tr_torrent* const tor, tr_torrent::ResumeHelper const& helper)
     map.try_emplace(TR_KEY_paused, !helper.start_when_stable());
     map.try_emplace(TR_KEY_sequential_download, tor->is_sequential_download());
     map.try_emplace(TR_KEY_sequential_download_from_piece, tor->sequential_download_from_piece());
+    if (tor->btpk_seq() >= 0)
+        map.try_emplace(TR_KEY_btpk_seq, tor->btpk_seq());
     save_peers(map, tor);
 
     if (tor->has_metainfo())

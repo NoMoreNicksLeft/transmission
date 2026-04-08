@@ -82,7 +82,8 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "blocklist_update"sv, // rpc
     "blocklist_updates_enabled"sv, // gtk app, qt app
     "blocklist_url"sv, // rpc, tr_session::Settings
-    "blocks"sv, // .resume
+    "blocks"sv,
+    "btpk_seq"sv, // .resume // .resume
     "bytesCompleted"sv, // rpc
     "bytes_completed"sv, // rpc
     "bytes_to_client"sv, // rpc

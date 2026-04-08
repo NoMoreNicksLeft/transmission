@@ -807,10 +807,8 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     bool const isPrivate = torView.is_private;
     auto const comment = std::string{ torView.comment ? torView.comment : "" };
     auto const source = std::string{ torView.source ? torView.source : "" };
-    // announce list — use the public tr_torrentGetAnnounceList path via builder
-    // (we leave announce blank; tr_metainfo_builder defaults to no trackers
-    // which is fine — the torrent already has trackers in its DHT subscription).
-    // TODO: expose tr_torrentView announce list for full fidelity copy.
+    // Tracker list captured as NSString for block retention
+    NSString* const trackerListStr = @(tr_torrentGetTrackerList(self.fHandle).c_str());
 
     // btpk public key as raw bytes (32)
     uint8_t pubKeyBytes[32] = {};
@@ -848,6 +846,13 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
             builder.set_comment(comment);
         if (!source.empty())
             builder.set_source(source);
+        // Re-apply the tracker list from the original torrent
+        if (trackerListStr.length > 0)
+        {
+            tr_announce_list announceList;
+            announceList.parse(trackerListStr.UTF8String);
+            builder.set_announce_list(std::move(announceList));
+        }
         // Set btpk public key from the captured 32-byte NSData
         {
             std::array<uint8_t, 32> pub;
