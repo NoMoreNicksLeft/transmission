@@ -26,7 +26,10 @@
 #include "libtransmission/makemeta.h"
 #include "libtransmission/quark.h" // TR_KEY_length, TR_KEY_a...
 #include "libtransmission/session.h" // TR_NAME
+#include "libtransmission/btpk-utils.h"
 #include "libtransmission/torrent-files.h"
+#include "libtransmission/torrent-metainfo.h"
+#include "libtransmission/web-utils.h"
 #include "libtransmission/tr-assert.h"
 #include "libtransmission/tr-strbuf.h" // tr_pathbuf
 #include "libtransmission/utils.h" // for _()
@@ -76,12 +79,10 @@ void walkTree(std::string_view const top, std::string_view const subpath, std::s
     auto const info = tr_sys_path_get_info(path, 0, &error);
     if (error)
     {
-        tr_logAddWarn(
-            fmt::format(
-                fmt::runtime(_("Skipping '{path}': {error} ({error_code})")),
-                fmt::arg("path", path),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+        tr_logAddWarn(fmt::format(fmt::runtime(_("Skipping '{path}': {error} ({error_code})")),
+                                  fmt::arg("path", path),
+                                  fmt::arg("error", error.message()),
+                                  fmt::arg("error_code", error.code())));
     }
     if (!info)
     {
@@ -176,11 +177,10 @@ bool tr_metainfo_builder::blocking_make_checksums(tr_error* error)
     auto buf = std::vector<char>(piece_size());
 
     auto const parent = tr_sys_path_dirname(top_);
-    auto fd = tr_sys_file_open(
-        tr_pathbuf{ parent, '/', path(file_index) },
-        TR_SYS_FILE_READ | TR_SYS_FILE_SEQUENTIAL,
-        0,
-        error);
+    auto fd = tr_sys_file_open(tr_pathbuf{ parent, '/', path(file_index) },
+                               TR_SYS_FILE_READ | TR_SYS_FILE_SEQUENTIAL,
+                               0,
+                               error);
     if (fd == TR_BAD_SYS_FILE)
     {
         return false;
@@ -215,11 +215,10 @@ bool tr_metainfo_builder::blocking_make_checksums(tr_error* error)
 
                 if (++file_index < file_count())
                 {
-                    fd = tr_sys_file_open(
-                        tr_pathbuf{ parent, '/', path(file_index) },
-                        TR_SYS_FILE_READ | TR_SYS_FILE_SEQUENTIAL,
-                        0,
-                        error);
+                    fd = tr_sys_file_open(tr_pathbuf{ parent, '/', path(file_index) },
+                                          TR_SYS_FILE_READ | TR_SYS_FILE_SEQUENTIAL,
+                                          0,
+                                          error);
                     if (fd == TR_BAD_SYS_FILE)
                     {
                         return false;
@@ -375,6 +374,56 @@ std::string tr_metainfo_builder::benc(tr_error* error) const
 bool tr_metainfo_builder::save(std::string_view filename, tr_error* error) const
 {
     return tr_file_save(filename, benc(error), error);
+}
+
+std::string tr_metainfo_builder::magnet_link(tr_error* error) const
+{
+    // Parse the bencoded output back through tr_torrent_metainfo to get the
+    // canonical infohash.  This is the same hash subscribers will see.
+    auto const benc_data = benc(error);
+    if (std::empty(benc_data))
+    {
+        return {};
+    }
+
+    auto tm = tr_torrent_metainfo{};
+    if (!tm.parse_benc(benc_data, error))
+    {
+        return {};
+    }
+
+    // Start with the standard magnet URI components
+    auto uri = std::string{ "magnet:?xt=urn:btih:" };
+    uri += tm.info_hash_string().sv();
+
+    // Add display name
+    auto const name = tr_sys_path_basename(top_);
+    if (!std::empty(name))
+    {
+        uri += "&dn="sv;
+        tr_urlPercentEncode(std::back_inserter(uri), name);
+    }
+
+    // Add trackers
+    for (auto const& tracker : announce_list())
+    {
+        uri += "&tr="sv;
+        tr_urlPercentEncode(std::back_inserter(uri), tracker.announce.sv());
+    }
+
+    // BEP 46: append xs=urn:btpk:<hex>[&s=<salt>] if a public key was set
+    if (btpk_public_key_)
+    {
+        uri += "&xs=urn:btpk:"sv;
+        uri += libtransmission::tr_btpk_public_key_to_hex(*btpk_public_key_);
+        if (!btpk_salt_.empty())
+        {
+            uri += "&s="sv;
+            tr_urlPercentEncode(std::back_inserter(uri), btpk_salt_);
+        }
+    }
+
+    return uri;
 }
 
 uint32_t tr_metainfo_builder::default_piece_size(uint64_t total_size) noexcept

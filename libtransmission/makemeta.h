@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstddef> // std::byte
 #include <cstdint>
 #include <future>
@@ -41,14 +42,13 @@ public:
     // - Resolves with a `tr_error` which is set on failure or empty on success.
     std::future<tr_error> make_checksums()
     {
-        return std::async(
-            std::launch::async,
-            [this]()
-            {
-                auto error = tr_error{};
-                blocking_make_checksums(&error);
-                return error;
-            });
+        return std::async(std::launch::async,
+                          [this]()
+                          {
+                              auto error = tr_error{};
+                              blocking_make_checksums(&error);
+                              return error;
+                          });
     }
 
     // Returns the status of a `makeChecksums()` call:
@@ -104,6 +104,47 @@ public:
     {
         webseeds_ = std::move(webseeds);
     }
+
+    // BEP 46: optional btpk public key.  When set, magnet_link() appends
+    // xs=urn:btpk:<hex> so subscribers can track updates via the DHT.
+    // The matching private key is never stored here — callers hold it.
+    void set_btpk_public_key(std::array<uint8_t, 32> const& key)
+    {
+        btpk_public_key_ = key;
+    }
+
+    void set_btpk_salt(std::string_view salt)
+    {
+        btpk_salt_ = salt;
+    }
+
+    void clear_btpk()
+    {
+        btpk_public_key_.reset();
+        btpk_salt_.clear();
+    }
+
+    [[nodiscard]] constexpr bool has_btpk() const noexcept
+    {
+        return btpk_public_key_.has_value();
+    }
+
+    // Returns std::optional<std::array<uint8_t,32>> — the ed25519 public key.
+    [[nodiscard]] constexpr auto const& btpk_public_key() const noexcept
+    {
+        return btpk_public_key_;
+    }
+
+    [[nodiscard]] constexpr auto const& btpk_salt() const noexcept
+    {
+        return btpk_salt_;
+    }
+
+    // Return the btpk: magnet URI for this torrent.
+    // Requires make_checksums() to have completed (same as benc()/save()).
+    // Returns empty string on error.
+    // Format: magnet:?xt=urn:btih:<hex>&dn=<name>&xs=urn:btpk:<hex>[&s=<salt>]
+    [[nodiscard]] std::string magnet_link(tr_error* error = nullptr) const;
 
     /// getters
 
@@ -201,6 +242,10 @@ private:
 
     std::string comment_;
     std::string source_;
+
+    // BEP 46: optional btpk public key and salt
+    std::optional<std::array<uint8_t, 32>> btpk_public_key_; // ed25519 public key for BEP 46
+    std::string btpk_salt_;
 
     tr_piece_index_t checksum_piece_ = 0;
 

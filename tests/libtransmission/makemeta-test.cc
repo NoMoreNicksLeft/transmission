@@ -15,6 +15,7 @@
 #include <libtransmission/announce-list.h>
 #include <libtransmission/crypto-utils.h>
 #include <libtransmission/file.h>
+#include <libtransmission/btpk-utils.h>
 #include <libtransmission/makemeta.h>
 #include <libtransmission/quark.h>
 #include <libtransmission/session.h> // TR_NAME
@@ -37,10 +38,9 @@ protected:
     static auto constexpr DefaultMaxFileCount = size_t{ 16 };
     static auto constexpr DefaultMaxFileSize = size_t{ 1024 };
 
-    static auto makeRandomFiles(
-        std::string_view top,
-        size_t n_files = std::max(size_t{ 1U }, tr_rand_int(DefaultMaxFileCount)),
-        size_t max_size = DefaultMaxFileSize)
+    static auto makeRandomFiles(std::string_view top,
+                                size_t n_files = std::max(size_t{ 1U }, tr_rand_int(DefaultMaxFileCount)),
+                                size_t max_size = DefaultMaxFileSize)
     {
         auto files = std::vector<std::pair<std::string, std::vector<std::byte>>>{};
 
@@ -289,6 +289,120 @@ TEST_F(MakemetaTest, privateAndSourceHasDifferentInfoHash)
     auto private_source_metainfo = testBuilder(builder);
     EXPECT_NE(base_metainfo.info_hash(), private_source_metainfo.info_hash());
     EXPECT_NE(private_metainfo.info_hash(), private_source_metainfo.info_hash());
+}
+
+// ---------------------------------------------------------------------------
+// BEP 46 btpk: magnet_link() tests
+
+TEST_F(MakemetaTest, MagnetLinkWithoutBtpkHasNoXsParam)
+{
+    auto const files = makeRandomFiles(sandboxDir(), 1);
+    auto const [filename, payload] = files.front();
+    auto builder = tr_metainfo_builder{ filename };
+
+    ASSERT_FALSE(builder.make_checksums().get().has_value());
+    auto const magnet = builder.magnet_link();
+
+    EXPECT_FALSE(magnet.empty());
+    EXPECT_NE(magnet.find("magnet:?xt=urn:btih:"), std::string::npos);
+    // No btpk set — xs= must be absent
+    EXPECT_EQ(magnet.find("xs=urn:btpk:"), std::string::npos);
+}
+
+TEST_F(MakemetaTest, MagnetLinkWithBtpkHasXsParam)
+{
+    auto const files = makeRandomFiles(sandboxDir(), 1);
+    auto const [filename, payload] = files.front();
+    auto builder = tr_metainfo_builder{ filename };
+
+    // Generate a keypair and set the public key
+    libtransmission::BtpkPublicKey pub{};
+    libtransmission::BtpkPrivateKey priv{};
+    libtransmission::tr_btpk_key_generate(pub, priv);
+    libtransmission::tr_btpk_zero_key(priv); // not needed by builder; zero immediately
+
+    builder.set_btpk_public_key(pub);
+
+    ASSERT_FALSE(builder.make_checksums().get().has_value());
+    auto const magnet = builder.magnet_link();
+
+    EXPECT_FALSE(magnet.empty());
+    EXPECT_NE(magnet.find("magnet:?xt=urn:btih:"), std::string::npos);
+    EXPECT_NE(magnet.find("xs=urn:btpk:"), std::string::npos);
+
+    // The xs= value should be the 64-char hex of the public key
+    auto const hex = libtransmission::tr_btpk_public_key_to_hex(pub);
+    EXPECT_NE(magnet.find(hex), std::string::npos);
+}
+
+TEST_F(MakemetaTest, MagnetLinkWithBtpkAndSalt)
+{
+    auto const files = makeRandomFiles(sandboxDir(), 1);
+    auto const [filename, payload] = files.front();
+    auto builder = tr_metainfo_builder{ filename };
+
+    libtransmission::BtpkPublicKey pub{};
+    libtransmission::BtpkPrivateKey priv{};
+    libtransmission::tr_btpk_key_generate(pub, priv);
+    libtransmission::tr_btpk_zero_key(priv);
+
+    builder.set_btpk_public_key(pub);
+    builder.set_btpk_salt("season-2"sv);
+
+    ASSERT_FALSE(builder.make_checksums().get().has_value());
+    auto const magnet = builder.magnet_link();
+
+    EXPECT_NE(magnet.find("xs=urn:btpk:"), std::string::npos);
+    // Salt must appear as s= parameter
+    EXPECT_NE(magnet.find("s="), std::string::npos) << "magnet: " << magnet;
+}
+
+TEST_F(MakemetaTest, MagnetLinkInfohashMatchesParsedTorrent)
+{
+    // The infohash in magnet_link() must equal the one a subscriber would parse
+    // from the .torrent file — they must refer to the same torrent.
+    auto const files = makeRandomFiles(sandboxDir(), 1);
+    auto const [filename, payload] = files.front();
+    auto builder = tr_metainfo_builder{ filename };
+
+    libtransmission::BtpkPublicKey pub{};
+    libtransmission::BtpkPrivateKey priv{};
+    libtransmission::tr_btpk_key_generate(pub, priv);
+    libtransmission::tr_btpk_zero_key(priv);
+    builder.set_btpk_public_key(pub);
+
+    ASSERT_FALSE(builder.make_checksums().get().has_value());
+
+    // Parse the .torrent benc to get infohash
+    auto tm = tr_torrent_metainfo{};
+    ASSERT_TRUE(tm.parse_benc(builder.benc()));
+
+    // magnet_link() must embed the same infohash
+    auto const magnet = builder.magnet_link();
+    auto const infohash_hex = std::string{ tm.info_hash_string().sv() };
+    EXPECT_NE(magnet.find(infohash_hex), std::string::npos) << "infohash " << infohash_hex << " not found in: " << magnet;
+}
+
+TEST_F(MakemetaTest, ClearBtpkRemovesXsParam)
+{
+    auto const files = makeRandomFiles(sandboxDir(), 1);
+    auto const [filename, payload] = files.front();
+    auto builder = tr_metainfo_builder{ filename };
+
+    libtransmission::BtpkPublicKey pub{};
+    libtransmission::BtpkPrivateKey priv{};
+    libtransmission::tr_btpk_key_generate(pub, priv);
+    libtransmission::tr_btpk_zero_key(priv);
+
+    builder.set_btpk_public_key(pub);
+    EXPECT_TRUE(builder.has_btpk());
+
+    builder.clear_btpk();
+    EXPECT_FALSE(builder.has_btpk());
+
+    ASSERT_FALSE(builder.make_checksums().get().has_value());
+    auto const magnet = builder.magnet_link();
+    EXPECT_EQ(magnet.find("xs=urn:btpk:"), std::string::npos);
 }
 
 } // namespace libtransmission::test
