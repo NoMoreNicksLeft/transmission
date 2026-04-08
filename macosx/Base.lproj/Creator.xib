@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="CreatorWindowController">
             <connections>
+                <outlet property="fBtpkCopy" destination="btpk-cpy-001" id="btpk-out-5"/>
+                <outlet property="fBtpkFingerprint" destination="btpk-lbl-001" id="btpk-out-4"/>
+                <outlet property="fBtpkGenerate" destination="btpk-btn-001" id="btpk-out-3"/>
+                <outlet property="fBtpkKeyField" destination="btpk-fld-001" id="btpk-out-2"/>
                 <outlet property="fCommentView" destination="12" id="29"/>
                 <outlet property="fIconView" destination="8" id="65"/>
                 <outlet property="fLocationField" destination="20" id="30"/>
+                <outlet property="fMutableCheck" destination="btpk-chk-001" id="btpk-out-1"/>
                 <outlet property="fNameField" destination="9" id="31"/>
                 <outlet property="fOpenCheck" destination="63" id="64"/>
                 <outlet property="fPieceSizeStepper" destination="bbO-nc-7cI" id="1nJ-9M-qff"/>
@@ -31,14 +36,14 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
             <rect key="contentRect" x="244" y="423" width="708" height="408"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="875"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1728" height="1084"/>
             <value key="minSize" type="size" width="440" height="350"/>
             <view key="contentView" id="6">
-                <rect key="frame" x="0.0" y="0.0" width="708" height="408"/>
+                <rect key="frame" x="0.0" y="0.0" width="708" height="445"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <imageView translatesAutoresizingMaskIntoConstraints="NO" id="8">
-                        <rect key="frame" x="20" y="324" width="64" height="64"/>
+                        <rect key="frame" x="20" y="361" width="64" height="64"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="64" id="Zoj-At-D7p"/>
                             <constraint firstAttribute="width" constant="64" id="zj8-c6-KZJ"/>
@@ -46,7 +51,7 @@
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyUpOrDown" image="NSApplicationIcon" id="67"/>
                     </imageView>
                     <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9">
-                        <rect key="frame" x="90" y="359" width="600" height="21"/>
+                        <rect key="frame" x="90" y="396" width="600" height="21"/>
                         <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" id="68">
                             <font key="font" metaFont="system" size="18"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -54,7 +59,7 @@
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="10">
-                        <rect key="frame" x="90" y="335" width="600" height="16"/>
+                        <rect key="frame" x="90" y="372" width="600" height="16"/>
                         <constraints>
                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="370" id="pwP-dQ-2RT"/>
                         </constraints>
@@ -65,13 +70,13 @@
                         </textFieldCell>
                     </textField>
                     <scrollView horizontalCompressionResistancePriority="249" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="11">
-                        <rect key="frame" x="101" y="131" width="587" height="54"/>
+                        <rect key="frame" x="101" y="257" width="587" height="54"/>
                         <clipView key="contentView" drawsBackground="NO" id="08t-X6-SLo">
                             <rect key="frame" x="1" y="1" width="585" height="52"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <textView importsGraphics="NO" richText="NO" verticallyResizable="YES" continuousSpellChecking="YES" allowsUndo="YES" spellingCorrection="YES" smartInsertDelete="YES" id="12">
-                                    <rect key="frame" x="0.0" y="0.0" width="570" height="52"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="585" height="52"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -89,12 +94,12 @@
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="84">
-                            <rect key="frame" x="570" y="1" width="16" height="52"/>
+                            <rect key="frame" x="569" y="1" width="17" height="52"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                     </scrollView>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="13">
-                        <rect key="frame" x="18" y="169" width="77" height="16"/>
+                        <rect key="frame" x="18" y="295" width="77" height="16"/>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Comment:" usesSingleLineMode="YES" id="70">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -102,7 +107,7 @@
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="14">
-                        <rect key="frame" x="18" y="300" width="77" height="16"/>
+                        <rect key="frame" x="18" y="337" width="77" height="16"/>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Trackers:" usesSingleLineMode="YES" id="71">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -110,10 +115,10 @@
                         </textFieldCell>
                     </textField>
                     <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="16">
-                        <rect key="frame" x="20" y="76" width="668" height="5"/>
+                        <rect key="frame" x="20" y="82" width="668" height="5"/>
                     </box>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="18">
-                        <rect key="frame" x="616" y="49" width="78" height="27"/>
+                        <rect key="frame" x="619" y="58" width="69" height="20"/>
                         <buttonCell key="cell" type="push" title="Change…" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" inset="2" id="73">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="smallSystem"/>
@@ -123,7 +128,7 @@
                         </connections>
                     </button>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="20">
-                        <rect key="frame" x="121" y="44" width="23" height="28"/>
+                        <rect key="frame" x="121" y="62" width="4" height="14"/>
                         <textFieldCell key="cell" controlSize="small" lineBreakMode="charWrapping" truncatesLastVisibleLine="YES" sendsActionOnEndEditing="YES" id="75">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -131,7 +136,7 @@
                         </textFieldCell>
                     </textField>
                     <imageView translatesAutoresizingMaskIntoConstraints="NO" id="21">
-                        <rect key="frame" x="101" y="56" width="16" height="16"/>
+                        <rect key="frame" x="101" y="60" width="16" height="16"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="16" id="2LL-ew-AZp"/>
                             <constraint firstAttribute="height" constant="16" id="G3i-dS-V5f"/>
@@ -139,14 +144,14 @@
                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="axesIndependently" image="TransmissionDocument.icns" id="76"/>
                     </imageView>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="22">
-                        <rect key="frame" x="99" y="86" width="68" height="18"/>
+                        <rect key="frame" x="101" y="96" width="64" height="16"/>
                         <buttonCell key="cell" type="check" title="Private" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="77">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="24">
-                        <rect key="frame" x="619" y="11" width="76" height="32"/>
+                        <rect key="frame" x="622" y="16" width="66" height="24"/>
                         <buttonCell key="cell" type="push" title="Create" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="78">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -159,7 +164,7 @@ DQ
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="25">
-                        <rect key="frame" x="545" y="11" width="76" height="32"/>
+                        <rect key="frame" x="544" y="16" width="66" height="24"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="79">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -172,7 +177,7 @@ Gw
                         </connections>
                     </button>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="26">
-                        <rect key="frame" x="605" y="87" width="64" height="16"/>
+                        <rect key="frame" x="658" y="96" width="4" height="16"/>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" id="80">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -180,20 +185,20 @@ Gw
                         </textFieldCell>
                     </textField>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="63">
-                        <rect key="frame" x="99" y="19" width="145" height="18"/>
+                        <rect key="frame" x="101" y="20" width="141" height="16"/>
                         <buttonCell key="cell" type="check" title="Open when created" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="81">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
                     </button>
                     <scrollView horizontalCompressionResistancePriority="249" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="89">
-                        <rect key="frame" x="101" y="219" width="587" height="97"/>
+                        <rect key="frame" x="101" y="351" width="587" height="2"/>
                         <clipView key="contentView" id="cIJ-8J-EGs">
-                            <rect key="frame" x="1" y="1" width="585" height="95"/>
+                            <rect key="frame" x="1" y="1" width="585" height="0.0"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" id="92">
-                                    <rect key="frame" x="0.0" y="0.0" width="585" height="95"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="585" height="19"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <size key="intercellSpacing" width="3" height="2"/>
                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -224,12 +229,12 @@ Gw
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="90">
-                            <rect key="frame" x="570" y="1" width="16" height="95"/>
+                            <rect key="frame" x="569" y="1" width="17" height="0.0"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                     </scrollView>
                     <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="103">
-                        <rect key="frame" x="100" y="192" width="71" height="20"/>
+                        <rect key="frame" x="101" y="319" width="65" height="24"/>
                         <segmentedCell key="cell" state="on" borderStyle="border" alignment="left" style="roundRect" trackingMode="momentary" id="104">
                             <font key="font" metaFont="cellTitle"/>
                             <segments>
@@ -242,7 +247,7 @@ Gw
                         </connections>
                     </segmentedControl>
                     <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="107">
-                        <rect key="frame" x="176" y="195" width="229" height="14"/>
+                        <rect key="frame" x="172" y="324" width="229" height="14"/>
                         <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Each tracker will be placed into its own tier" id="108">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
@@ -250,7 +255,7 @@ Gw
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R2K-fl-edv">
-                        <rect key="frame" x="101" y="109" width="587" height="22"/>
+                        <rect key="frame" x="101" y="235" width="587" height="22"/>
                         <constraints>
                             <constraint firstAttribute="height" constant="22" id="sah-qh-fRe"/>
                         </constraints>
@@ -261,7 +266,7 @@ Gw
                         </textFieldCell>
                     </textField>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="faa-JK-W9Q">
-                        <rect key="frame" x="18" y="112" width="77" height="16"/>
+                        <rect key="frame" x="18" y="238" width="77" height="16"/>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Source:" usesSingleLineMode="YES" id="f1g-Kk-weU">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -269,17 +274,66 @@ Gw
                         </textFieldCell>
                     </textField>
                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bbO-nc-7cI">
-                        <rect key="frame" x="672" y="81" width="19" height="28"/>
+                        <rect key="frame" x="668" y="91" width="20" height="26"/>
                         <stepperCell key="cell" alignment="left" minValue="14" maxValue="31" doubleValue="14" autorepeat="NO" id="53C-Ri-3gc"/>
                         <connections>
                             <action selector="incrementOrDecrementPieceSize:" target="-2" id="YDm-9R-hMY"/>
                         </connections>
                     </stepper>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="19">
-                        <rect key="frame" x="18" y="56" width="77" height="16"/>
+                        <rect key="frame" x="18" y="60" width="77" height="16"/>
                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Torrent File:" usesSingleLineMode="YES" id="74">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-001">
+                        <rect key="frame" x="101" y="211" width="587" height="16"/>
+                        <buttonCell key="cell" type="check" title="Make this torrent updatable (btpk)" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="btpk-chk-cell">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="toggleMutableUpdates:" target="-2" id="btpk-act-2"/>
+                        </connections>
+                    </button>
+                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-fld-001">
+                        <rect key="frame" x="101" y="143" width="511" height="62"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="62" id="btpk-fld-h"/>
+                        </constraints>
+                        <textFieldCell key="cell" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="Paste private key (hex or PEM), or click Generate" drawsBackground="YES" id="btpk-fld-cell">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-btn-001">
+                        <rect key="frame" x="620" y="185" width="68" height="20"/>
+                        <buttonCell key="cell" type="push" title="Generate" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" inset="2" id="btpk-btn-cell">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="generateBtpkKey:" target="-2" id="btpk-act-1"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-cpy-001">
+                        <rect key="frame" x="620" y="161" width="68" height="20"/>
+                        <buttonCell key="cell" type="push" title="Copy" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" inset="2" id="btpk-cpy-cell">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="copyBtpkKeyToClipboard:" target="-2" id="btpk-act-3"/>
+                        </connections>
+                    </button>
+                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-lbl-001">
+                        <rect key="frame" x="99" y="125" width="591" height="14"/>
+                        <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Fingerprint: —" id="btpk-lbl-cell">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
@@ -319,13 +373,28 @@ Gw
                     <constraint firstAttribute="trailing" secondItem="24" secondAttribute="trailing" constant="20" symbolic="YES" id="VhM-mK-POy"/>
                     <constraint firstItem="bbO-nc-7cI" firstAttribute="centerY" secondItem="22" secondAttribute="centerY" id="WwR-xq-gKf"/>
                     <constraint firstItem="25" firstAttribute="centerY" secondItem="63" secondAttribute="centerY" id="XJA-Et-vDY"/>
+                    <constraint firstItem="btpk-chk-001" firstAttribute="top" secondItem="R2K-fl-edv" secondAttribute="bottom" constant="8" id="btpk-c1"/>
+                    <constraint firstItem="btpk-lbl-001" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="btpk-c10"/>
+                    <constraint firstItem="btpk-lbl-001" firstAttribute="trailing" secondItem="89" secondAttribute="trailing" id="btpk-c11"/>
+                    <constraint firstItem="btpk-cpy-001" firstAttribute="top" secondItem="btpk-btn-001" secondAttribute="bottom" constant="4" id="btpk-c12"/>
+                    <constraint firstItem="btpk-cpy-001" firstAttribute="leading" secondItem="btpk-btn-001" secondAttribute="leading" id="btpk-c13"/>
+                    <constraint firstItem="btpk-cpy-001" firstAttribute="trailing" secondItem="btpk-btn-001" secondAttribute="trailing" id="btpk-c14"/>
+                    <constraint firstItem="btpk-cpy-001" firstAttribute="width" secondItem="btpk-btn-001" secondAttribute="width" id="btpk-c15"/>
+                    <constraint firstItem="btpk-chk-001" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="btpk-c2"/>
+                    <constraint firstItem="btpk-chk-001" firstAttribute="trailing" secondItem="89" secondAttribute="trailing" id="btpk-c3"/>
+                    <constraint firstItem="btpk-fld-001" firstAttribute="top" secondItem="btpk-chk-001" secondAttribute="bottom" constant="6" id="btpk-c4"/>
+                    <constraint firstItem="btpk-fld-001" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="btpk-c5"/>
+                    <constraint firstItem="btpk-btn-001" firstAttribute="leading" secondItem="btpk-fld-001" secondAttribute="trailing" constant="8" id="btpk-c6"/>
+                    <constraint firstItem="btpk-btn-001" firstAttribute="trailing" secondItem="89" secondAttribute="trailing" id="btpk-c7"/>
+                    <constraint firstItem="btpk-btn-001" firstAttribute="top" secondItem="btpk-fld-001" secondAttribute="top" id="btpk-c8"/>
+                    <constraint firstItem="btpk-lbl-001" firstAttribute="top" secondItem="btpk-fld-001" secondAttribute="bottom" constant="4" id="btpk-c9"/>
                     <constraint firstItem="107" firstAttribute="leading" secondItem="103" secondAttribute="trailing" constant="8" symbolic="YES" id="d4e-cG-URc"/>
                     <constraint firstItem="18" firstAttribute="top" secondItem="16" secondAttribute="bottom" constant="6" id="eza-Cy-3bY"/>
                     <constraint firstItem="63" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="fl9-ff-eE6"/>
                     <constraint firstItem="11" firstAttribute="top" secondItem="103" secondAttribute="bottom" constant="8" symbolic="YES" id="gNf-Md-LLn"/>
                     <constraint firstItem="22" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="h7z-DD-y34"/>
                     <constraint firstItem="R2K-fl-edv" firstAttribute="leading" secondItem="89" secondAttribute="leading" id="hxj-ys-GBx"/>
-                    <constraint firstItem="bbO-nc-7cI" firstAttribute="top" secondItem="R2K-fl-edv" secondAttribute="bottom" constant="4" id="iJ2-Je-LTy"/>
+                    <constraint firstItem="bbO-nc-7cI" firstAttribute="top" secondItem="btpk-lbl-001" secondAttribute="bottom" constant="8" id="iJ2-Je-LTy"/>
                     <constraint firstItem="103" firstAttribute="top" secondItem="89" secondAttribute="bottom" constant="8" symbolic="YES" id="ixH-8V-9X7"/>
                     <constraint firstItem="26" firstAttribute="centerY" secondItem="22" secondAttribute="centerY" id="k3j-ak-oaG"/>
                     <constraint firstItem="bbO-nc-7cI" firstAttribute="leading" secondItem="26" secondAttribute="trailing" constant="8" symbolic="YES" id="ktr-LR-yo4"/>
@@ -353,11 +422,11 @@ Gw
             <point key="canvasLocation" x="139" y="139"/>
         </window>
         <customView id="56" userLabel="ProgressView">
-            <rect key="frame" x="0.0" y="0.0" width="348" height="84"/>
+            <rect key="frame" x="0.0" y="-4" width="348" height="88"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
                 <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="59">
-                    <rect key="frame" x="18" y="48" width="312" height="16"/>
+                    <rect key="frame" x="18" y="52" width="312" height="16"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Creating torrent file…" id="83">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -365,7 +434,7 @@ Gw
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="58">
-                    <rect key="frame" x="259" y="13" width="76" height="32"/>
+                    <rect key="frame" x="262" y="20" width="66" height="24"/>
                     <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="82">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
@@ -374,8 +443,8 @@ Gw
                         <action selector="cancelCreateProgress:" target="-2" id="62"/>
                     </connections>
                 </button>
-                <progressIndicator verticalHuggingPriority="750" maxValue="1" bezeled="NO" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="57">
-                    <rect key="frame" x="20" y="20" width="238" height="20"/>
+                <progressIndicator wantsLayer="YES" verticalHuggingPriority="750" maxValue="1" bezeled="NO" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="57">
+                    <rect key="frame" x="20" y="22" width="234" height="20"/>
                 </progressIndicator>
             </subviews>
             <constraints>
@@ -393,9 +462,9 @@ Gw
         </customView>
     </objects>
     <resources>
-        <image name="NSAddTemplate" width="14" height="13"/>
+        <image name="NSAddTemplate" width="18" height="17"/>
         <image name="NSApplicationIcon" width="32" height="32"/>
-        <image name="NSRemoveTemplate" width="14" height="4"/>
+        <image name="NSRemoveTemplate" width="18" height="5"/>
         <image name="TransmissionDocument.icns" width="128" height="128"/>
     </resources>
 </document>

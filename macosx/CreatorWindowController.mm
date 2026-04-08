@@ -11,6 +11,7 @@
 #include <libtransmission/transmission.h>
 
 #include <libtransmission/error.h>
+#include <libtransmission/btpk-utils.h>
 #include <libtransmission/makemeta.h>
 #include <libtransmission/utils.h>
 #include <libtransmission/web-utils.h> // tr_urlIsValidTracker()
@@ -24,7 +25,7 @@ typedef NS_ENUM(NSUInteger, TrackerSegmentTag) {
     TrackerSegmentTagRemove = 1,
 };
 
-@interface CreatorWindowController ()<NSWindowRestoration, NSMenuItemValidation>
+@interface CreatorWindowController ()<NSWindowRestoration, NSMenuItemValidation, NSTextFieldDelegate>
 
 @property(nonatomic) IBOutlet NSImageView* fIconView;
 @property(nonatomic) IBOutlet NSTextField* fNameField;
@@ -37,6 +38,13 @@ typedef NS_ENUM(NSUInteger, TrackerSegmentTag) {
 @property(nonatomic) IBOutlet NSButton* fPrivateCheck;
 @property(nonatomic) IBOutlet NSButton* fOpenCheck;
 @property(nonatomic) IBOutlet NSTextField* fSource;
+
+// BEP 46 btpk controls
+@property(nonatomic) IBOutlet NSButton* fMutableCheck;
+@property(nonatomic) IBOutlet NSTextField* fBtpkKeyField;
+@property(nonatomic) IBOutlet NSButton* fBtpkGenerate;
+@property(nonatomic) IBOutlet NSButton* fBtpkCopy;
+@property(nonatomic) IBOutlet NSTextField* fBtpkFingerprint;
 @property(nonatomic) IBOutlet NSStepper* fPieceSizeStepper;
 
 @property(nonatomic) IBOutlet NSView* fProgressView;
@@ -220,6 +228,24 @@ static NSMutableSet* creatorWindowControllerSet;
 
     //set tracker table column width to table width
     [self.fTrackerTable sizeToFit];
+
+    // BEP 46: btpk controls start disabled until the checkbox is checked
+    self.fBtpkKeyField.enabled = NO;
+    self.fBtpkGenerate.enabled = NO;
+    self.fBtpkCopy.enabled = NO;
+
+    // Use SF Symbol for the copy button — looks native and scales correctly
+    NSImage* copyImage = [NSImage imageWithSystemSymbolName:@"doc.on.doc"
+                                  accessibilityDescription:@"Copy to clipboard"];
+    if (copyImage)
+    {
+        // Icon + label, icon on left
+        self.fBtpkCopy.image = copyImage;
+        self.fBtpkCopy.imagePosition = NSImageLeft;
+        self.fBtpkCopy.imageScaling = NSImageScaleProportionallyDown;
+    }
+    // Watch the key field for paste/type so we can update the fingerprint live
+    self.fBtpkKeyField.delegate = self;
 }
 
 - (void)dealloc
@@ -267,6 +293,121 @@ static NSMutableSet* creatorWindowControllerSet;
     self.fPrivateCheck.state = [coder decodeIntegerForKey:@"TRCreatorPrivateCheck"];
     self.fSource.stringValue = [coder decodeObjectForKey:@"TRCreatorSource"];
     self.fCommentView.string = [coder decodeObjectForKey:@"TRCreatorPrivateComment"];
+}
+
+// Called whenever the text in fBtpkKeyField changes (typing or paste).
+// Attempt to parse the current contents as hex or PEM and update the fingerprint.
+- (void)controlTextDidChange:(NSNotification*)notification
+{
+    if (notification.object != self.fBtpkKeyField)
+    {
+        return;
+    }
+
+    auto const key_str = std::string{ self.fBtpkKeyField.stringValue.UTF8String };
+
+    // Try hex
+    auto priv = libtransmission::tr_btpk_private_key_from_hex(key_str);
+    // Try PEM if hex failed
+    if (!priv)
+    {
+        priv = libtransmission::tr_btpk_private_key_from_pem(key_str);
+    }
+
+    if (priv)
+    {
+        // Valid key — derive public key and show fingerprint
+        libtransmission::BtpkPublicKey pub{};
+        std::copy_n(priv->data() + 64, 32, pub.data());
+        self.fBuilder->set_btpk_public_key(pub);
+        auto const fp = libtransmission::tr_btpk_fingerprint(pub);
+        self.fBtpkFingerprint.stringValue =
+            [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+        libtransmission::tr_btpk_zero_key(*priv);
+        self.fBtpkCopy.enabled = YES;
+    }
+    else
+    {
+        // Not yet a valid key — clear fingerprint and btpk state
+        self.fBtpkFingerprint.stringValue = @"Fingerprint: —";
+        self.fBuilder->clear_btpk();
+        self.fBtpkCopy.enabled = NO;
+    }
+}
+
+- (IBAction)copyBtpkKeyToClipboard:(id)sender
+{
+    NSString* const key = self.fBtpkKeyField.stringValue;
+    if (key.length == 0)
+    {
+        return;
+    }
+    [NSPasteboard.generalPasteboard clearContents];
+    [NSPasteboard.generalPasteboard setString:key forType:NSPasteboardTypeString];
+
+    // Brief visual feedback — disable the button momentarily
+    self.fBtpkCopy.enabled = NO;
+    self.fBtpkCopy.image = nil; // hide icon during feedback
+    self.fBtpkCopy.title = @"Copied!";
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        self.fBtpkCopy.title = @"Copy";
+        NSImage* img = [NSImage imageWithSystemSymbolName:@"doc.on.doc"
+                                 accessibilityDescription:@"Copy to clipboard"];
+        self.fBtpkCopy.image = img;
+        self.fBtpkCopy.imagePosition = NSImageLeft;
+        self.fBtpkCopy.enabled = YES;
+    });
+}
+
+- (IBAction)toggleMutableUpdates:(id)sender
+{
+    BOOL const enabled = self.fMutableCheck.state == NSControlStateValueOn;
+    self.fBtpkKeyField.enabled = enabled;
+    self.fBtpkGenerate.enabled = enabled;
+    self.fBtpkCopy.enabled = enabled && self.fBtpkKeyField.stringValue.length > 0;
+    // Clear the key and fingerprint if the user unchecks the box
+    if (!enabled)
+    {
+        self.fBtpkKeyField.stringValue = @"";
+        self.fBtpkFingerprint.stringValue = @"Fingerprint: —";
+        self.fBuilder->clear_btpk();
+    }
+}
+
+- (IBAction)generateBtpkKey:(id)sender
+{
+    // Generate a fresh ed25519 keypair.
+    libtransmission::BtpkPublicKey pub{};
+    libtransmission::BtpkPrivateKey priv{};
+    libtransmission::tr_btpk_key_generate(pub, priv);
+
+    // Show the private key in the text field so the user can copy it to their password manager.
+    auto const hex = libtransmission::tr_btpk_private_key_to_hex(priv);
+    self.fBtpkKeyField.stringValue = [NSString stringWithUTF8String:hex.c_str()];
+
+    // Show the fingerprint so the user can identify this key later.
+    auto const fp = libtransmission::tr_btpk_fingerprint(pub);
+    self.fBtpkFingerprint.stringValue =
+        [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+
+    // Store the public key on the builder — the private key is NOT stored by the app.
+    // The user must copy it to their password manager before closing this window.
+    self.fBuilder->set_btpk_public_key(pub);
+
+    // Securely erase the private key from memory — we have no further use for it.
+    libtransmission::tr_btpk_zero_key(priv);
+    self.fBtpkCopy.enabled = YES;
+
+    // Warn the user to save the key that is now shown in the field.
+    NSAlert* alert = [[NSAlert alloc] init];
+    alert.messageText = NSLocalizedString(@"Save your private key", @"btpk key generation alert title");
+    alert.informativeText = NSLocalizedString(
+        @"Your private key is shown in the key field above. Copy it to your password manager now — "
+         "the application does not store it. You will need it to publish updates to this torrent.",
+        @"btpk key generation alert message");
+    [alert addButtonWithTitle:NSLocalizedString(@"OK", @"btpk key generation alert button")];
+    [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
 - (IBAction)setLocation:(id)sender
@@ -621,6 +762,40 @@ static NSMutableSet* creatorWindowControllerSet;
     self.fBuilder->set_private(self.fPrivateCheck.state == NSControlStateValueOn);
     self.fBuilder->set_source(self.fSource.stringValue.UTF8String);
 
+    // BEP 46: if the user checked "Make this torrent updatable (btpk)",
+    // attempt to parse a pasted private key and set the public key on the builder.
+    // If the key was generated via the Generate button, it is already set.
+    // If the user pasted a key manually, parse it here.
+    if (self.fMutableCheck.state == NSControlStateValueOn)
+    {
+        auto const key_str = std::string{ self.fBtpkKeyField.stringValue.UTF8String };
+        if (!self.fBuilder->has_btpk() && !key_str.empty())
+        {
+            // Try hex first, then PEM
+            auto priv = libtransmission::tr_btpk_private_key_from_hex(key_str);
+            if (!priv)
+            {
+                priv = libtransmission::tr_btpk_private_key_from_pem(key_str);
+            }
+            if (priv)
+            {
+                // Derive the public key — it lives in priv[64..95]
+                libtransmission::BtpkPublicKey pub{};
+                std::copy_n(priv->data() + 64, 32, pub.data());
+                self.fBuilder->set_btpk_public_key(pub);
+                auto const fp = libtransmission::tr_btpk_fingerprint(pub);
+                self.fBtpkFingerprint.stringValue =
+                    [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
+                libtransmission::tr_btpk_zero_key(*priv);
+            }
+        }
+    }
+    else
+    {
+        // Checkbox is unchecked — ensure no btpk data is embedded
+        self.fBuilder->clear_btpk();
+    }
+
     self.fFuture = self.fBuilder->make_checksums();
     self.fTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(checkProgress) userInfo:nil
                                                   repeats:YES];
@@ -694,6 +869,36 @@ static NSMutableSet* creatorWindowControllerSet;
         {
             NSDictionary* dict = @{ @"File" : self.fLocation.path, @"Path" : self.fPath.URLByDeletingLastPathComponent.path };
             [NSNotificationCenter.defaultCenter postNotificationName:@"OpenCreatedTorrentFile" object:self userInfo:dict];
+        }
+
+        // BEP 46: if a btpk key was set, show the magnet link so the user can share it.
+        if (self.fBuilder->has_btpk())
+        {
+            auto const magnet = self.fBuilder->magnet_link();
+            if (!magnet.empty())
+            {
+                NSString* magnetStr = [NSString stringWithUTF8String:magnet.c_str()];
+                NSAlert* magnetAlert = [[NSAlert alloc] init];
+                magnetAlert.messageText = NSLocalizedString(
+                    @"Updatable torrent created",
+                    @"btpk magnet link alert title");
+                magnetAlert.informativeText = [NSString stringWithFormat:
+                    NSLocalizedString(
+                        @"Share this btpk: magnet link. Anyone who adds it will automatically receive your updates:\n\n%@",
+                        @"btpk magnet link alert message"),
+                    magnetStr];
+                [magnetAlert addButtonWithTitle:NSLocalizedString(@"Copy Link", @"btpk magnet copy button")];
+                [magnetAlert addButtonWithTitle:NSLocalizedString(@"OK", @"btpk magnet ok button")];
+                [magnetAlert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse resp) {
+                    if (resp == NSAlertFirstButtonReturn)
+                    {
+                        [NSPasteboard.generalPasteboard clearContents];
+                        [NSPasteboard.generalPasteboard setString:magnetStr forType:NSPasteboardTypeString];
+                    }
+                    [self.window close];
+                }];
+                return; // window closed by alert handler above
+            }
         }
 
         [self.window close];
