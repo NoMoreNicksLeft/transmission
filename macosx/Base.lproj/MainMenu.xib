@@ -1150,6 +1150,15 @@ CA
                         <action selector="copyMagnetLinks:" target="206" id="3219"/>
                     </connections>
                 </menuItem>
+                <menuItem isSeparatorItem="YES" id="3451">
+                    <modifierMask key="keyEquivalentModifierMask" command="YES"/>
+                </menuItem>
+                <menuItem title="Publish Update…" secondaryImage="arrow.up.circle" catalog="system" id="3452">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="publishBtpkUpdate:" target="206" id="3453"/>
+                    </connections>
+                </menuItem>
                 <menuItem isSeparatorItem="YES" id="2848">
                     <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                 </menuItem>

@@ -25,6 +25,7 @@
 #import "Torrent.h"
 #import "TorrentGroup.h"
 #import "TorrentTableView.h"
+#import "BtpkUpdatePanelController.h"
 #import "CreatorWindowController.h"
 #import "StatsWindowController.h"
 #import "InfoWindowController.h"
@@ -2217,6 +2218,15 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 - (void)copyMagnetLinks:(id)sender
 {
     [self.fTableView copy:sender];
+}
+
+- (void)publishBtpkUpdate:(id)sender
+{
+    Torrent* torrent = self.fTableView.selectedTorrents.firstObject;
+    if (!torrent || !torrent.hasBtpk)
+        return;
+
+    [BtpkUpdatePanelController presentForTorrent:torrent];
 }
 
 - (void)revealFile:(id)sender

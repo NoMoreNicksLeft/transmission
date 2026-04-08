@@ -2597,6 +2597,13 @@ bool tr_torrentHasMetadata(tr_torrent const* tor)
     return tor->has_metainfo();
 }
 
+bool tr_torrentHasBtpk(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), {});
+
+    return tor->metainfo().has_btpk();
+}
+
 void tr_torrent::mark_edited()
 {
     auto const now = tr_time();

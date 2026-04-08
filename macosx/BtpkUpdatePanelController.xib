@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="BtpkUpdatePanelController">
+            <connections>
+                <outlet property="fCancelButton" destination="100" id="201"/>
+                <outlet property="fFingerprintField" destination="102" id="202"/>
+                <outlet property="fKeyField" destination="103" id="203"/>
+                <outlet property="fKeyStatusField" destination="104" id="204"/>
+                <outlet property="fNameField" destination="101" id="205"/>
+                <outlet property="fPublishButton" destination="105" id="206"/>
+                <outlet property="window" destination="1" id="3"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Publish Update" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="YES" restorable="NO" visibleAtLaunch="NO" animationBehavior="default" tabbingMode="disallowed" hasShadow="YES" id="1" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" utilityWindow="YES" nonactivatingPanel="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
+            <rect key="contentRect" x="100" y="100" width="320" height="218"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1418"/>
+            <value key="minSize" type="size" width="320" height="218"/>
+            <value key="maxSize" type="size" width="320" height="218"/>
+            <view key="contentView" id="2">
+                <rect key="frame" x="0.0" y="0.0" width="320" height="218"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <!-- Torrent name -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="101">
+                        <rect key="frame" x="16" y="188" width="288" height="17"/>
+                        <textFieldCell key="cell" lineBreakMode="truncatingMiddle" title="Torrent Name" id="101c">
+                            <font key="font" metaFont="systemBold"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <!-- Fingerprint -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="102">
+                        <rect key="frame" x="16" y="168" width="288" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingMiddle" title="Fingerprint: XX:XX:XX:XX:XX:XX:XX:XX" id="102c">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <!-- Separator -->
+                    <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="106">
+                        <rect key="frame" x="16" y="154" width="288" height="5"/>
+                    </box>
+                    <!-- Key field label -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="107">
+                        <rect key="frame" x="16" y="132" width="288" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" title="Private key:" id="107c">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <!-- Key input field -->
+                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="103">
+                        <rect key="frame" x="16" y="88" width="288" height="42"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="wordWrapping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="103c">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <outlet property="delegate" destination="-2" id="208"/>
+                        </connections>
+                    </textField>
+                    <!-- Status / error field -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="104">
+                        <rect key="frame" x="16" y="58" width="288" height="26"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="wordWrapping" title="" id="104c">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <!-- Cancel button -->
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="100">
+                        <rect key="frame" x="126" y="13" width="82" height="32"/>
+                        <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="100c">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">Gw</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="cancelUpdate:" target="-2" id="209"/>
+                        </connections>
+                    </button>
+                    <!-- Publish button -->
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="105">
+                        <rect key="frame" x="214" y="13" width="90" height="32"/>
+                        <buttonCell key="cell" type="push" title="Publish" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="105c">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">DQ</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="publishUpdate:" target="-2" id="210"/>
+                        </connections>
+                    </button>
+                </subviews>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="4"/>
+            </connections>
+        </window>
+    </objects>
+</document>

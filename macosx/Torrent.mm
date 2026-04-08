@@ -2,6 +2,7 @@
 // It may be used under the MIT (SPDX: MIT) license.
 // License text can be found in the licenses/ folder.
 
+#include <algorithm>
 #include <optional>
 #include <vector>
 
@@ -9,6 +10,7 @@
 
 #include <libtransmission/transmission.h>
 
+#include <libtransmission/btpk-utils.h>
 #include <libtransmission/error.h>
 #include <libtransmission/log.h>
 #include <libtransmission/utils.h>
@@ -746,6 +748,47 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
 - (BOOL)privateTorrent
 {
     return tr_torrentView(self.fHandle).is_private;
+}
+
+- (BOOL)hasBtpk
+{
+    return tr_torrentHasBtpk(self.fHandle);
+}
+
+- (nullable NSString*)btpkFingerprintString
+{
+    auto const& key = self.fHandle->metainfo().btpk_key();
+    if (!key)
+        return nil;
+    auto const fp = libtransmission::tr_btpk_fingerprint(*key);
+    return @(fp.c_str());
+}
+
+- (BOOL)btpkPrivateKeyMatchesData:(NSData*)keyData
+{
+    if (!keyData || keyData.length != 96)
+        return NO;
+    auto const& expected = self.fHandle->metainfo().btpk_key();
+    if (!expected)
+        return NO;
+    // Public key is bytes [64..95] of the private key
+    auto const* bytes = static_cast<uint8_t const*>(keyData.bytes);
+    libtransmission::BtpkPublicKey derived;
+    std::copy(bytes + 64, bytes + 96, derived.begin());
+    return derived == *expected;
+}
+
+- (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
+               completionHandler:(void (^)(NSString* _Nullable, NSError* _Nullable))handler
+{
+    // Stub — full implementation (re-hash, sign, dht_put_mutable) comes next.
+    // For now, call the handler with a not-implemented error so the UI path
+    // can be tested end-to-end.
+    NSError* err = [NSError errorWithDomain:@"BtpkErrorDomain"
+                                       code:1
+                                   userInfo:@{ NSLocalizedDescriptionKey :
+                                               @"publishBtpkUpdate: not yet implemented" }];
+    dispatch_async(dispatch_get_main_queue(), ^{ handler(nil, err); });
 }
 
 - (NSString*)torrentLocation

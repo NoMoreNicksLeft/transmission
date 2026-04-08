@@ -78,6 +78,7 @@ typedef NS_ENUM(NSUInteger, AddType) { //
 - (void)copyTorrentFileForTorrents:(NSMutableArray<Torrent*>*)torrents;
 
 - (IBAction)copyMagnetLinks:(id)sender;
+- (IBAction)publishBtpkUpdate:(id)sender;
 
 - (IBAction)revealFile:(id)sender;
 

@@ -1391,6 +1391,7 @@ void tr_torrentAmountFinished(tr_torrent const* torrent, float* tab, int n_tabs)
 void tr_torrentVerify(tr_torrent* torrent);
 
 bool tr_torrentHasMetadata(tr_torrent const* tor);
+bool tr_torrentHasBtpk(tr_torrent const* tor);
 
 /**
  * What the torrent is doing right now.

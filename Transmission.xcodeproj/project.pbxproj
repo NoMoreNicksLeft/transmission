@@ -151,6 +151,8 @@
 		A23F526F0F14395900AA02E3 /* PredicateEditorRowTemplateAny.mm in Sources */ = {isa = PBXBuildFile; fileRef = A23F526E0F14395900AA02E3 /* PredicateEditorRowTemplateAny.mm */; };
 		A23FAE54178BC2950053DC5B /* file-capacity.cc in Sources */ = {isa = PBXBuildFile; fileRef = A23FAE52178BC2950053DC5B /* file-capacity.cc */; };
 		A242AD9315F05D23002B3A6C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = A242AD9115F05D23002B3A6C /* Localizable.strings */; };
+		BB01000400000004 /* BtpkUpdatePanelController.mm in Sources */ = {isa = PBXBuildFile; fileRef = BB01000200000002 /* BtpkUpdatePanelController.mm */; };
+		BB01000500000005 /* BtpkUpdatePanelController.xib in Resources */ = {isa = PBXBuildFile; fileRef = BB01000300000003 /* BtpkUpdatePanelController.xib */; };
 		A2451E6916ACE4EB00586E0E /* FileRenameSheetController.mm in Sources */ = {isa = PBXBuildFile; fileRef = A2451E6716ACE4EB00586E0E /* FileRenameSheetController.mm */; };
 		A2451E6A16ACE4EB00586E0E /* FileRenameSheetController.xib in Resources */ = {isa = PBXBuildFile; fileRef = A2451E6816ACE4EB00586E0E /* FileRenameSheetController.xib */; };
 		A24621410C769D0900088E81 /* session-thread.h in Headers */ = {isa = PBXBuildFile; fileRef = A24621350C769CF400088E81 /* session-thread.h */; };
@@ -939,6 +941,9 @@
 		A23F526E0F14395900AA02E3 /* PredicateEditorRowTemplateAny.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PredicateEditorRowTemplateAny.mm; sourceTree = "<group>"; };
 		A23FAE52178BC2950053DC5B /* file-capacity.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "file-capacity.cc"; sourceTree = "<group>"; };
 		A242AD9215F05D23002B3A6C /* en */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BB01000100000001 /* BtpkUpdatePanelController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BtpkUpdatePanelController.h; sourceTree = "<group>"; };
+		BB01000200000002 /* BtpkUpdatePanelController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = BtpkUpdatePanelController.mm; sourceTree = "<group>"; };
+		BB01000300000003 /* BtpkUpdatePanelController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = BtpkUpdatePanelController.xib; sourceTree = "<group>"; };
 		A2451E6616ACE4EB00586E0E /* FileRenameSheetController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileRenameSheetController.h; sourceTree = "<group>"; };
 		A2451E6716ACE4EB00586E0E /* FileRenameSheetController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = FileRenameSheetController.mm; sourceTree = "<group>"; };
 		A2451E6816ACE4EB00586E0E /* FileRenameSheetController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = FileRenameSheetController.xib; sourceTree = "<group>"; };
@@ -1712,6 +1717,8 @@
 				A2A6321A0CD9751700E3DA60 /* BadgeView.mm */,
 				A256588A0A9A695400E8A03B /* MessageWindowController.h */,
 				A256588B0A9A695400E8A03B /* MessageWindowController.mm */,
+				BB01000100000001 /* BtpkUpdatePanelController.h */,
+				BB01000200000002 /* BtpkUpdatePanelController.mm */,
 				A2DF37040C220D03006523C1 /* CreatorWindowController.h */,
 				A2DF37050C220D03006523C1 /* CreatorWindowController.mm */,
 				A25892620CF1F7E800CCCDDF /* StatsWindowController.h */,
@@ -1864,6 +1871,7 @@
 				A209EBD81142F52B002B02D1 /* InfoFileView.xib */,
 				A209EC11114301C6002B02D1 /* InfoOptionsView.xib */,
 				A220AF7913D7CC460035C512 /* GlobalOptionsPopover.xib */,
+				BB01000300000003 /* BtpkUpdatePanelController.xib */,
 				A2451E6816ACE4EB00586E0E /* FileRenameSheetController.xib */,
 				F63480621E1D7274005B9E09 /* Images.xcassets */,
 				4D043A7E090AE979009FEDA8 /* TransmissionDocument.icns */,
@@ -3200,6 +3208,7 @@
 				A220AF7B13D7CC460035C512 /* GlobalOptionsPopover.xib in Resources */,
 				F63480631E1D7274005B9E09 /* Images.xcassets in Resources */,
 				A2795C5928EFC6700002C8D9 /* public_html in Resources */,
+				BB01000500000005 /* BtpkUpdatePanelController.xib in Resources */,
 				A2451E6A16ACE4EB00586E0E /* FileRenameSheetController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3520,6 +3529,7 @@
 				A234EA541453563B000F3E97 /* NSImageAdditions.mm in Sources */,
 				A2AB883E16A399A6008FAD50 /* VDKQueue.mm in Sources */,
 				4534164229B0EA8600F544C9 /* SmallTorrentCell.mm in Sources */,
+				BB01000400000004 /* BtpkUpdatePanelController.mm in Sources */,
 				A2451E6916ACE4EB00586E0E /* FileRenameSheetController.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

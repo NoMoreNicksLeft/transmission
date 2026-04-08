@@ -712,6 +712,14 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
         return NO;
     }
 
+    if (action == @selector(publishBtpkUpdate:))
+    {
+        NSArray<Torrent*>* selected = self.fController.selectedTorrents;
+        if (selected.count != 1)
+            return NO;
+        return selected.firstObject.hasBtpk;
+    }
+
     return YES;
 }
 
