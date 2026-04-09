@@ -21,6 +21,13 @@
 @property(nonatomic) IBOutlet NSTextField* fCreatorField;
 @property(nonatomic) IBOutlet NSTextField* fDateCreatedField;
 
+@property(nonatomic) IBOutlet NSTextField* fBtpkUpdateFeedLabel;
+@property(nonatomic) IBOutlet NSTextField* fBtpkUpdateFeedField;
+@property(nonatomic) IBOutlet NSTextField* fBtpkFingerprintLabel;
+@property(nonatomic) IBOutlet NSTextField* fBtpkFingerprintField;
+@property(nonatomic) IBOutlet NSTextField* fBtpkSeqLabel;
+@property(nonatomic) IBOutlet NSTextField* fBtpkSeqField;
+
 @property(nonatomic) IBOutlet NSTextView* fCommentView;
 
 @property(nonatomic) IBOutlet NSButton* fRevealDataButton;
@@ -73,6 +80,13 @@
     self.fLastDataLocationField.toolTip = location ? @"" : lastKnownDataLocation;
 
     self.fRevealDataButton.hidden = location ? NO : YES;
+
+    // Refresh btpk seq live (it updates as DHT resolves)
+    if (torrent.hasBtpk && self.fBtpkSeqField)
+    {
+        NSInteger const seq = torrent.btpkSeq;
+        self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"\u2014";
+    }
 }
 
 - (void)revealDataFile:(id)sender
@@ -118,6 +132,40 @@
         NSString* creatorString = torrent.creator;
         self.fCreatorField.stringValue = creatorString;
         self.fDateCreatedField.objectValue = torrent.dateCreated;
+
+        // btpk update feed info
+        BOOL const hasBtpk = torrent.hasBtpk;
+        self.fBtpkUpdateFeedLabel.hidden = !hasBtpk;
+        self.fBtpkUpdateFeedField.hidden = !hasBtpk;
+        self.fBtpkFingerprintLabel.hidden = !hasBtpk;
+        self.fBtpkFingerprintField.hidden = !hasBtpk;
+        self.fBtpkSeqLabel.hidden = !hasBtpk;
+        self.fBtpkSeqField.hidden = !hasBtpk;
+        if (hasBtpk)
+        {
+            NSString* fingerprint = torrent.btpkFingerprintString ?: @"";
+            self.fBtpkFingerprintField.stringValue = fingerprint;
+            self.fBtpkFingerprintField.toolTip = fingerprint;
+
+            NSInteger const seq = torrent.btpkSeq;
+            self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"\u2014";
+
+            NSString* modeName;
+            switch (torrent.btpkUpdateMode)
+            {
+            case BtpkUpdateModeWhenOffered:
+                modeName = NSLocalizedString(@"When offered", "Inspector -> btpk update mode");
+                break;
+            case BtpkUpdateModeVersioned:
+                modeName = NSLocalizedString(@"Always versioned", "Inspector -> btpk update mode");
+                break;
+            case BtpkUpdateModeNever:
+            default:
+                modeName = NSLocalizedString(@"Never", "Inspector -> btpk update mode");
+                break;
+            }
+            self.fBtpkUpdateFeedField.stringValue = modeName;
+        }
     }
     else
     {
@@ -129,6 +177,13 @@
 
         self.fCreatorField.stringValue = @"";
         self.fDateCreatedField.stringValue = @"";
+
+        self.fBtpkUpdateFeedLabel.hidden = YES;
+        self.fBtpkUpdateFeedField.hidden = YES;
+        self.fBtpkFingerprintLabel.hidden = YES;
+        self.fBtpkFingerprintField.hidden = YES;
+        self.fBtpkSeqLabel.hidden = YES;
+        self.fBtpkSeqField.hidden = YES;
 
         self.fDataLocationField.stringValue = @"";
         self.fDataLocationField.toolTip = nil;

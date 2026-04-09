@@ -17,6 +17,12 @@
                 <outlet property="fLastDataLocationField" destination="54" id="55"/>
                 <outlet property="fPiecesField" destination="19" id="42"/>
                 <outlet property="fRevealDataButton" destination="12" id="49"/>
+                <outlet property="fBtpkFingerprintField" destination="5100" id="5101"/>
+                <outlet property="fBtpkFingerprintLabel" destination="5102" id="5103"/>
+                <outlet property="fBtpkSeqField" destination="5140" id="5141"/>
+                <outlet property="fBtpkSeqLabel" destination="5142" id="5143"/>
+                <outlet property="fBtpkUpdateFeedField" destination="5104" id="5105"/>
+                <outlet property="fBtpkUpdateFeedLabel" destination="5106" id="5107"/>
                 <outlet property="fSecureField" destination="16" id="44"/>
                 <outlet property="view" destination="2" id="45"/>
             </connections>
@@ -153,6 +159,55 @@
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
+                <!-- btpk rows (hidden unless hasBtpk) -->
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="249" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5140" customClass="InfoTextField">
+                    <rect key="frame" x="82" y="30" width="264" height="14"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" placeholderString="N/A" id="5144">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5142">
+                    <rect key="frame" x="10" y="30" width="68" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Seq:" id="5145">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="249" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5100" customClass="InfoTextField">
+                    <rect key="frame" x="82" y="44" width="264" height="14"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingMiddle" selectable="YES" sendsActionOnEndEditing="YES" placeholderString="N/A" id="5108">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5102">
+                    <rect key="frame" x="10" y="44" width="68" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Fingerprint:" id="5109">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="249" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5104" customClass="InfoTextField">
+                    <rect key="frame" x="82" y="58" width="264" height="14"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" placeholderString="N/A" id="5110">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="5106">
+                    <rect key="frame" x="10" y="58" width="68" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Update feed:" id="5111">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
                 <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="13">
                     <rect key="frame" x="10" y="28" width="41" height="14"/>
                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Where" id="28">
@@ -253,7 +308,28 @@
                 <constraint firstItem="12" firstAttribute="leading" secondItem="14" secondAttribute="trailing" constant="8" symbolic="YES" id="m7k-6t-cbD"/>
                 <constraint firstItem="11" firstAttribute="leading" secondItem="17" secondAttribute="leading" id="mMq-1j-8xZ"/>
                 <constraint firstItem="54" firstAttribute="leading" secondItem="52" secondAttribute="trailing" constant="8" symbolic="YES" id="nOT-Fw-u31"/>
-                <constraint firstItem="13" firstAttribute="top" secondItem="4" secondAttribute="bottom" constant="20" id="pL5-Vg-kGN"/>
+                <constraint firstItem="5106" firstAttribute="top" secondItem="4" secondAttribute="bottom" constant="2" id="5120"/>
+                <constraint firstItem="5104" firstAttribute="top" secondItem="4" secondAttribute="bottom" constant="2" id="5121"/>
+                <constraint firstItem="5102" firstAttribute="top" secondItem="5106" secondAttribute="bottom" constant="2" id="5122"/>
+                <constraint firstItem="5142" firstAttribute="top" secondItem="5102" secondAttribute="bottom" constant="2" id="5150"/>
+                <constraint firstItem="5140" firstAttribute="top" secondItem="5102" secondAttribute="bottom" constant="2" id="5151"/>
+                <constraint firstItem="5100" firstAttribute="top" secondItem="5102" secondAttribute="bottom" constant="2" id="5123"/>
+                <constraint firstItem="13" firstAttribute="top" secondItem="5140" secondAttribute="bottom" constant="20" id="pL5-Vg-kGN"/>
+                <constraint firstItem="5106" firstAttribute="leading" secondItem="20" secondAttribute="leading" id="5124"/>
+                <constraint firstItem="5104" firstAttribute="leading" secondItem="5106" secondAttribute="trailing" constant="8" id="5125"/>
+                <constraint firstItem="5102" firstAttribute="leading" secondItem="20" secondAttribute="leading" id="5126"/>
+                <constraint firstItem="5100" firstAttribute="leading" secondItem="5102" secondAttribute="trailing" constant="8" id="5127"/>
+                <constraint firstAttribute="trailing" secondItem="5104" secondAttribute="trailing" constant="12" id="5128"/>
+                <constraint firstAttribute="trailing" secondItem="5100" secondAttribute="trailing" constant="12" id="5129"/>
+                <constraint firstItem="5106" firstAttribute="baseline" secondItem="5104" secondAttribute="baseline" id="5130"/>
+                <constraint firstItem="5102" firstAttribute="baseline" secondItem="5100" secondAttribute="baseline" id="5131"/>
+                <constraint firstItem="5106" firstAttribute="width" secondItem="20" secondAttribute="width" id="5132"/>
+                <constraint firstItem="5102" firstAttribute="width" secondItem="20" secondAttribute="width" id="5133"/>
+                <constraint firstItem="5142" firstAttribute="leading" secondItem="20" secondAttribute="leading" id="5152"/>
+                <constraint firstItem="5140" firstAttribute="leading" secondItem="5142" secondAttribute="trailing" constant="8" id="5153"/>
+                <constraint firstAttribute="trailing" secondItem="5140" secondAttribute="trailing" constant="12" id="5154"/>
+                <constraint firstItem="5142" firstAttribute="baseline" secondItem="5140" secondAttribute="baseline" id="5155"/>
+                <constraint firstItem="5142" firstAttribute="width" secondItem="20" secondAttribute="width" id="5156"/>
                 <constraint firstItem="7" firstAttribute="leading" secondItem="9" secondAttribute="leading" id="rBJ-74-Kzj"/>
                 <constraint firstItem="20" firstAttribute="top" secondItem="3" secondAttribute="bottom" constant="2" id="rl9-wM-6CX"/>
                 <constraint firstItem="4" firstAttribute="leading" secondItem="7" secondAttribute="trailing" constant="8" symbolic="YES" id="sJ7-zi-BHl"/>

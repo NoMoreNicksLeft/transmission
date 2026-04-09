@@ -763,6 +763,11 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return tr_torrentHasBtpk(self.fHandle);
 }
 
+- (NSInteger)btpkSeq
+{
+    return (NSInteger)tr_torrentBtpkSeq(self.fHandle);
+}
+
 - (nullable NSString*)btpkFingerprintString
 {
     char* fp = tr_torrentBtpkFingerprint(self.fHandle);

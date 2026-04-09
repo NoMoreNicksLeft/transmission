@@ -20,6 +20,7 @@
                 <outlet property="fUpdateModeAllowRenaming" destination="4212" id="4213"/>
                 <outlet property="fUpdateModeAllowOverwrites" destination="4214" id="4215"/>
                 <outlet property="fUpdateModeAllowDeletions" destination="4216" id="4217"/>
+                <outlet property="fUpdateModeBoxSpacing" destination="iR0-fe-yDt" id="4242"/>
                 <outlet property="window" destination="1" id="29"/>
             </connections>
         </customObject>
@@ -53,6 +54,66 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <!-- Update behavior row + Allow checkboxes (hidden unless hasBtpk) -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4200">
+                        <rect key="frame" x="17" y="21" width="120" height="16"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Update behavior:" id="4204">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4202">
+                        <rect key="frame" x="141" y="14" width="160" height="25"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" id="4205">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="menu"/>
+                            <menu key="menu" id="4206">
+                                <items>
+                                    <menuItem title="Never" tag="0" id="4207">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                    <menuItem title="When offered" tag="1" id="4208">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                    <menuItem title="Always versioned" tag="2" id="4209">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <connections>
+                            <action selector="changeUpdateMode:" target="-2" id="4218"/>
+                        </connections>
+                    </popUpButton>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4210">
+                        <rect key="frame" x="141" y="0" width="150" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow additional files" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4219">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4212">
+                        <rect key="frame" x="295" y="0" width="118" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file renaming" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4220">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4214">
+                        <rect key="frame" x="141" y="-18" width="150" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file overwrites" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4221">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4216">
+                        <rect key="frame" x="295" y="-18" width="118" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file deletions" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4222">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="17">
                         <rect key="frame" x="18" y="21" width="134" height="18"/>
                         <buttonCell key="cell" type="check" title="Start when added" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="18">
@@ -209,68 +270,7 @@ Gw
                                         <action selector="setDestination:" target="-2" id="30"/>
                                     </connections>
                                 </button>
-                                <!-- Update behavior row (hidden unless hasBtpk) -->
-                                <textField horizontalHuggingPriority="249" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4200">
-                                    <rect key="frame" x="9" y="-15" width="52" height="16"/>
-                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Update behavior:" id="4204">
-                                        <font key="font" metaFont="system"/>
-                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                    </textFieldCell>
-                                </textField>
-                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4202">
-                                    <rect key="frame" x="64" y="-22" width="160" height="25"/>
-                                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" id="4205">
-                                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                        <font key="font" metaFont="menu"/>
-                                        <menu key="menu" id="4206">
-                                            <items>
-                                                <menuItem title="Never" tag="0" id="4207">
-                                                    <modifierMask key="keyEquivalentModifierMask"/>
-                                                </menuItem>
-                                                <menuItem title="When offered" tag="1" id="4208">
-                                                    <modifierMask key="keyEquivalentModifierMask"/>
-                                                </menuItem>
-                                                <menuItem title="Always versioned" tag="2" id="4209">
-                                                    <modifierMask key="keyEquivalentModifierMask"/>
-                                                </menuItem>
-                                            </items>
-                                        </menu>
-                                    </popUpButtonCell>
-                                    <connections>
-                                        <action selector="changeUpdateMode:" target="-2" id="4218"/>
-                                    </connections>
-                                </popUpButton>
-                                <!-- Allow checkboxes row 1 (hidden unless When offered) -->
-                                <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4210">
-                                    <rect key="frame" x="64" y="-22" width="150" height="16"/>
-                                    <buttonCell key="cell" type="check" title="Allow additional files" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4219">
-                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="smallSystem"/>
-                                    </buttonCell>
-                                </button>
-                                <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4212">
-                                    <rect key="frame" x="218" y="-22" width="148" height="16"/>
-                                    <buttonCell key="cell" type="check" title="Allow file renaming" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4220">
-                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="smallSystem"/>
-                                    </buttonCell>
-                                </button>
-                                <!-- Allow checkboxes row 2 -->
-                                <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4214">
-                                    <rect key="frame" x="64" y="-40" width="150" height="16"/>
-                                    <buttonCell key="cell" type="check" title="Allow file overwrites" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4221">
-                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="smallSystem"/>
-                                    </buttonCell>
-                                </button>
-                                <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4216">
-                                    <rect key="frame" x="218" y="-40" width="148" height="16"/>
-                                    <buttonCell key="cell" type="check" title="Allow file deletions" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4222">
-                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="smallSystem"/>
-                                    </buttonCell>
-                                </button>
+
                             </subviews>
                             <constraints>
                                 <constraint firstItem="9" firstAttribute="leading" secondItem="103" secondAttribute="trailing" constant="8" symbolic="YES" id="64a-1o-T5d"/>
@@ -321,7 +321,19 @@ Gw
                     <constraint firstItem="102" firstAttribute="leading" secondItem="17" secondAttribute="leading" id="Qm3-jX-QWC"/>
                     <constraint firstItem="19" firstAttribute="leading" secondItem="21" secondAttribute="trailing" constant="12" id="Yrj-9R-H2X"/>
                     <constraint firstItem="5" firstAttribute="centerX" secondItem="2" secondAttribute="centerX" id="dIc-3M-nPo"/>
-                    <constraint firstItem="19" firstAttribute="top" secondItem="102" secondAttribute="bottom" constant="20" symbolic="YES" id="iR0-fe-yDt"/>
+                    <constraint firstItem="19" firstAttribute="top" secondItem="102" secondAttribute="bottom" constant="20" id="iR0-fe-yDt"/>
+                    <constraint firstItem="4200" firstAttribute="top" secondItem="102" secondAttribute="bottom" constant="8" id="4230"/>
+                    <constraint firstItem="4202" firstAttribute="leading" secondItem="4200" secondAttribute="trailing" constant="8" id="4231"/>
+                    <constraint firstItem="4202" firstAttribute="centerY" secondItem="4200" secondAttribute="centerY" id="4232"/>
+                    <constraint firstItem="4200" firstAttribute="leading" secondItem="102" secondAttribute="leading" constant="8" id="4233"/>
+                    <constraint firstItem="4210" firstAttribute="leading" secondItem="4202" secondAttribute="leading" id="4234"/>
+                    <constraint firstItem="4210" firstAttribute="top" secondItem="4202" secondAttribute="bottom" constant="4" id="4235"/>
+                    <constraint firstItem="4212" firstAttribute="leading" secondItem="4210" secondAttribute="trailing" constant="8" id="4236"/>
+                    <constraint firstItem="4212" firstAttribute="top" secondItem="4210" secondAttribute="top" id="4237"/>
+                    <constraint firstItem="4214" firstAttribute="leading" secondItem="4210" secondAttribute="leading" id="4238"/>
+                    <constraint firstItem="4214" firstAttribute="top" secondItem="4210" secondAttribute="bottom" constant="2" id="4239"/>
+                    <constraint firstItem="4216" firstAttribute="leading" secondItem="4212" secondAttribute="leading" id="4240"/>
+                    <constraint firstItem="4216" firstAttribute="top" secondItem="4214" secondAttribute="top" id="4241"/>
                     <constraint firstItem="100" firstAttribute="centerY" secondItem="3" secondAttribute="centerY" id="j65-kg-97n"/>
                     <constraint firstItem="102" firstAttribute="leading" secondItem="5" secondAttribute="leading" id="q3E-9F-8ap"/>
                     <constraint firstItem="5" firstAttribute="top" secondItem="100" secondAttribute="bottom" constant="8" symbolic="YES" id="tF2-Vo-kek"/>

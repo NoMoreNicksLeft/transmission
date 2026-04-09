@@ -29,6 +29,7 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowRenaming;
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowOverwrites;
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowDeletions;
+@property(nonatomic) IBOutlet NSLayoutConstraint* fUpdateModeBoxSpacing;
 
 @property(nonatomic, readonly) Controller* fController;
 
@@ -114,10 +115,12 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
             NSControlStateValueOn :
             NSControlStateValueOff;
         [self updateAllowCheckboxVisibility];
-        // Expand window height by 26px (popup row only; checkboxes appear within that space)
+        // Push Add/Cancel buttons down to make room
+        self.fUpdateModeBoxSpacing.constant = 72.0;
+        // Expand window height
         NSRect frame = self.window.frame;
-        frame.size.height += 26.0;
-        frame.origin.y -= 26.0;
+        frame.size.height += 64.0;
+        frame.origin.y -= 64.0;
         [self.window setFrame:frame display:NO];
     }
 
