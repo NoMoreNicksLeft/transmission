@@ -1099,7 +1099,20 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
                 if (!tr_torrentReplaceBtpkMetainfo(strongSelf.fHandle, std::move(parsedMetainfo)))
                     tr_logAddError("btpk publish: metainfo swap failed (key mismatch?)");
                 else
+                {
                     tr_torrentSetBtpkSeq(strongSelf.fHandle, newSeq);
+
+                    // Overwrite the .torrent file on disk with the new benc so
+                    // the updated metainfo survives a restart.
+                    auto const torrent_path = std::string{ tr_torrentFilename(strongSelf.fHandle) };
+                    auto write_error = tr_error{};
+                    tr_file_save(torrent_path, std::string_view{ static_cast<char const*>(bencNSData.bytes), bencNSData.length }, &write_error);
+                    if (write_error)
+                    {
+                        tr_logAddError(fmt::format("btpk publish: couldn't overwrite .torrent '{}': {}",
+                                                  torrent_path, write_error.message()).c_str());
+                    }
+                }
             }
 
             // Return the unchanged btpk: magnet URI

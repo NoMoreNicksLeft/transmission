@@ -293,8 +293,8 @@ void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
     {
         using namespace std::chrono_literals;
         btpk_poll_timer_ = timer_maker().create([this]() { on_btpk_poll_timer(); });
-        auto const jitter_ms = tr_rand_int(5U * 60U * 1000U); // 0–5 min in ms
-        btpk_poll_timer_->start_repeating(60min + std::chrono::milliseconds{ jitter_ms });
+        auto const jitter_ms = tr_rand_int(10U * 1000U); // 0–10 sec jitter for testing
+        btpk_poll_timer_->start_repeating(2min + std::chrono::milliseconds{ jitter_ms });
     }
 }
 

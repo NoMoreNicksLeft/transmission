@@ -1044,6 +1044,18 @@ void tr_torrent::init(tr_ctor const& ctor)
 void tr_torrent::set_metainfo(tr_torrent_metainfo tm)
 {
     TR_ASSERT(!has_metainfo());
+
+    // If this torrent was added as a btpk: magnet, preserve the btpk key
+    // and salt in the new metainfo. BEP 9 metadata exchange only transfers
+    // the info dict, so btpk_pub (a top-level field outside the info dict)
+    // is not included in the received metadata. Without this, the subscriber
+    // loses the btpk key after metadata is fetched and can't subscribe to
+    // future updates.
+    if (metainfo_.has_btpk() && !tm.has_btpk())
+    {
+        tm.set_btpk(*metainfo_.btpk_key(), metainfo_.btpk_salt());
+    }
+
     metainfo_ = std::move(tm);
     on_metainfo_updated();
 

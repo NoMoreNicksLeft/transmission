@@ -99,6 +99,12 @@ public:
         return btpk_salt_;
     }
 
+    void set_btpk(BtpkKey const& key, std::string_view salt = {})
+    {
+        btpk_key_ = key;
+        btpk_salt_ = salt;
+    }
+
 protected:
     tr_announce_list announce_list_;
     std::vector<std::string> webseed_urls_;
