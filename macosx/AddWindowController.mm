@@ -36,6 +36,12 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowRenaming;
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowOverwrites;
 @property(nonatomic) IBOutlet NSButton* fUpdateModeAllowDeletions;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeVersionsLabel;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeVersionsField;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeVersionsUnit;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeStorageLabel;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeStorageField;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeStorageUnit;
 @property(nonatomic) IBOutlet NSProgressIndicator* fVerifyIndicator;
 
 @property(nonatomic) IBOutlet NSTextField* fFileFilterField;
@@ -176,6 +182,8 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
         self.fUpdateModeAllowDeletions.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowDeletions"] ?
             NSControlStateValueOn :
             NSControlStateValueOff;
+        self.fUpdateModeVersionsField.integerValue = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableVersionsToKeep"];
+        self.fUpdateModeStorageField.integerValue = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableMaxStorageGB"];
         [self updateAllowCheckboxVisibility];
         // Push Trash torrent button down to make room
         self.fUpdateModeBoxSpacing.constant = 58.0;
@@ -446,11 +454,19 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
 
 - (void)updateAllowCheckboxVisibility
 {
-    BOOL const whenOffered = ([self.fUpdateModePopUp selectedTag] == 1);
+    NSInteger const tag = [self.fUpdateModePopUp selectedTag];
+    BOOL const whenOffered = (tag == 1);
+    BOOL const versioned = (tag == 2);
     self.fUpdateModeAllowAdditional.hidden = !whenOffered;
     self.fUpdateModeAllowRenaming.hidden = !whenOffered;
     self.fUpdateModeAllowOverwrites.hidden = !whenOffered;
     self.fUpdateModeAllowDeletions.hidden = !whenOffered;
+    self.fUpdateModeVersionsField.hidden = !versioned;
+    self.fUpdateModeVersionsLabel.hidden = !versioned;
+    self.fUpdateModeVersionsUnit.hidden = !versioned;
+    self.fUpdateModeStorageField.hidden = !versioned;
+    self.fUpdateModeStorageLabel.hidden = !versioned;
+    self.fUpdateModeStorageUnit.hidden = !versioned;
 }
 
 - (void)setDestinationPath:(NSString*)destination determinationType:(TorrentDeterminationType)determinationType
