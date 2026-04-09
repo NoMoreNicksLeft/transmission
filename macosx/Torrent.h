@@ -116,6 +116,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic, readonly) BOOL hasBtpk;
 @property(nonatomic) BtpkUpdateMode btpkUpdateMode;
 @property(nonatomic, readonly) NSInteger btpkSeq;
+@property(nonatomic, readonly) NSInteger pendingBtpkSeq;
 @property(nonatomic, readonly, nullable) NSString* btpkFingerprintString;
 
 /// Returns YES if the 96-byte private key in keyData has a matching public key
@@ -125,6 +126,9 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 /// Re-hash the current content folder, sign the new infohash with the private
 /// key in keyData, publish via DHT, and call the handler with the new btpk:
 /// magnet URI (or an error). The key bytes are zeroed inside before returning.
+- (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler;
+- (void)clearPendingBtpkUpdate;
+
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;
 

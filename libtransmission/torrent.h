@@ -774,7 +774,7 @@ struct tr_torrent
     // BEP 46: update the torrent's infohash when a mutable DHT item resolves
     // a new version. Updates internal metainfo state and rewrites the .magnet
     // file on disk. The existing DHT announce timer picks up the new hash.
-    void update_btpk_infohash(tr_sha1_digest_t const& new_hash);
+    void update_btpk_infohash(tr_sha1_digest_t const& new_hash, int64_t new_seq);
 
     // BEP 44 sequence number for the last published mutable item.
     // -1 means never published (or unknown). Persisted to .resume.
@@ -785,6 +785,21 @@ struct tr_torrent
     constexpr void set_btpk_seq(int64_t seq) noexcept
     {
         btpk_seq_ = seq;
+    }
+
+    // Pending update waiting for UI accept/apply.
+    [[nodiscard]] constexpr std::optional<tr_sha1_digest_t> const& pending_btpk_hash() const noexcept
+    {
+        return pending_btpk_hash_;
+    }
+    [[nodiscard]] constexpr int64_t pending_btpk_seq() const noexcept
+    {
+        return pending_btpk_seq_;
+    }
+    void clear_pending_btpk_update() noexcept
+    {
+        pending_btpk_hash_.reset();
+        pending_btpk_seq_ = -1;
     }
 
     // Replace the torrent's metainfo with a new version from an updated btpk
@@ -1482,6 +1497,11 @@ private:
 
     bool sequential_download_ = false;
     int64_t btpk_seq_ = -1; // BEP 44 seq for last published mutable item
+
+    // Pending btpk update detected by DHT resolver — new infohash and seq
+    // waiting for the UI to accept/apply. Cleared after apply or dismiss.
+    std::optional<tr_sha1_digest_t> pending_btpk_hash_;
+    int64_t pending_btpk_seq_ = -1;
 
     tr_piece_index_t sequential_download_from_piece_ = 0;
 

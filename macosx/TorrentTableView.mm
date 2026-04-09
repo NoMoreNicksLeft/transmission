@@ -599,7 +599,7 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
             [self selectRowIndexes:[NSIndexSet indexSetWithIndex:row] byExtendingSelection:NO];
         }
 
-        // Show "Publish Update…" only for a single selected btpk torrent
+        // Show "Publish Update…" and "Apply Update" only for a single selected btpk torrent
         NSArray<Torrent*>* selected = self.selectedTorrents;
         BOOL const isBtpk = selected.count == 1 && selected.firstObject.hasBtpk;
         NSInteger const publishIdx = [self.fContextRow indexOfItemWithTarget:self.fController andAction:@selector(publishBtpkUpdate:)];
@@ -613,6 +613,13 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
                 if (sep.isSeparatorItem)
                     sep.hidden = !isBtpk;
             }
+        }
+        NSInteger const applyIdx = [self.fContextRow indexOfItemWithTarget:self.fController andAction:@selector(applyBtpkUpdate:)];
+        if (applyIdx >= 0)
+        {
+            NSMenuItem* applyItem = [self.fContextRow itemAtIndex:applyIdx];
+            // Show only for btpk torrents; enabled state is handled by validateMenuItem:
+            applyItem.hidden = !isBtpk;
         }
 
         return self.fContextRow;

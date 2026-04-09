@@ -768,6 +768,11 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return (NSInteger)tr_torrentBtpkSeq(self.fHandle);
 }
 
+- (NSInteger)pendingBtpkSeq
+{
+    return (NSInteger)tr_torrentPendingBtpkSeq(self.fHandle);
+}
+
 - (nullable NSString*)btpkFingerprintString
 {
     char* fp = tr_torrentBtpkFingerprint(self.fHandle);
@@ -789,6 +794,133 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     // The public key is embedded at bytes [64..95] of the 96-byte private key
     auto const* bytes = static_cast<uint8_t const*>(keyData.bytes);
     return memcmp(bytes + 64, expectedPub, 32) == 0;
+}
+
+- (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler
+{
+    // Ensure there's actually a pending update to apply.
+    uint8_t pendingHash[20] = {};
+    if (!tr_torrentPendingBtpkHash(self.fHandle, pendingHash))
+    {
+        handler(NO);
+        return;
+    }
+    int64_t const pendingSeq = tr_torrentPendingBtpkSeq(self.fHandle);
+
+    NSString* const contentPath = self.dataLocation;
+    if (!contentPath)
+    {
+        tr_torrentClearPendingBtpkUpdate(self.fHandle);
+        handler(NO);
+        return;
+    }
+
+    // Capture torrent settings for the background re-hash.
+    auto const torView = tr_torrentView(self.fHandle);
+    bool const isPrivate = torView.is_private;
+    auto const comment = std::string{ torView.comment ? torView.comment : "" };
+    auto const source = std::string{ torView.source ? torView.source : "" };
+    NSString* const trackerListStr = @(tr_torrentGetTrackerList(self.fHandle).c_str());
+
+    uint8_t pubKeyBytes[32] = {};
+    if (!tr_torrentBtpkGetPublicKey(self.fHandle, pubKeyBytes))
+    {
+        tr_torrentClearPendingBtpkUpdate(self.fHandle);
+        handler(NO);
+        return;
+    }
+    NSData* const pubKeyData = [NSData dataWithBytes:pubKeyBytes length:32];
+
+    char saltBuf[256] = {};
+    int const saltLen = (int)tr_torrentBtpkGetSalt(self.fHandle, saltBuf, sizeof(saltBuf));
+    NSData* const saltData = [NSData dataWithBytes:saltBuf length:(NSUInteger)saltLen];
+
+    // The expected infohash from the DHT — copy for block capture.
+    NSData* const expectedHashData = [NSData dataWithBytes:pendingHash length:20];
+    int64_t const capturedSeq = pendingSeq;
+
+    __weak Torrent* weakSelf = self;
+
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        // Re-hash local content to build a new .torrent descriptor.
+        auto builder = tr_metainfo_builder{ contentPath.UTF8String };
+        builder.set_private(isPrivate);
+        if (!comment.empty())
+            builder.set_comment(comment);
+        if (!source.empty())
+            builder.set_source(source);
+        if (trackerListStr.length > 0)
+        {
+            tr_announce_list trackers;
+            trackers.parse(trackerListStr.UTF8String);
+            builder.set_announce_list(trackers);
+        }
+
+        // Apply btpk public key and salt.
+        libtransmission::BtpkPublicKey pubKey;
+        std::copy((uint8_t const*)pubKeyData.bytes, (uint8_t const*)pubKeyData.bytes + 32, pubKey.begin());
+        builder.set_btpk_public_key(pubKey);
+        if (saltData.length > 0)
+            builder.set_btpk_salt(std::string_view{ (char const*)saltData.bytes, saltData.length });
+
+        auto bencError = tr_error{};
+        auto const result = builder.benc(&bencError);
+        if (result.empty())
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                handler(NO);
+            });
+            return;
+        }
+
+        // Parse the new metainfo.
+        auto newMetainfo = tr_torrent_metainfo{};
+        if (!newMetainfo.parse_benc({ result.data(), result.size() }))
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                handler(NO);
+            });
+            return;
+        }
+
+        // Verify the infohash matches what the DHT advertised.
+        auto const& newHash = newMetainfo.info_hash();
+        if (memcmp(newHash.data(), expectedHashData.bytes, 20) != 0)
+        {
+            // Hash mismatch — our local files don't match the DHT-advertised
+            // version. The publisher may have changed file content. We cannot
+            // apply the update automatically; clear pending and report failure.
+            dispatch_async(dispatch_get_main_queue(), ^{
+                Torrent* strongSelf = weakSelf;
+                if (strongSelf)
+                    tr_torrentClearPendingBtpkUpdate(strongSelf.fHandle);
+                handler(NO);
+            });
+            return;
+        }
+
+        // Hashes match — apply the new metainfo.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            Torrent* strongSelf = weakSelf;
+            if (!strongSelf)
+            {
+                handler(NO);
+                return;
+            }
+            BOOL const ok = tr_torrentReplaceBtpkMetainfo(strongSelf.fHandle, std::move(newMetainfo));
+            if (ok)
+            {
+                tr_torrentSetBtpkSeq(strongSelf.fHandle, capturedSeq);
+            }
+            tr_torrentClearPendingBtpkUpdate(strongSelf.fHandle);
+            handler(ok);
+        });
+    });
+}
+
+- (void)clearPendingBtpkUpdate
+{
+    tr_torrentClearPendingBtpkUpdate(self.fHandle);
 }
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData

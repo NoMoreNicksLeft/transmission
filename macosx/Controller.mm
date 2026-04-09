@@ -420,6 +420,21 @@ void onMetadataCompleted(tr_session* /*session*/, tr_torrent* tor, void* vself)
     });
 }
 
+void onBtpkUpdateAvailable(tr_session* /*session*/, tr_torrent* tor, int64_t new_seq, void* vself)
+{
+    auto* const controller = (__bridge Controller*)(vself);
+    auto const hashstr = @(tr_torrentView(tor).hash_string);
+    auto const seq = new_seq;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        auto* const torrent = [controller torrentForHash:hashstr];
+        if (torrent)
+        {
+            [controller btpkUpdateAvailable:torrent newSeq:seq];
+        }
+    });
+}
+
 void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool wasRunning, void* vself)
 {
     auto* const controller = (__bridge Controller*)(vself);
@@ -574,6 +589,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         tr_sessionSetRatioLimitHitCallback(_fLib, onRatioLimitHit, (__bridge void*)(self));
         tr_sessionSetMetadataCallback(_fLib, onMetadataCompleted, (__bridge void*)(self));
         tr_sessionSetCompletenessCallback(_fLib, onTorrentCompletenessChanged, (__bridge void*)(self));
+        tr_sessionSetBtpkUpdateCallback(_fLib, onBtpkUpdateAvailable, (__bridge void*)(self));
 
         NSApp.delegate = self;
 
@@ -2232,6 +2248,74 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
                                                         [weakSet removeObject:panel];
                                                     }];
     }
+}
+
+- (void)btpkUpdateAvailable:(Torrent*)torrent newSeq:(int64_t)seq
+{
+    NSAssert(NSThread.isMainThread, @"btpkUpdateAvailable must be called on main thread");
+
+    switch (torrent.btpkUpdateMode)
+    {
+    case BtpkUpdateModeNever:
+        // User opted out — clear the pending update and do nothing.
+        [torrent clearPendingBtpkUpdate];
+        break;
+
+    case BtpkUpdateModeWhenOffered:
+        {
+            // Notify the user that an update is available. Use a macOS notification
+            // so it works even when the app is in the background.
+            NSString* title = NSLocalizedString(@"Torrent update available", "btpk update notification title");
+            NSString* body = [NSString stringWithFormat:NSLocalizedString(@"“%@” has a new version (seq %lld). Right-click to apply.",
+                                                                          "btpk update notification body"),
+                                                        torrent.name,
+                                                        (long long)seq];
+
+            UNMutableNotificationContent* content = [UNMutableNotificationContent new];
+            content.title = title;
+            content.body = body;
+            // Embed the torrent hash so we can act on it if the user clicks
+            content.userInfo = @{@"btpkHash" : torrent.hashString, @"btpkSeq" : @(seq)};
+
+            UNNotificationRequest* req = [UNNotificationRequest
+                requestWithIdentifier:[NSString stringWithFormat:@"btpk-%@-%lld", torrent.hashString, (long long)seq]
+                              content:content
+                              trigger:nil]; // deliver immediately
+            [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:req withCompletionHandler:nil];
+            break;
+        }
+
+    case BtpkUpdateModeVersioned:
+        // Automatically apply the update. The archive step is a no-op until
+        // the archive flow is implemented; for now we apply immediately.
+        [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
+            if (!success)
+            {
+                tr_logAddInfo(fmt::format("btpk auto-update failed for torrent {}", torrent.hashString.UTF8String).c_str());
+            }
+        }];
+        break;
+    }
+}
+
+- (IBAction)applyBtpkUpdate:(id)sender
+{
+    Torrent* torrent = self.fTableView.selectedTorrents.firstObject;
+    if (!torrent || !torrent.hasBtpk)
+        return;
+
+    [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
+        if (!success)
+        {
+            NSAlert* alert = [NSAlert new];
+            alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+            alert.informativeText = NSLocalizedString(
+                @"The local files did not match the version advertised by the update feed. "
+                 "The publisher may have changed file content that differs from your local copy.",
+                "btpk apply error body");
+            [alert runModal];
+        }
+    }];
 }
 
 - (void)revealFile:(id)sender
@@ -5005,6 +5089,15 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     {
         NSArray<Torrent*>* selected = self.fTableView.selectedTorrents;
         return canUseTable && selected.count == 1 && selected.firstObject.hasBtpk;
+    }
+
+    if (action == @selector(applyBtpkUpdate:))
+    {
+        NSArray<Torrent*>* selected = self.fTableView.selectedTorrents;
+        if (!canUseTable || selected.count != 1 || !selected.firstObject.hasBtpk)
+            return NO;
+        // Only enable when there's actually a pending update to apply.
+        return selected.firstObject.pendingBtpkSeq >= 0;
     }
 
     //enable reverse sort item

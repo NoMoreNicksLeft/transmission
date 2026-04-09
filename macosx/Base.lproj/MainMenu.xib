@@ -1159,6 +1159,12 @@ CA
                         <action selector="publishBtpkUpdate:" target="206" id="3453"/>
                     </connections>
                 </menuItem>
+                <menuItem title="Apply Update" secondaryImage="arrow.down.circle" catalog="system" id="3454">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="applyBtpkUpdate:" target="206" id="3455"/>
+                    </connections>
+                </menuItem>
                 <menuItem isSeparatorItem="YES" id="2848">
                     <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                 </menuItem>

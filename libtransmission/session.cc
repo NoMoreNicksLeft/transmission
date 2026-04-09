@@ -264,11 +264,11 @@ void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
 {
     // Build the InfohashCallback: when the resolver fires with a new infohash,
     // look up the torrent and update it.
-    auto cb = [this, tor_id](tr_sha1_digest_t const& new_hash)
+    auto cb = [this, tor_id](tr_sha1_digest_t const& new_hash, int64_t new_seq)
     {
         if (auto* const tor = session_.torrents().get(tor_id); tor != nullptr)
         {
-            tor->update_btpk_infohash(new_hash);
+            tor->update_btpk_infohash(new_hash, new_seq);
         }
     };
 
@@ -2233,6 +2233,11 @@ void tr_sessionSetIdleLimitHitCallback(tr_session* session, tr_session_idle_limi
 void tr_sessionSetMetadataCallback(tr_session* session, tr_session_metadata_func callback, void* user_data)
 {
     session->setMetadataCallback(callback, user_data);
+}
+
+void tr_sessionSetBtpkUpdateCallback(tr_session* session, tr_btpk_update_func callback, void* user_data)
+{
+    session->setBtpkUpdateCallback(callback, user_data);
 }
 
 void tr_sessionSetCompletenessCallback(tr_session* session, tr_torrent_completeness_func callback, void* user_data)

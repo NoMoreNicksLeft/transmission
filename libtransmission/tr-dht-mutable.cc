@@ -189,7 +189,7 @@ bool tr_mutable_resolver::on_dht_item(dht_bep44_item const& item)
     if (last_infohash_ != maybe_hash)
     {
         last_infohash_ = maybe_hash;
-        on_infohash_(*maybe_hash);
+        on_infohash_(*maybe_hash, item.seq);
     }
 
     return true;

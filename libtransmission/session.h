@@ -885,6 +885,20 @@ public:
         }
     }
 
+    constexpr void setBtpkUpdateCallback(tr_btpk_update_func cb, void* user_data)
+    {
+        btpk_update_cb_ = cb;
+        btpk_update_user_data_ = user_data;
+    }
+
+    void onBtpkUpdateAvailable(tr_torrent* tor, int64_t new_seq)
+    {
+        if (btpk_update_cb_ != nullptr)
+        {
+            btpk_update_cb_(this, tor, new_seq, btpk_update_user_data_);
+        }
+    }
+
     constexpr void setTorrentCompletenessCallback(tr_torrent_completeness_func cb, void* user_data)
     {
         completeness_func_ = cb;
@@ -1373,6 +1387,9 @@ private:
 
     tr_session_metadata_func got_metadata_cb_ = nullptr;
     void* got_metadata_user_data_ = nullptr;
+
+    tr_btpk_update_func btpk_update_cb_ = nullptr;
+    void* btpk_update_user_data_ = nullptr;
 
     tr_torrent_completeness_func completeness_func_ = nullptr;
     void* completeness_func_user_data_ = nullptr;

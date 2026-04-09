@@ -35,7 +35,7 @@ namespace libtransmission
 class tr_mutable_resolver
 {
 public:
-    using InfohashCallback = std::function<void(tr_sha1_digest_t const& info_hash)>;
+    using InfohashCallback = std::function<void(tr_sha1_digest_t const& info_hash, int64_t seq)>;
 
     // key must be exactly DHT_BEP44_KEY_LEN (32) bytes.
     tr_mutable_resolver(std::array<uint8_t, DHT_BEP44_KEY_LEN> const& key, std::string_view salt, InfohashCallback on_infohash);

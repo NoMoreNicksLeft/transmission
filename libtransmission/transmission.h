@@ -1391,6 +1391,23 @@ void tr_torrentVerify(tr_torrent* torrent);
 bool tr_torrentHasMetadata(tr_torrent const* tor);
 bool tr_torrentHasBtpk(tr_torrent const* tor);
 
+// Callback fired when the DHT resolver detects a new seq for a btpk torrent
+// that already has full metainfo. The client should offer or apply an update.
+// `new_seq` is the newly-observed sequence number from the DHT.
+using tr_btpk_update_func = void (*)(tr_session* session, tr_torrent* torrent, int64_t new_seq, void* user_data);
+
+// Register a callback to be invoked when a btpk update is detected.
+void tr_sessionSetBtpkUpdateCallback(tr_session* session, tr_btpk_update_func callback, void* user_data);
+
+// Returns the pending btpk update seq (-1 if none pending).
+int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
+
+// Copies the pending btpk update infohash into buf (20 bytes). Returns false if none pending.
+bool tr_torrentPendingBtpkHash(tr_torrent const* tor, uint8_t* buf);
+
+// Clears the pending btpk update state (call after apply or dismiss).
+void tr_torrentClearPendingBtpkUpdate(tr_torrent* tor);
+
 // Replace a live btpk torrent's metainfo with a newly-published version.
 // The new metainfo must carry the same btpk public key as the existing one.
 // Returns false if the keys differ or either torrent is not a btpk torrent.

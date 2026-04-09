@@ -79,6 +79,8 @@ typedef NS_ENUM(NSUInteger, AddType) { //
 
 - (IBAction)copyMagnetLinks:(id)sender;
 - (IBAction)publishBtpkUpdate:(id)sender;
+- (void)btpkUpdateAvailable:(Torrent*)torrent newSeq:(int64_t)seq;
+- (IBAction)applyBtpkUpdate:(id)sender;
 
 - (IBAction)revealFile:(id)sender;
 

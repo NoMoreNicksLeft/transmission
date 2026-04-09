@@ -1010,9 +1010,10 @@ void tr_torrent::init(tr_ctor const& ctor)
         }
     }
 
-    // BEP 46: if this is a btpk: magnet with no metainfo yet, register a
-    // mutable-item subscription so the DHT can resolve the current infohash.
-    if (metainfo_.has_btpk() && !has_metainfo())
+    // BEP 46: register a mutable-item subscription for btpk torrents so the
+    // DHT can resolve the current infohash (magnet-only) or notify us of
+    // updates to a torrent we already have (subscriber case).
+    if (metainfo_.has_btpk())
     {
         session->add_btpk_subscription(id(), *metainfo_.btpk_key(), metainfo_.btpk_salt());
     }
@@ -1920,15 +1921,24 @@ void tr_torrent::set_labels(labels_t const& new_labels)
     mark_edited();
 }
 
-void tr_torrent::update_btpk_infohash(tr_sha1_digest_t const& new_hash)
+void tr_torrent::update_btpk_infohash(tr_sha1_digest_t const& new_hash, int64_t const new_seq)
 {
-    // Ignore if we already have full metainfo — the torrent is fully resolved.
     if (has_metainfo())
     {
+        // Torrent already has full metainfo — subscriber case: a new version
+        // is available on the DHT. Store the pending update and fire the
+        // session callback so the macOS layer can act based on btpkUpdateMode.
+        pending_btpk_hash_ = new_hash;
+        pending_btpk_seq_ = new_seq;
+        if (session != nullptr)
+        {
+            session->onBtpkUpdateAvailable(this, new_seq);
+        }
         return;
     }
 
-    // Ignore if the hash hasn't actually changed.
+    // Magnet-only case: no metainfo yet — update the infohash so the DHT
+    // peer search and BEP 9 metadata fetch can proceed.
     if (metainfo_.info_hash() == new_hash)
     {
         return;
@@ -2620,6 +2630,31 @@ void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq)
 {
     tr_return_if_fail(tr_isTorrent(tor));
     tor->set_btpk_seq(seq);
+}
+
+int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), -1);
+    return tor->pending_btpk_seq();
+}
+
+bool tr_torrentPendingBtpkHash(tr_torrent const* tor, uint8_t* buf)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), false);
+    tr_return_val_if_fail(buf != nullptr, false);
+    auto const& h = tor->pending_btpk_hash();
+    if (!h)
+    {
+        return false;
+    }
+    std::memcpy(buf, h->data(), 20);
+    return true;
+}
+
+void tr_torrentClearPendingBtpkUpdate(tr_torrent* tor)
+{
+    tr_return_if_fail(tr_isTorrent(tor));
+    tor->clear_pending_btpk_update();
 }
 
 bool tr_torrentBtpkSignAndPut(tr_torrent* tor,
