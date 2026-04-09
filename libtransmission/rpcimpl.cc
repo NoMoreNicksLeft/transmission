@@ -299,10 +299,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     session->rpcNotify(TR_RPC_SESSION_QUEUE_POSITIONS_CHANGED);
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveTop(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveTop(tr_session* session,
+                                                                        tr_variant::Map const& args_in,
+                                                                        tr_variant::Map& /*args_out*/)
 {
     auto const torrents = getTorrents(session, args_in);
     tr_torrentsQueueMoveTop(std::data(torrents), std::size(torrents));
@@ -310,10 +309,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveUp(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveUp(tr_session* session,
+                                                                       tr_variant::Map const& args_in,
+                                                                       tr_variant::Map& /*args_out*/)
 {
     auto const torrents = getTorrents(session, args_in);
     tr_torrentsQueueMoveUp(std::data(torrents), std::size(torrents));
@@ -321,10 +319,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveDown(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveDown(tr_session* session,
+                                                                         tr_variant::Map const& args_in,
+                                                                         tr_variant::Map& /*args_out*/)
 {
     auto const torrents = getTorrents(session, args_in);
     tr_torrentsQueueMoveDown(std::data(torrents), std::size(torrents));
@@ -332,10 +329,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveBottom(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> queueMoveBottom(tr_session* session,
+                                                                           tr_variant::Map const& args_in,
+                                                                           tr_variant::Map& /*args_out*/)
 {
     auto const torrents = getTorrents(session, args_in);
     tr_torrentsQueueMoveBottom(std::data(torrents), std::size(torrents));
@@ -343,10 +339,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStart(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStart(tr_session* session,
+                                                                        tr_variant::Map const& args_in,
+                                                                        tr_variant::Map& /*args_out*/)
 {
     auto torrents = getTorrents(session, args_in);
     std::sort(std::begin(torrents), std::end(torrents), tr_torrent::CompareQueuePosition);
@@ -362,10 +357,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStartNow(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStartNow(tr_session* session,
+                                                                           tr_variant::Map const& args_in,
+                                                                           tr_variant::Map& /*args_out*/)
 {
     auto torrents = getTorrents(session, args_in);
     std::sort(std::begin(torrents), std::end(torrents), tr_torrent::CompareQueuePosition);
@@ -381,10 +375,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStop(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentStop(tr_session* session,
+                                                                       tr_variant::Map const& args_in,
+                                                                       tr_variant::Map& /*args_out*/)
 {
     for (auto* tor : getTorrents(session, args_in))
     {
@@ -398,10 +391,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentRemove(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentRemove(tr_session* session,
+                                                                         tr_variant::Map const& args_in,
+                                                                         tr_variant::Map& /*args_out*/)
 {
     auto const delete_flag = args_in.value_if<bool>(TR_KEY_delete_local_data).value_or(false);
     auto const type = delete_flag ? TR_RPC_TORRENT_TRASHING : TR_RPC_TORRENT_REMOVING;
@@ -417,10 +409,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentReannounce(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentReannounce(tr_session* session,
+                                                                             tr_variant::Map const& args_in,
+                                                                             tr_variant::Map& /*args_out*/)
 {
     for (auto* tor : getTorrents(session, args_in))
     {
@@ -434,10 +425,9 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentVerify(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentVerify(tr_session* session,
+                                                                         tr_variant::Map const& args_in,
+                                                                         tr_variant::Map& /*args_out*/)
 {
     for (auto* tor : getTorrents(session, args_in))
     {
@@ -970,20 +960,18 @@ namespace make_torrent_field_helpers
     return tr_variant{ std::move(info_vec) };
 }
 
-[[nodiscard]] auto make_torrent_info(
-    tr_torrent* const tor,
-    TrFormat const format,
-    tr_quark const* const fields,
-    size_t const field_count)
+[[nodiscard]] auto make_torrent_info(tr_torrent* const tor,
+                                     TrFormat const format,
+                                     tr_quark const* const fields,
+                                     size_t const field_count)
 {
     return format == TrFormat::Table ? make_torrent_info_vec(tor, fields, field_count) :
                                        make_torrent_info_map(tor, fields, field_count);
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentGet(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& args_out)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentGet(tr_session* session,
+                                                                      tr_variant::Map const& args_in,
+                                                                      tr_variant::Map& args_out)
 {
     using namespace JsonRpc;
 
@@ -1034,11 +1022,10 @@ namespace make_torrent_field_helpers
         /* first entry is an array of property names */
         auto names = tr_variant::Vector{};
         names.reserve(std::size(keys));
-        std::transform(
-            std::begin(keys),
-            std::end(keys),
-            std::back_inserter(names),
-            [](tr_quark key) { return tr_quark_get_string_view(key); });
+        std::transform(std::begin(keys),
+                       std::end(keys),
+                       std::back_inserter(names),
+                       [](tr_quark key) { return tr_quark_get_string_view(key); });
         torrents_vec.emplace_back(std::move(names));
     }
 
@@ -1132,10 +1119,9 @@ namespace make_torrent_field_helpers
     return { std::move(files), Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_file_priorities(
-    tr_torrent* tor,
-    tr_priority_t priority,
-    tr_variant::Vector const& files_vec)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_file_priorities(tr_torrent* tor,
+                                                                               tr_priority_t priority,
+                                                                               tr_variant::Vector const& files_vec)
 {
     auto const [indices, err, errmsg] = get_file_indices(tor, files_vec);
     if (err == JsonRpc::Error::SUCCESS)
@@ -1145,9 +1131,8 @@ namespace make_torrent_field_helpers
     return { err, std::move(errmsg) };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_sequential_download_from_piece(
-    tr_torrent& tor,
-    tr_piece_index_t piece)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_sequential_download_from_piece(tr_torrent& tor,
+                                                                                              tr_piece_index_t piece)
 {
     using namespace JsonRpc;
 
@@ -1160,10 +1145,9 @@ namespace make_torrent_field_helpers
     return { Error::SUCCESS, {} }; // no error
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_file_dls(
-    tr_torrent* tor,
-    bool wanted,
-    tr_variant::Vector const& files_vec)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> set_file_dls(tr_torrent* tor,
+                                                                        bool wanted,
+                                                                        tr_variant::Vector const& files_vec)
 {
     auto const [indices, err, errmsg] = get_file_indices(tor, files_vec);
     if (err == JsonRpc::Error::SUCCESS)
@@ -1248,10 +1232,9 @@ namespace make_torrent_field_helpers
     return { Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentSet(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentSet(tr_session* session,
+                                                                      tr_variant::Map const& args_in,
+                                                                      tr_variant::Map& /*args_out*/)
 {
     using namespace JsonRpc;
 
@@ -1292,6 +1275,41 @@ namespace make_torrent_field_helpers
         if (auto const val = args_in.value_if<int64_t>(TR_KEY_peer_limit); val)
         {
             tr_torrentSetPeerLimit(tor, *val);
+        }
+
+        // Inject peers by address:port string list, e.g. for manual peer addition
+        if (auto const* val = args_in.find_if<tr_variant::Vector>(TR_KEY_peers); val != nullptr)
+        {
+            for (auto const& item : *val)
+            {
+                auto const addr_str = item.value_if<std::string_view>();
+                if (!addr_str)
+                    continue;
+                // Parse "host:port" — find last colon to handle IPv6
+                auto const s = std::string{ *addr_str };
+                auto const colon = s.rfind(':');
+                if (colon == std::string::npos)
+                    continue;
+                auto const host = s.substr(0, colon);
+                auto const port_str = s.substr(colon + 1);
+                int port_val = 0;
+                try
+                {
+                    port_val = std::stoi(port_str);
+                }
+                catch (...)
+                {
+                    continue;
+                }
+                if (port_val <= 0 || port_val > 65535)
+                    continue;
+                auto const addr = tr_address::from_string(host);
+                if (!addr)
+                    continue;
+                auto const sa = tr_socket_address{ *addr, tr_port::from_host(static_cast<uint16_t>(port_val)) };
+                auto pex = tr_pex{ sa };
+                tr_peerMgrAddPex(tor, TR_PEER_FROM_INCOMING, &pex, 1);
+            }
         }
 
         if (auto const* val = args_in.find_if<tr_variant::Vector>(TR_KEY_priority_high);
@@ -1401,10 +1419,9 @@ namespace make_torrent_field_helpers
     return { err, std::move(errmsg) };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentSetLocation(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> torrentSetLocation(tr_session* session,
+                                                                              tr_variant::Map const& args_in,
+                                                                              tr_variant::Map& /*args_out*/)
 {
     using namespace JsonRpc;
 
@@ -1489,13 +1506,11 @@ void onPortTested(tr_web::FetchResponse const& web_response)
 
     if (status != 200)
     {
-        tr_rpc_idle_done(
-            data,
-            Error::HTTP_ERROR,
-            fmt::format(
-                fmt::runtime(_("Couldn't test port: {error} ({error_code})")),
-                fmt::arg("error", tr_webGetResponseStr(status)),
-                fmt::arg("error_code", status)));
+        tr_rpc_idle_done(data,
+                         Error::HTTP_ERROR,
+                         fmt::format(fmt::runtime(_("Couldn't test port: {error} ({error_code})")),
+                                     fmt::arg("error", tr_webGetResponseStr(status)),
+                                     fmt::arg("error_code", status)));
         return;
     }
 
@@ -1559,13 +1574,11 @@ void onBlocklistFetched(tr_web::FetchResponse const& web_response)
     if (status != 200)
     {
         // we failed to download the blocklist...
-        tr_rpc_idle_done(
-            data,
-            Error::HTTP_ERROR,
-            fmt::format(
-                fmt::runtime(_("Couldn't fetch blocklist: {error} ({error_code})")),
-                fmt::arg("error", tr_webGetResponseStr(status)),
-                fmt::arg("error_code", status)));
+        tr_rpc_idle_done(data,
+                         Error::HTTP_ERROR,
+                         fmt::format(fmt::runtime(_("Couldn't fetch blocklist: {error} ({error_code})")),
+                                     fmt::arg("error", tr_webGetResponseStr(status)),
+                                     fmt::arg("error_code", status)));
         return;
     }
 
@@ -1579,13 +1592,12 @@ void onBlocklistFetched(tr_web::FetchResponse const& web_response)
             libdeflate_free_decompressor
         };
         auto actual_size = size_t{};
-        auto const decompress_result = libdeflate_gzip_decompress(
-            decompressor.get(),
-            std::data(body),
-            std::size(body),
-            std::data(content),
-            std::size(content),
-            &actual_size);
+        auto const decompress_result = libdeflate_gzip_decompress(decompressor.get(),
+                                                                  std::data(body),
+                                                                  std::size(body),
+                                                                  std::data(content),
+                                                                  std::size(content),
+                                                                  &actual_size);
         if (decompress_result == LIBDEFLATE_INSUFFICIENT_SPACE)
         {
             // need a bigger buffer
@@ -1605,14 +1617,12 @@ void onBlocklistFetched(tr_web::FetchResponse const& web_response)
     auto const filename = tr_pathbuf{ session->configDir(), "/blocklist.tmp"sv };
     if (auto error = tr_error{}; !tr_file_save(filename, content, &error))
     {
-        tr_rpc_idle_done(
-            data,
-            Error::SYSTEM_ERROR,
-            fmt::format(
-                fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
-                fmt::arg("path", filename),
-                fmt::arg("error", error.message()),
-                fmt::arg("error_code", error.code())));
+        tr_rpc_idle_done(data,
+                         Error::SYSTEM_ERROR,
+                         fmt::format(fmt::runtime(_("Couldn't save '{path}': {error} ({error_code})")),
+                                     fmt::arg("path", filename),
+                                     fmt::arg("error", error.message()),
+                                     fmt::arg("error_code", error.code())));
         return;
     }
 
@@ -1625,12 +1635,11 @@ void onBlocklistFetched(tr_web::FetchResponse const& web_response)
 
 void blocklistUpdate(tr_session* session, tr_variant::Map const& /*args_in*/, struct tr_rpc_idle_data* idle_data)
 {
-    session->fetch(
-        {
-            session->blocklistUrl(),
-            [](tr_web::FetchResponse const& r) { onBlocklistFetched(r); },
-            idle_data,
-        });
+    session->fetch({
+        session->blocklistUrl(),
+        [](tr_web::FetchResponse const& r) { onBlocklistFetched(r); },
+        idle_data,
+    });
 }
 
 // ---
@@ -1655,17 +1664,15 @@ void add_torrent_impl(struct tr_rpc_idle_data* data, tr_ctor& ctor)
     };
     if (duplicate_of != nullptr)
     {
-        data->args_out.try_emplace(
-            TR_KEY_torrent_duplicate,
-            make_torrent_info(duplicate_of, TrFormat::Object, std::data(Fields), std::size(Fields)));
+        data->args_out.try_emplace(TR_KEY_torrent_duplicate,
+                                   make_torrent_info(duplicate_of, TrFormat::Object, std::data(Fields), std::size(Fields)));
         tr_rpc_idle_done(data, Error::SUCCESS, {});
         return;
     }
 
     data->session->rpcNotify(TR_RPC_TORRENT_ADDED, tor);
-    data->args_out.try_emplace(
-        TR_KEY_torrent_added,
-        make_torrent_info(tor, TrFormat::Object, std::data(Fields), std::size(Fields)));
+    data->args_out.try_emplace(TR_KEY_torrent_added,
+                               make_torrent_info(tor, TrFormat::Object, std::data(Fields), std::size(Fields)));
     tr_rpc_idle_done(data, Error::SUCCESS, {});
 }
 
@@ -1686,12 +1693,10 @@ void onMetadataFetched(tr_web::FetchResponse const& web_response)
     auto const& [status, body, primary_ip, did_connect, did_timeout, user_data] = web_response;
     auto* data = static_cast<struct add_torrent_idle_data*>(user_data);
 
-    tr_logAddTrace(
-        fmt::format(
-            "torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
-            status,
-            tr_webGetResponseStr(status),
-            std::size(body)));
+    tr_logAddTrace(fmt::format("torrentAdd: HTTP response code was {} ({}); response length was {} bytes",
+                               status,
+                               tr_webGetResponseStr(status),
+                               std::size(body)));
 
     if (status == 200 || status == 221) /* http or ftp success.. */
     {
@@ -1700,13 +1705,11 @@ void onMetadataFetched(tr_web::FetchResponse const& web_response)
     }
     else
     {
-        tr_rpc_idle_done(
-            data->data,
-            JsonRpc::Error::HTTP_ERROR,
-            fmt::format(
-                fmt::runtime(_("Couldn't fetch torrent: {error} ({error_code})")),
-                fmt::arg("error", tr_webGetResponseStr(status)),
-                fmt::arg("error_code", status)));
+        tr_rpc_idle_done(data->data,
+                         JsonRpc::Error::HTTP_ERROR,
+                         fmt::format(fmt::runtime(_("Couldn't fetch torrent: {error} ({error_code})")),
+                                     fmt::arg("error", tr_webGetResponseStr(status)),
+                                     fmt::arg("error_code", status)));
     }
 
     delete data;
@@ -1892,10 +1895,9 @@ void add_strings_from_var(std::set<std::string_view>& strings, tr_variant const&
     }
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> groupGet(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& args_out)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> groupGet(tr_session* session,
+                                                                    tr_variant::Map const& args_in,
+                                                                    tr_variant::Map& args_out)
 {
     auto names = std::set<std::string_view>{};
     if (auto const iter = args_in.find(TR_KEY_name); iter != std::end(args_in))
@@ -1924,10 +1926,9 @@ void add_strings_from_var(std::set<std::string_view>& strings, tr_variant const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> groupSet(
-    tr_session* session,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> groupSet(tr_session* session,
+                                                                    tr_variant::Map const& args_in,
+                                                                    tr_variant::Map& /*args_out*/)
 {
     using namespace JsonRpc;
 
@@ -1973,10 +1974,9 @@ void add_strings_from_var(std::set<std::string_view>& strings, tr_variant const&
 
 // ---
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionStats(
-    tr_session* session,
-    tr_variant::Map const& /*args_in*/,
-    tr_variant::Map& args_out)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionStats(tr_session* session,
+                                                                        tr_variant::Map const& /*args_in*/,
+                                                                        tr_variant::Map& args_out)
 {
     auto const make_stats_map = [](auto const& stats)
     {
@@ -1991,10 +1991,9 @@ void add_strings_from_var(std::set<std::string_view>& strings, tr_variant const&
 
     auto const& torrents = session->torrents();
     auto const total = std::size(torrents);
-    auto const n_running = std::count_if(
-        std::begin(torrents),
-        std::end(torrents),
-        [](auto const* tor) { return tor->is_running(); });
+    auto const n_running = std::count_if(std::begin(torrents),
+                                         std::end(torrents),
+                                         [](auto const* tor) { return tor->is_running(); });
 
     args_out.reserve(std::size(args_out) + 7U);
     args_out.try_emplace(TR_KEY_active_torrent_count, n_running);
@@ -2667,10 +2666,9 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
     return fields;
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionSet(
-    tr_session* session,
-    tr_variant::Map const& params,
-    tr_variant::Map& /*result*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionSet(tr_session* session,
+                                                                      tr_variant::Map const& params,
+                                                                      tr_variant::Map& /*result*/)
 {
     auto const& accessors = session_accessors();
 
@@ -2696,10 +2694,9 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
     return err;
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionGet(
-    tr_session* session,
-    tr_variant::Map const& params,
-    tr_variant::Map& result)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionGet(tr_session* session,
+                                                                      tr_variant::Map const& params,
+                                                                      tr_variant::Map& result)
 {
     auto const& accessors = session_accessors();
 
@@ -2717,10 +2714,9 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
     return error_none;
 }
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> freeSpace(
-    tr_session* /*session*/,
-    tr_variant::Map const& args_in,
-    tr_variant::Map& args_out)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> freeSpace(tr_session* /*session*/,
+                                                                     tr_variant::Map const& args_in,
+                                                                     tr_variant::Map& args_out)
 {
     using namespace JsonRpc;
 
@@ -2755,10 +2751,9 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
 
 // ---
 
-[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionClose(
-    tr_session* session,
-    tr_variant::Map const& /*args_in*/,
-    tr_variant::Map& /*args_out*/)
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionClose(tr_session* session,
+                                                                        tr_variant::Map const& /*args_in*/,
+                                                                        tr_variant::Map& /*args_out*/)
 {
     session->rpcNotify(TR_RPC_SESSION_CLOSE, nullptr);
     return { JsonRpc::Error::SUCCESS, {} };
@@ -2816,12 +2811,11 @@ void tr_rpc_request_exec_impl(tr_session* session, tr_variant& request, tr_rpc_r
     auto const* map = request.get_if<tr_variant::Map>();
     if (map == nullptr)
     {
-        callback(
-            session,
-            build_response(
-                Error::INVALID_REQUEST,
-                nullptr,
-                Error::build_data(is_batch ? "request must be an Object"sv : "request must be an Array or Object"sv, {})));
+        callback(session,
+                 build_response(
+                     Error::INVALID_REQUEST,
+                     nullptr,
+                     Error::build_data(is_batch ? "request must be an Object"sv : "request must be an Array or Object"sv, {})));
         return;
     }
 
@@ -2832,9 +2826,8 @@ void tr_rpc_request_exec_impl(tr_session* session, tr_variant& request, tr_rpc_r
     }
     else if (jsonrpc || is_batch)
     {
-        callback(
-            session,
-            build_response(Error::INVALID_REQUEST, nullptr, Error::build_data("JSON-RPC version is not 2.0"sv, {})));
+        callback(session,
+                 build_response(Error::INVALID_REQUEST, nullptr, Error::build_data("JSON-RPC version is not 2.0"sv, {})));
         return;
     }
     else
@@ -2934,10 +2927,9 @@ void tr_rpc_request_exec_batch(tr_session* session, tr_variant::Vector& requests
                 if (++(*n_responses) >= n_requests)
                 {
                     // Remove notifications from reply
-                    auto const it_end = std::remove_if(
-                        std::begin(*responses),
-                        std::end(*responses),
-                        [](auto const& r) { return !r.has_value(); });
+                    auto const it_end = std::remove_if(std::begin(*responses),
+                                                       std::end(*responses),
+                                                       [](auto const& r) { return !r.has_value(); });
                     responses->erase(it_end, std::end(*responses));
 
                     (*cb)(s, !std::empty(*responses) ? std::move(*responses) : tr_variant{});
