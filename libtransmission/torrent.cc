@@ -1016,6 +1016,38 @@ void tr_torrent::init(tr_ctor const& ctor)
     if (metainfo_.has_btpk())
     {
         session->add_btpk_subscription(id(), *metainfo_.btpk_key(), metainfo_.btpk_salt());
+
+        // Ensure btpk_pub is present in the on-disk .torrent file.
+        // It may be missing if the torrent was saved from BEP 9 metadata
+        // (which only includes the info dict) or from a prior session
+        // before this field was added. Patch it in-place if absent.
+        if (has_metainfo())
+        {
+            auto const tf = torrent_file();
+            auto serde = tr_variant_serde::benc();
+            auto ov = serde.parse_file(tf);
+            if (ov)
+            {
+                auto* m = ov->get_if<tr_variant::Map>();
+                bool const already_has = m != nullptr &&
+                    m->contains(tr_quark_lookup("btpk_pub"sv).value_or(TR_KEY_NONE));
+                if (m != nullptr && !already_has)
+                {
+                    auto const& key = *metainfo_.btpk_key();
+                    m->insert_or_assign(
+                        tr_quark_new("btpk_pub"sv),
+                        std::string{ reinterpret_cast<char const*>(key.data()), key.size() });
+                    auto const contents = serde.to_string(*ov);
+                    auto patch_error = tr_error{};
+                    tr_file_save(tf, contents, &patch_error);
+                    if (patch_error)
+                    {
+                        tr_logAddWarnTor(this, fmt::format("btpk: couldn't patch .torrent: {}",
+                                                          patch_error.message()));
+                    }
+                }
+            }
+        }
     }
 
     torrent_announcer = session->announcer_->addTorrent(this, &tr_torrent::on_tracker_response);
@@ -1063,6 +1095,34 @@ void tr_torrent::set_metainfo(tr_torrent_metainfo tm)
     session->onMetadataCompleted(this);
     set_dirty();
     mark_edited();
+
+    // Patch btpk_pub into the saved .torrent file so it persists across
+    // restarts. The .torrent was saved by init() from ctor contents which
+    // don't include btpk_pub (BEP 9 only transfers the info dict).
+    if (metainfo_.has_btpk())
+    {
+        auto const& key = *metainfo_.btpk_key();
+        auto serde = tr_variant_serde::benc();
+        auto ov = serde.parse_file(torrent_file());
+        if (ov)
+        {
+            if (auto* m = ov->get_if<tr_variant::Map>(); m != nullptr)
+            {
+                // Write btpk_pub as a 32-byte string at the top level
+                m->insert_or_assign(
+                    tr_quark_new("btpk_pub"sv),
+                    std::string{ reinterpret_cast<char const*>(key.data()), key.size() });
+                auto const contents = serde.to_string(*ov);
+                auto patch_error = tr_error{};
+                tr_file_save(torrent_file(), contents, &patch_error);
+                if (patch_error)
+                {
+                    tr_logAddWarnTor(this, fmt::format("btpk: couldn't patch .torrent with btpk_pub: {}",
+                                                      patch_error.message()));
+                }
+            }
+        }
+    }
 
     on_metainfo_completed();
     this->on_announce_list_changed();

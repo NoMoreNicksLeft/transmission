@@ -802,6 +802,13 @@ struct tr_torrent
         pending_btpk_seq_ = -1;
     }
 
+    // Called by resume loader to restore the btpk key when the .torrent
+    // file on disk doesn't contain btpk_pub.
+    void set_btpk_from_resume(tr_magnet_metainfo::BtpkKey const& key, std::string salt)
+    {
+        metainfo_.set_btpk(key, salt);
+    }
+
     // Replace the torrent's metainfo with a new version from an updated btpk
     // publish. The new metainfo must carry the same btpk public key.
     // Returns false if the keys differ or the torrent is not a btpk torrent.

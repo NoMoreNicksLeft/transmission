@@ -84,6 +84,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "blocklist_url"sv, // rpc, tr_session::Settings
     "blocks"sv,
     "btpk_pub"sv, // .torrent top-level
+    "btpk_salt"sv, // .resume
     "btpk_seq"sv, // .resume
     "bytesCompleted"sv, // rpc
     "bytes_completed"sv, // rpc

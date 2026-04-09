@@ -784,6 +784,18 @@ tr_resume::fields_t load_from_file(tr_torrent* tor, tr_torrent::ResumeHelper& he
     if (auto i = map.value_if<int64_t>(TR_KEY_btpk_seq); i)
         tor->set_btpk_seq(*i);
 
+    // btpk_pub/salt: restore btpk key from resume file so has_btpk() returns
+    // true even if the .torrent file on disk is missing btpk_pub (e.g. saved
+    // from BEP 9 metadata which only includes the info dict).
+    if (auto raw = map.value_if<std::string_view>(TR_KEY_btpk_pub); raw && raw->size() == 32)
+    {
+        tr_magnet_metainfo::BtpkKey key;
+        std::memcpy(key.data(), raw->data(), 32);
+        auto const salt_sv = map.value_if<std::string_view>(TR_KEY_btpk_salt).value_or(std::string_view{});
+        if (!tor->metainfo().has_btpk())
+            tor->set_btpk_from_resume(key, std::string{ salt_sv });
+    }
+
     if ((fields_to_load & tr_resume::Peers) != 0)
     {
         fields_loaded |= load_peers(map, tor);
@@ -967,6 +979,14 @@ void save(tr_torrent* const tor, tr_torrent::ResumeHelper const& helper)
     map.try_emplace(TR_KEY_sequential_download_from_piece, tor->sequential_download_from_piece());
     if (tor->btpk_seq() >= 0)
         map.try_emplace(TR_KEY_btpk_seq, tor->btpk_seq());
+    // Save btpk key so it can be restored even if the .torrent file lacks btpk_pub
+    if (tor->metainfo().has_btpk())
+    {
+        auto const& key = *tor->metainfo().btpk_key();
+        map.try_emplace(TR_KEY_btpk_pub, std::string_view{ reinterpret_cast<char const*>(key.data()), key.size() });
+        if (!tor->metainfo().btpk_salt().empty())
+            map.try_emplace(TR_KEY_btpk_salt, std::string_view{ tor->metainfo().btpk_salt() });
+    }
     save_peers(map, tor);
 
     if (tor->has_metainfo())
