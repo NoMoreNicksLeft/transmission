@@ -21,6 +21,12 @@
                 <outlet property="fUpdateModeAllowOverwrites" destination="4214" id="4215"/>
                 <outlet property="fUpdateModeAllowDeletions" destination="4216" id="4217"/>
                 <outlet property="fUpdateModeBoxSpacing" destination="iR0-fe-yDt" id="4242"/>
+                <outlet property="fUpdateModeVersionsLabel" destination="4250" id="4251"/>
+                <outlet property="fUpdateModeVersionsField" destination="4252" id="4253"/>
+                <outlet property="fUpdateModeVersionsUnit" destination="4254" id="4255"/>
+                <outlet property="fUpdateModeStorageLabel" destination="4256" id="4257"/>
+                <outlet property="fUpdateModeStorageField" destination="4258" id="4259"/>
+                <outlet property="fUpdateModeStorageUnit" destination="4260" id="4261"/>
                 <outlet property="window" destination="1" id="29"/>
             </connections>
         </customObject>
@@ -114,6 +120,55 @@
                             <font key="font" metaFont="smallSystem"/>
                         </buttonCell>
                     </button>
+                    <!-- Versioning fields (hidden unless Always versioned) -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4250">
+                        <rect key="frame" x="141" y="0" width="110" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Keep most recent:" id="4262">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4252">
+                        <rect key="frame" x="255" y="0" width="36" height="19"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" alignment="right" title="5" id="4263">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4254">
+                        <rect key="frame" x="295" y="0" width="50" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="versions" id="4264">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4256">
+                        <rect key="frame" x="141" y="-18" width="110" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Maximum storage:" id="4265">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4258">
+                        <rect key="frame" x="255" y="-18" width="36" height="19"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" alignment="right" title="10" id="4266">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4260">
+                        <rect key="frame" x="295" y="-18" width="24" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="GB" id="4267">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="17">
                         <rect key="frame" x="18" y="21" width="134" height="18"/>
                         <buttonCell key="cell" type="check" title="Start when added" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="18">
@@ -334,6 +389,20 @@ Gw
                     <constraint firstItem="4214" firstAttribute="top" secondItem="4210" secondAttribute="bottom" constant="2" id="4239"/>
                     <constraint firstItem="4216" firstAttribute="leading" secondItem="4212" secondAttribute="leading" id="4240"/>
                     <constraint firstItem="4216" firstAttribute="top" secondItem="4214" secondAttribute="top" id="4241"/>
+                    <constraint firstItem="4250" firstAttribute="leading" secondItem="4202" secondAttribute="leading" id="4270"/>
+                    <constraint firstItem="4250" firstAttribute="top" secondItem="4202" secondAttribute="bottom" constant="4" id="4271"/>
+                    <constraint firstItem="4252" firstAttribute="leading" secondItem="4250" secondAttribute="trailing" constant="4" id="4272"/>
+                    <constraint firstItem="4252" firstAttribute="centerY" secondItem="4250" secondAttribute="centerY" id="4273"/>
+                    <constraint firstItem="4252" firstAttribute="width" constant="36" id="4274"/>
+                    <constraint firstItem="4254" firstAttribute="leading" secondItem="4252" secondAttribute="trailing" constant="4" id="4275"/>
+                    <constraint firstItem="4254" firstAttribute="centerY" secondItem="4252" secondAttribute="centerY" id="4276"/>
+                    <constraint firstItem="4256" firstAttribute="leading" secondItem="4250" secondAttribute="leading" id="4277"/>
+                    <constraint firstItem="4256" firstAttribute="top" secondItem="4250" secondAttribute="bottom" constant="4" id="4278"/>
+                    <constraint firstItem="4258" firstAttribute="leading" secondItem="4256" secondAttribute="trailing" constant="4" id="4279"/>
+                    <constraint firstItem="4258" firstAttribute="centerY" secondItem="4256" secondAttribute="centerY" id="4280"/>
+                    <constraint firstItem="4258" firstAttribute="width" constant="36" id="4281"/>
+                    <constraint firstItem="4260" firstAttribute="leading" secondItem="4258" secondAttribute="trailing" constant="4" id="4282"/>
+                    <constraint firstItem="4260" firstAttribute="centerY" secondItem="4258" secondAttribute="centerY" id="4283"/>
                     <constraint firstItem="100" firstAttribute="centerY" secondItem="3" secondAttribute="centerY" id="j65-kg-97n"/>
                     <constraint firstItem="102" firstAttribute="leading" secondItem="5" secondAttribute="leading" id="q3E-9F-8ap"/>
                     <constraint firstItem="5" firstAttribute="top" secondItem="100" secondAttribute="bottom" constant="8" symbolic="YES" id="tF2-Vo-kek"/>
