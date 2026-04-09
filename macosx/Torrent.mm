@@ -160,6 +160,11 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     //restore GroupValue
     torrent.groupValue = [history[@"GroupValue"] intValue];
 
+    //restore BtpkUpdateMode (default to NSUserDefaults preference if not stored)
+    NSNumber* btpkMode = history[@"BtpkUpdateMode"];
+    torrent.btpkUpdateMode = btpkMode ? (BtpkUpdateMode)btpkMode.integerValue :
+                                        (BtpkUpdateMode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"];
+
     //start transfer
     NSNumber* active;
     if (!pause && (active = history[@"Active"]) && active.boolValue)
@@ -181,7 +186,8 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
         @"Active" : @(self.active),
         @"WaitToStart" : @(self.waitingToStart),
         @"GroupValue" : @(self.groupValue),
-        @"RemoveWhenFinishSeeding" : @(_removeWhenFinishSeeding)
+        @"RemoveWhenFinishSeeding" : @(_removeWhenFinishSeeding),
+        @"BtpkUpdateMode" : @(self.btpkUpdateMode)
     };
 }
 

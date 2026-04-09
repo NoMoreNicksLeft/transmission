@@ -11,6 +11,12 @@
 
 typedef NS_ENUM(NSUInteger, TorrentDeterminationType) { TorrentDeterminationAutomatic = 0, TorrentDeterminationUserSpecified };
 
+typedef NS_ENUM(NSInteger, BtpkUpdateMode) {
+    BtpkUpdateModeNever = 0,
+    BtpkUpdateModeWhenOffered = 1,
+    BtpkUpdateModeVersioned = 2,
+};
+
 extern NSString* const kTorrentDidChangeGroupNotification;
 
 @interface Torrent : NSObject<NSCopying, QLPreviewItem>
@@ -108,6 +114,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic, readonly) NSString* hashString;
 @property(nonatomic, readonly) BOOL privateTorrent;
 @property(nonatomic, readonly) BOOL hasBtpk;
+@property(nonatomic) BtpkUpdateMode btpkUpdateMode;
 @property(nonatomic, readonly, nullable) NSString* btpkFingerprintString;
 
 /// Returns YES if the 96-byte private key in keyData has a matching public key

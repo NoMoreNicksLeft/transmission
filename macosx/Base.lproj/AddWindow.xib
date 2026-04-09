@@ -22,6 +22,13 @@
                 <outlet property="fStartCheck" destination="17" id="26"/>
                 <outlet property="fStatusField" destination="4" id="24"/>
                 <outlet property="fUncheckAllButton" destination="102" id="109"/>
+                <outlet property="fUpdateModeLabel" destination="4300" id="4301"/>
+                <outlet property="fUpdateModePopUp" destination="4302" id="4303"/>
+                <outlet property="fUpdateModeBoxSpacing" destination="mcl-Km-o3W" id="4310"/>
+                <outlet property="fUpdateModeAllowAdditional" destination="4320" id="4328"/>
+                <outlet property="fUpdateModeAllowRenaming" destination="4322" id="4329"/>
+                <outlet property="fUpdateModeAllowOverwrites" destination="4324" id="4330"/>
+                <outlet property="fUpdateModeAllowDeletions" destination="4326" id="4331"/>
                 <outlet property="fVerifyIndicator" destination="68" id="69"/>
                 <outlet property="window" destination="1" id="29"/>
             </connections>
@@ -181,6 +188,66 @@ Gw
                         <connections>
                             <action selector="checkAll:" target="-2" id="106"/>
                         </connections>
+                    </button>
+                    <!-- Update behavior row + Allow checkboxes (hidden unless hasBtpk) -->
+                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4300">
+                        <rect key="frame" x="20" y="42" width="140" height="16"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Update behavior:" id="4304">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4302">
+                        <rect key="frame" x="294" y="36" width="160" height="25"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" id="4305">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="menu"/>
+                            <menu key="menu" id="4306">
+                                <items>
+                                    <menuItem title="Never" tag="0" id="4307">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                    <menuItem title="When offered" tag="1" id="4308">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                    <menuItem title="Always versioned" tag="2" id="4309">
+                                        <modifierMask key="keyEquivalentModifierMask"/>
+                                    </menuItem>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <connections>
+                            <action selector="changeUpdateMode:" target="-2" id="4352"/>
+                        </connections>
+                    </popUpButton>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4320">
+                        <rect key="frame" x="168" y="18" width="180" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow additional files" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4321">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4322">
+                        <rect key="frame" x="358" y="18" width="155" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file renaming" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4323">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4324">
+                        <rect key="frame" x="168" y="4" width="180" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file overwrites" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4325">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" hidden="YES" id="4326">
+                        <rect key="frame" x="358" y="4" width="155" height="16"/>
+                        <buttonCell key="cell" type="check" title="Allow file deletions" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="4327">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="58">
                         <rect key="frame" x="20" y="42" width="123" height="16"/>
@@ -385,7 +452,19 @@ Gw
                     <constraint firstItem="3" firstAttribute="top" secondItem="2" secondAttribute="top" constant="20" symbolic="YES" id="hdY-33-ncy"/>
                     <constraint firstItem="102" firstAttribute="width" secondItem="103" secondAttribute="width" id="hx7-ne-w99"/>
                     <constraint firstItem="4" firstAttribute="leading" secondItem="5" secondAttribute="leading" id="i2a-3x-X2L"/>
-                    <constraint firstItem="58" firstAttribute="top" secondItem="100" secondAttribute="bottom" constant="8" symbolic="YES" id="mcl-Km-o3W"/>
+                    <constraint firstItem="58" firstAttribute="top" secondItem="100" secondAttribute="bottom" constant="8" id="mcl-Km-o3W"/>
+                    <constraint firstItem="4300" firstAttribute="leading" secondItem="100" secondAttribute="leading" id="4340"/>
+                    <constraint firstItem="4300" firstAttribute="top" secondItem="100" secondAttribute="bottom" constant="10" id="4341"/>
+                    <constraint firstItem="4302" firstAttribute="leading" secondItem="4300" secondAttribute="trailing" constant="8" id="4342"/>
+                    <constraint firstItem="4302" firstAttribute="centerY" secondItem="4300" secondAttribute="centerY" id="4343"/>
+                    <constraint firstItem="4320" firstAttribute="leading" secondItem="100" secondAttribute="leading" constant="180" id="4344"/>
+                    <constraint firstItem="4320" firstAttribute="top" secondItem="4302" secondAttribute="bottom" constant="4" id="4345"/>
+                    <constraint firstItem="4322" firstAttribute="leading" secondItem="4320" secondAttribute="trailing" constant="12" id="4346"/>
+                    <constraint firstItem="4322" firstAttribute="top" secondItem="4320" secondAttribute="top" id="4347"/>
+                    <constraint firstItem="4324" firstAttribute="leading" secondItem="4320" secondAttribute="leading" id="4348"/>
+                    <constraint firstItem="4324" firstAttribute="top" secondItem="4320" secondAttribute="bottom" constant="2" id="4349"/>
+                    <constraint firstItem="4326" firstAttribute="leading" secondItem="4322" secondAttribute="leading" id="4350"/>
+                    <constraint firstItem="4326" firstAttribute="top" secondItem="4324" secondAttribute="top" id="4351"/>
                     <constraint firstItem="103" firstAttribute="centerY" secondItem="112" secondAttribute="centerY" id="nZ3-Kc-MmG"/>
                     <constraint firstItem="21" firstAttribute="centerY" secondItem="17" secondAttribute="centerY" id="qKT-Gc-GXP"/>
                     <constraint firstItem="5" firstAttribute="top" secondItem="3" secondAttribute="top" constant="8" id="qxm-FH-2lH"/>

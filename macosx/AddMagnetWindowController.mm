@@ -23,6 +23,12 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
 @property(nonatomic) IBOutlet NSButton* fStartCheck;
 @property(nonatomic) IBOutlet NSPopUpButton* fGroupPopUp;
 @property(nonatomic) IBOutlet NSPopUpButton* fPriorityPopUp;
+@property(nonatomic) IBOutlet NSTextField* fUpdateModeLabel;
+@property(nonatomic) IBOutlet NSPopUpButton* fUpdateModePopUp;
+@property(nonatomic) IBOutlet NSButton* fUpdateModeAllowAdditional;
+@property(nonatomic) IBOutlet NSButton* fUpdateModeAllowRenaming;
+@property(nonatomic) IBOutlet NSButton* fUpdateModeAllowOverwrites;
+@property(nonatomic) IBOutlet NSButton* fUpdateModeAllowDeletions;
 
 @property(nonatomic, readonly) Controller* fController;
 
@@ -87,6 +93,34 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
     self.fStartCheck.state = [NSUserDefaults.standardUserDefaults boolForKey:@"AutoStartDownload"] ? NSControlStateValueOn :
                                                                                                      NSControlStateValueOff;
 
+    // Show update behavior row for btpk torrents, pre-populated from prefs
+    if (self.torrent.hasBtpk)
+    {
+        NSInteger const defaultMode = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"];
+        [self.fUpdateModePopUp selectItemWithTag:defaultMode];
+        self.fUpdateModeLabel.hidden = NO;
+        self.fUpdateModePopUp.hidden = NO;
+        // Pre-populate allow checkboxes from prefs
+        self.fUpdateModeAllowAdditional.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowAdditional"] ?
+            NSControlStateValueOn :
+            NSControlStateValueOff;
+        self.fUpdateModeAllowRenaming.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowRenaming"] ?
+            NSControlStateValueOn :
+            NSControlStateValueOff;
+        self.fUpdateModeAllowOverwrites.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowOverwrites"] ?
+            NSControlStateValueOn :
+            NSControlStateValueOff;
+        self.fUpdateModeAllowDeletions.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowDeletions"] ?
+            NSControlStateValueOn :
+            NSControlStateValueOff;
+        [self updateAllowCheckboxVisibility];
+        // Expand window height by 26px (popup row only; checkboxes appear within that space)
+        NSRect frame = self.window.frame;
+        frame.size.height += 26.0;
+        frame.origin.y -= 26.0;
+        [self.window setFrame:frame display:NO];
+    }
+
     if (self.fDestination)
     {
         [self setDestinationPath:self.fDestination determinationType:TorrentDeterminationAutomatic];
@@ -141,7 +175,8 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
         [NSUserDefaults.standardUserDefaults boolForKey:@"WarningFolderDataSameName"])
     {
         NSAlert* alert = [[NSAlert alloc] init];
-        alert.messageText = NSLocalizedString(@"The destination directory and root data directory have the same name.", "Add torrent -> same name -> title");
+        alert.messageText = NSLocalizedString(@"The destination directory and root data directory have the same name.",
+                                              "Add torrent -> same name -> title");
         alert.informativeText = NSLocalizedString(
             @"If you are attempting to use already existing data,"
              " the root data directory should be inside the destination directory.",
@@ -215,9 +250,26 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
 
 #pragma mark - Private
 
+- (IBAction)changeUpdateMode:(id)sender
+{
+    [self updateAllowCheckboxVisibility];
+}
+
+- (void)updateAllowCheckboxVisibility
+{
+    BOOL const whenOffered = ([self.fUpdateModePopUp selectedTag] == 1);
+    self.fUpdateModeAllowAdditional.hidden = !whenOffered;
+    self.fUpdateModeAllowRenaming.hidden = !whenOffered;
+    self.fUpdateModeAllowOverwrites.hidden = !whenOffered;
+    self.fUpdateModeAllowDeletions.hidden = !whenOffered;
+}
+
 - (void)confirmAdd
 {
     [self.torrent setGroupValue:self.fGroupValue determinationType:self.fGroupDeterminationType];
+
+    if (self.torrent.hasBtpk)
+        self.torrent.btpkUpdateMode = (BtpkUpdateMode)[self.fUpdateModePopUp selectedTag];
 
     if (self.fStartCheck.state == NSControlStateValueOn)
     {
