@@ -859,7 +859,17 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     UNNotificationCategory* categoryShow = [UNNotificationCategory categoryWithIdentifier:@"categoryShow" actions:@[ actionShow ]
                                                                         intentIdentifiers:@[]
                                                                                   options:UNNotificationCategoryOptionNone];
-    [UNUserNotificationCenter.currentNotificationCenter setNotificationCategories:[NSSet setWithObject:categoryShow]];
+
+    // btpk update-available notification — "Apply" button applies the update inline
+    UNNotificationAction* actionApply = [UNNotificationAction actionWithIdentifier:@"actionBtpkApply"
+                                                                             title:NSLocalizedString(@"Apply", "btpk update notification button")
+                                                                           options:UNNotificationActionOptionForeground];
+    UNNotificationCategory* categoryBtpkUpdate = [UNNotificationCategory categoryWithIdentifier:@"categoryBtpkUpdate"
+                                                                                        actions:@[ actionApply ]
+                                                                              intentIdentifiers:@[]
+                                                                                        options:UNNotificationCategoryOptionNone];
+    [UNUserNotificationCenter.currentNotificationCenter
+        setNotificationCategories:[NSSet setWithObjects:categoryShow, categoryBtpkUpdate, nil]];
     [UNUserNotificationCenter.currentNotificationCenter
         requestAuthorizationWithOptions:(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge)
                       completionHandler:^(BOOL /*granted*/, NSError* _Nullable error) {
@@ -2276,6 +2286,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             content.body = body;
             // Embed the torrent hash so we can act on it if the user clicks
             content.userInfo = @{@"btpkHash" : torrent.hashString, @"btpkSeq" : @(seq)};
+            content.categoryIdentifier = @"categoryBtpkUpdate";
 
             UNNotificationRequest* req = [UNNotificationRequest
                 requestWithIdentifier:[NSString stringWithFormat:@"btpk-%@-%lld", torrent.hashString, (long long)seq]
@@ -2579,6 +2590,29 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     {
         [self didActivateNotificationByActionShowWithUserInfo:response.notification.request.content.userInfo];
     }
+    else if ([response.actionIdentifier isEqualToString:@"actionBtpkApply"])
+    {
+        NSDictionary* info = response.notification.request.content.userInfo;
+        NSString* hash = info[@"btpkHash"];
+        if (hash)
+        {
+            Torrent* torrent = [self torrentForHash:hash];
+            if (torrent)
+            {
+                [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
+                    if (!success)
+                    {
+                        // Show error alert on main thread (we're already there via foreground action)
+                        NSAlert* alert = [NSAlert new];
+                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+                        alert.informativeText = NSLocalizedString(@"The local files did not match the version advertised by the update feed.",
+                                                                  "btpk apply error body");
+                        [alert runModal];
+                    }
+                }];
+            }
+        }
+    }
     completionHandler();
 }
 
@@ -2598,6 +2632,28 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
 - (void)didActivateNotificationByDefaultActionWithUserInfo:(NSDictionary<NSString*, id>*)userInfo
 {
+    // btpk update notification — select the torrent and show inspector
+    NSString* btpkHash = userInfo[@"btpkHash"];
+    if (btpkHash)
+    {
+        Torrent* torrent = [self torrentForHash:btpkHash];
+        if (!torrent)
+            return;
+        NSInteger row = [self.fTableView rowForItem:torrent];
+        if (row == -1)
+        {
+            if ([self.fDefaults boolForKey:@"FilterBar"])
+                [self.fFilterBar reset];
+            row = [self.fTableView rowForItem:torrent];
+        }
+        if (row != -1)
+        {
+            [self showMainWindow:nil];
+            [self.fTableView selectAndScrollToRow:row];
+        }
+        return;
+    }
+
     Torrent* torrent = [self torrentForHash:userInfo[@"Hash"]];
     if (!torrent)
     {
