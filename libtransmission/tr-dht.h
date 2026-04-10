@@ -116,6 +116,16 @@ public:
         {
             return ::dht_uninit();
         }
+
+        virtual int get_bep44_items(struct dht_bep44_item* out, int max)
+        {
+            return ::dht_get_bep44_items(out, max);
+        }
+
+        virtual void set_bep44_items(struct dht_bep44_item const* in, int count)
+        {
+            ::dht_set_bep44_items(in, count);
+        }
     };
 
     class Mediator

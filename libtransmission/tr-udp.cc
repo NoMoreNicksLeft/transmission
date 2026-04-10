@@ -113,13 +113,15 @@ void event_callback(evutil_socket_t s, [[maybe_unused]] short type, void* vsessi
             }
             return;
         }
-        // Log all packets from the publisher
+        // Log all packets from the publisher LAN subnet
         if (from_sa->sa_family == AF_INET) {
             auto* sin = reinterpret_cast<sockaddr_in const*>(from_sa);
             auto* a = reinterpret_cast<unsigned char const*>(&sin->sin_addr);
-            if (a[0]==192 && a[1]==168 && a[2]==144 && a[3]==143) {
+            if (a[0]==192 && a[1]==168 && a[2]==144) {
                 if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                    fprintf(f, "tr-udp recv from publisher: len=%zd first_byte=0x%02x\n",
+                    fprintf(f, "tr-udp recv from LAN %d.%d.%d.%d:%d len=%zd first=0x%02x\n",
+                            a[0],a[1],a[2],a[3],
+                            ntohs(sin->sin_port),
                             n_read, (unsigned)buf[0]);
                     fclose(f);
                 }

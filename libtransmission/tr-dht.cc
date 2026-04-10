@@ -531,6 +531,24 @@ private:
         }
 
         tr_variant_serde::benc().to_file(benc, state_filename_);
+
+        // Save BEP44 mutable item store
+        {
+            static auto constexpr MaxSaveItems = DHT_BEP44_MAX_ITEMS;
+            auto items = std::vector<struct dht_bep44_item>(MaxSaveItems);
+            int const n = mediator_.api().get_bep44_items(items.data(), MaxSaveItems);
+            if (n > 0)
+            {
+                // Serialize as raw bytes: n * sizeof(dht_bep44_item)
+                // store_time is saved so TTL check works on reload
+                auto const nbytes = static_cast<size_t>(n) * sizeof(struct dht_bep44_item);
+                tr_variant bep44;
+                tr_variantInitDict(&bep44, 1);
+                tr_variantDictAddRaw(&bep44, TR_KEY_bep44_items, items.data(), nbytes);
+                auto const bep44_filename = tr_pathbuf{ mediator_.config_dir(), "/dht_bep44.dat" };
+                tr_variant_serde::benc().to_file(bep44, bep44_filename);
+            }
+        }
     }
 
     void init_state(std::string_view filename)
@@ -594,6 +612,32 @@ private:
                 std::tie(addr, walk) = tr_address::from_compact_ipv6(walk);
                 std::tie(port, walk) = tr_port::from_compact(walk);
                 bootstrap_queue_.emplace_back(addr, port);
+            }
+        }
+
+        // Load BEP44 mutable item store
+        {
+            auto const bep44_filename = tr_pathbuf{ mediator_.config_dir(), "/dht_bep44.dat" };
+            if (tr_sys_path_exists(std::data(bep44_filename)))
+            {
+                auto obep44 = tr_variant_serde::benc().parse_file(std::data(bep44_filename));
+                if (obep44)
+                {
+                    size_t items_raw_len = 0U;
+                    std::byte const* items_raw = nullptr;
+                    if (tr_variantDictFindRaw(&*obep44, TR_KEY_bep44_items, &items_raw, &items_raw_len))
+                    {
+                        auto const item_size = sizeof(struct dht_bep44_item);
+                        int const count = static_cast<int>(items_raw_len / item_size);
+                        if (count > 0 && items_raw_len % item_size == 0)
+                        {
+                            auto items = std::vector<struct dht_bep44_item>(count);
+                            memcpy(items.data(), items_raw, items_raw_len);
+                            mediator_.api().set_bep44_items(items.data(), count);
+                            tr_logAddInfo(fmt::format("Restored {} BEP44 item(s) from dht_bep44.dat", count));
+                        }
+                    }
+                }
             }
         }
     }

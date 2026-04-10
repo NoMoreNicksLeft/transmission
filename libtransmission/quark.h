@@ -78,6 +78,7 @@ enum // NOLINT(performance-enum-size)
     TR_KEY_bandwidth_priority_camel_APICOMPAT,
     TR_KEY_bandwidth_priority,
     TR_KEY_begin_piece,
+    TR_KEY_bep44_items,
     TR_KEY_bind_address_ipv4_kebab_APICOMPAT,
     TR_KEY_bind_address_ipv6_kebab_APICOMPAT,
     TR_KEY_bind_address_ipv4,
