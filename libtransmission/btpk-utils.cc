@@ -300,7 +300,7 @@ void tr_btpk_zero_key(BtpkPrivateKey& key)
 
 // ---------------------------------------------------------------------------
 // BEP 46 value encoding: d2:ih20:<bytes>e
-// Build: fix tr_btpk_encode_v bencode key length (1:ih→2:ih)
+// Build: fix tr_btpk_encode_v bencode key length (1:ih→2:ih) [publisher build 5]
 
 std::string tr_btpk_encode_v(std::array<uint8_t, 20> const& infohash)
 {

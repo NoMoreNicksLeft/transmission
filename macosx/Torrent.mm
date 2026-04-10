@@ -104,6 +104,19 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Archive root — single location to change if the path policy changes.
+// Currently: ~/.transmission/archive
+// To relocate: change only this function.
+static NSString* btpkArchiveRoot(void)
+{
+    // Use NSUserDefaults override if set, otherwise default to ~/.transmission/archive
+    NSString* override = [NSUserDefaults.standardUserDefaults stringForKey:@"BtpkArchiveRoot"];
+    if (override.length > 0)
+        return override.stringByExpandingTildeInPath;
+    return [NSHomeDirectory() stringByAppendingPathComponent:@".transmission/archive"];
+}
+
 @implementation Torrent
 
 + (void)initialize

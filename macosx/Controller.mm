@@ -872,11 +872,8 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         setNotificationCategories:[NSSet setWithObjects:categoryShow, categoryBtpkUpdate, nil]];
     [UNUserNotificationCenter.currentNotificationCenter
         requestAuthorizationWithOptions:(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge)
-                      completionHandler:^(BOOL /*granted*/, NSError* _Nullable error) {
-                          if (error.code > 0)
-                          {
-                              NSLog(@"UserNotifications not configured: %@", error.localizedDescription);
-                          }
+                      completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                          NSLog(@"UNUserNotificationCenter authorization: granted=%d error=%@", (int)granted, error);
                       }];
 }
 
@@ -2263,6 +2260,12 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 - (void)btpkUpdateAvailable:(Torrent*)torrent newSeq:(int64_t)seq
 {
     NSAssert(NSThread.isMainThread, @"btpkUpdateAvailable must be called on main thread");
+    NSLog(@"btpkUpdateAvailable: torrent=%@ seq=%lld mode=%ld", torrent.name, (long long)seq, (long)torrent.btpkUpdateMode);
+    [@[torrent.name] enumerateObjectsUsingBlock:^(NSString* n, NSUInteger, BOOL*) {
+        FILE* f = fopen("/tmp/btpk_debug.txt", "a");
+        if(f) { fprintf(f, "btpkUpdateAvailable: name=%s seq=%lld mode=%ld\n",
+                        n.UTF8String, (long long)seq, (long)torrent.btpkUpdateMode); fclose(f); }
+    }];
 
     switch (torrent.btpkUpdateMode)
     {
@@ -2292,7 +2295,12 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
                 requestWithIdentifier:[NSString stringWithFormat:@"btpk-%@-%lld", torrent.hashString, (long long)seq]
                               content:content
                               trigger:nil]; // deliver immediately
-            [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:req withCompletionHandler:nil];
+            [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:req withCompletionHandler:^(NSError* _Nullable error) {
+                NSLog(@"btpk notification result: error=%@", error);
+                FILE* f = fopen("/tmp/btpk_debug.txt", "a");
+                if(f) { fprintf(f, "btpk notification result: error=%s\n",
+                                error ? error.localizedDescription.UTF8String : "none"); fclose(f); }
+            }];
             break;
         }
 
