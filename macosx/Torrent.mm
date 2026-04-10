@@ -923,6 +923,11 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
 }
 
+- (void)injectBtpkUpdateForTesting:(int64_t)seq
+{
+    tr_torrentInjectBtpkUpdate(self.fHandle, seq);
+}
+
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable, NSError* _Nullable))handler
 {

@@ -1418,6 +1418,10 @@ bool tr_torrentReplaceBtpkMetainfo(tr_torrent* tor, tr_torrent_metainfo new_meta
 int64_t tr_torrentBtpkSeq(tr_torrent const* tor);
 void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq);
 
+// TEST ONLY: Directly fire the btpk update callback as if the DHT
+// returned new_seq for this torrent. Bypasses DHT for testing.
+void tr_torrentInjectBtpkUpdate(tr_torrent* tor, int64_t new_seq);
+
 // Sign the given BEP 46 value and push it to the DHT via the torrent's
 // session. Returns false if DHT is not running or signing fails.
 bool tr_torrentBtpkSignAndPut(tr_torrent* tor,

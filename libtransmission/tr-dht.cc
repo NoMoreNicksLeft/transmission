@@ -28,6 +28,7 @@
 #include <sys/socket.h> /* socket(), bind() */
 #include <netdb.h>
 #include <netinet/in.h> /* sockaddr_in */
+#include <arpa/inet.h>  /* inet_addr */
 #endif
 
 #include <fmt/format.h>
@@ -195,11 +196,46 @@ public:
 
     void get_item(unsigned char const* target, int64_t seq_known) override
     {
+        // Load hint nodes from <config_dir>/btpk.hints (lines: <node_id_hex> <ip> <port>)
+        // and inject them directly into the BEP 44 search after it's created.
+        auto hint_addrs = std::vector<sockaddr_in>{};
+        {
+            auto hints_path = tr_pathbuf{ mediator_.config_dir(), "/btpk.hints"sv };
+            auto in = std::ifstream{ std::string{ hints_path } };
+            std::string line;
+            while (std::getline(in, line))
+            {
+                auto ss = std::istringstream{ line };
+                std::string id_hex, ip_str;
+                int port_num = 0;
+                if (!(ss >> id_hex >> ip_str >> port_num)) continue;
+                if (id_hex.size() != 40) continue;
+                unsigned char node_id[20];
+                for (int i = 0; i < 20; ++i)
+                    node_id[i] = static_cast<unsigned char>(std::stoi(id_hex.substr(i*2, 2), nullptr, 16));
+                struct sockaddr_in sin{};
+                sin.sin_family = AF_INET;
+                sin.sin_addr.s_addr = inet_addr(ip_str.c_str());
+                sin.sin_port = htons(static_cast<uint16_t>(port_num));
+                mediator_.api().insert_node(node_id, reinterpret_cast<sockaddr*>(&sin), sizeof(sin));
+                hint_addrs.emplace_back(sin);
+                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                    fprintf(f, "get_item: hint node %s %s:%d\n", id_hex.c_str(), ip_str.c_str(), port_num);
+                    fclose(f);
+                }
+            }
+        }
         mediator_.api().bep44_get(
             target,
             seq_known,
             [](void* closure, dht_bep44_item const* item)
             {
+                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
+                {
+                    fprintf(f, "bep44_get callback item=%s\n", item ? "non-null" : "NULL");
+                    if (item) fprintf(f, "  seq=%lld mutable=%d\n", (long long)item->seq, item->mutable_item);
+                    fclose(f);
+                }
                 if (item != nullptr)
                 {
                     auto* self = static_cast<tr_dht_impl*>(closure);
@@ -207,6 +243,15 @@ public:
                 }
             },
             this);
+        // Inject hint nodes directly into the active search so they are queried
+        // even if they are far from the target in DHT keyspace.
+        for (auto const& sin : hint_addrs)
+        {
+            mediator_.api().get_add_hint(
+                target,
+                reinterpret_cast<sockaddr const*>(&sin),
+                static_cast<int>(sizeof(sin)));
+        }
     }
 
     void put_mutable(unsigned char const* key,

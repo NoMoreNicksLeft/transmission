@@ -2315,6 +2315,13 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     if (!torrent || !torrent.hasBtpk)
         return;
 
+    // TEST: If no pending update, inject one to test the notification flow
+    if (torrent.pendingBtpkSeq < 0)
+    {
+        [torrent injectBtpkUpdateForTesting:4];
+        return;
+    }
+
     [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
         if (!success)
         {

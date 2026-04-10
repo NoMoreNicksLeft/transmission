@@ -69,6 +69,16 @@ public:
             return ::dht_ping_node(sa, salen);
         }
 
+        virtual int insert_node(unsigned char const* id, struct sockaddr* sa, int salen)
+        {
+            return ::dht_insert_node(id, sa, salen);
+        }
+
+        virtual int get_add_hint(unsigned char const* target, struct sockaddr const* sa, int salen)
+        {
+            return ::dht_get_add_hint(target, sa, salen);
+        }
+
         virtual int search(unsigned char const* id, int port, int af, dht_callback_t callback, void* closure)
         {
             return ::dht_search(id, port, af, callback, closure);

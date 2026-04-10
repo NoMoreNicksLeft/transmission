@@ -128,6 +128,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 /// magnet URI (or an error). The key bytes are zeroed inside before returning.
 - (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler;
 - (void)clearPendingBtpkUpdate;
+- (void)injectBtpkUpdateForTesting:(int64_t)seq;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;

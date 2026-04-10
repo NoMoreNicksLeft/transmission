@@ -1308,7 +1308,7 @@ namespace make_torrent_field_helpers
                     continue;
                 auto const sa = tr_socket_address{ *addr, tr_port::from_host(static_cast<uint16_t>(port_val)) };
                 auto pex = tr_pex{ sa };
-                tr_peerMgrAddPex(tor, TR_PEER_FROM_INCOMING, &pex, 1);
+                tr_peerMgrAddPex(tor, TR_PEER_FROM_TRACKER, &pex, 1);
             }
         }
 
