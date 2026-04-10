@@ -299,14 +299,15 @@ void tr_btpk_zero_key(BtpkPrivateKey& key)
 }
 
 // ---------------------------------------------------------------------------
-// BEP 46 value encoding: d1:ih20:<bytes>e
+// BEP 46 value encoding: d2:ih20:<bytes>e
+// Build: fix tr_btpk_encode_v bencode key length (1:ih→2:ih)
 
 std::string tr_btpk_encode_v(std::array<uint8_t, 20> const& infohash)
 {
-    // d1:ih20:<20 raw bytes>e
+    // d2:ih20:<20 raw bytes>e
     std::string v;
     v.reserve(28);
-    v += "d1:ih20:";
+    v += "d2:ih20:";
     v.append(reinterpret_cast<char const*>(infohash.data()), 20);
     v += 'e';
     return v;
