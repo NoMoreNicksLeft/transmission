@@ -1039,6 +1039,21 @@ static NSString* btpkArchiveRoot(void)
         handler(NO); return;
     }
 
+    // BEP 9 only transfers the info dict — btpk_pub is a top-level field
+    // that won't be present in the staged metainfo. Inject it from self.
+    if (!newMetainfo.has_btpk())
+    {
+        uint8_t pubKey[32] = {};
+        char saltBuf[256] = {};
+        if (tr_torrentBtpkGetPublicKey(self.fHandle, pubKey))
+        {
+            size_t const saltLen = tr_torrentBtpkGetSalt(self.fHandle, saltBuf, sizeof(saltBuf));
+            tr_magnet_metainfo::BtpkKey keyArr;
+            std::copy(pubKey, pubKey + 32, keyArr.begin());
+            newMetainfo.set_btpk(keyArr, std::string_view{ saltBuf, saltLen });
+            NSLog(@"btpk swap: injected btpk_pub into staged metainfo");
+        }
+    }
 
     // 4. Swap metainfo on the original torrent.
     // Archiving of old content happens in applyBtpkUpdateForTorrent: BEFORE

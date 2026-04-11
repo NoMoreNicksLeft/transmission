@@ -2773,9 +2773,16 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
 {
     // Only valid for btpk torrents where the public key hasn't changed.
     if (!new_metainfo.has_btpk() || !metainfo_.has_btpk())
+    {
+        tr_logAddWarnTor(this, fmt::format("replace_btpk_metainfo: has_btpk check failed new={} old={}",
+            new_metainfo.has_btpk(), metainfo_.has_btpk()));
         return false;
+    }
     if (new_metainfo.btpk_key() != metainfo_.btpk_key())
+    {
+        tr_logAddWarnTor(this, "replace_btpk_metainfo: btpk_key mismatch");
         return false;
+    }
 
     metainfo_ = std::move(new_metainfo);
     on_metainfo_updated();
