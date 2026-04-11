@@ -2844,6 +2844,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             // Remove from fTorrents immediately so the UI timer cannot
             // access the staging torrent while the swap is in progress.
             [self.fTorrents removeObject:torrent];
+            [self fullUpdateUI]; // sync table view before swap to prevent stale row access
 
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
                 // Finish cleanup on the next run loop iteration.
