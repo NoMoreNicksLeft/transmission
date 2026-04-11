@@ -2833,10 +2833,15 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         {
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
+            // Remove from fTorrents immediately so the UI timer cannot
+            // access the staging torrent while the swap is in progress.
+            [torrent stopTransfer];
+            [self.fTorrents removeObject:torrent];
+
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
-                // Remove the staging torrent on the next run loop iteration
-                // to avoid a use-after-free if the UI timer fires mid-removal.
+                // Finish cleanup on the next run loop iteration.
                 dispatch_async(dispatch_get_main_queue(), ^{
+                    // Full cleanup (saves resume, removes from disk index etc.)
                     [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
 
                     if (!success)
