@@ -1063,7 +1063,23 @@ static NSString* btpkArchiveRoot(void)
     BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
     NSLog(@"btpk swap: tr_torrentReplaceBtpkMetainfo returned %d", (int)ok);
     if (ok)
+    {
         tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
+
+        // Save the new .torrent file to disk so the updated metainfo survives restart.
+        auto const newTorrentPath = std::string{ tr_torrentFilename(self.fHandle) };
+        auto write_error = tr_error{};
+        tr_file_save(newTorrentPath, std::string_view{ static_cast<char const*>(bencData.bytes), bencData.length }, &write_error);
+        if (write_error)
+            NSLog(@"btpk swap: couldn't save new .torrent file: %s", std::string{ write_error.message() }.c_str());
+        else
+            NSLog(@"btpk swap: saved new .torrent to %s", newTorrentPath.c_str());
+
+        // Delete old .torrent file if its path differs from the new one.
+        NSString* const oldTorrentPath = stagingTorrentFile; // staging torrent's file = old path
+        if (oldTorrentPath && ![oldTorrentPath isEqualToString:@(newTorrentPath.c_str())])
+            [[NSFileManager defaultManager] removeItemAtPath:oldTorrentPath error:nil];
+    }
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
     NSLog(@"btpk swap: complete ok=%d", (int)ok);
 
