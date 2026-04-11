@@ -2835,42 +2835,31 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             // TorrentFinishedDownloading because it has 0 bytes — ignore and wait.
             if (torrent.magnet)
             {
-                NSLog(@"btpk staging: finished before metadata fetched, waiting");
+                NSLog(@"btpk staging: TorrentFinishedDownloading before metadata, ignoring");
                 return;
             }
 
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
-            // Remove from fTorrents immediately so the UI timer cannot
-            // access the staging torrent while the swap is in progress.
-            [self.fTorrents removeObject:torrent];
-            [self fullUpdateUI]; // sync table view before swap to prevent stale row access
-
+            // Perform the metainfo swap synchronously.
+            // removeTorrentsImpl handles fTorrents removal AND table update atomically.
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
-                // Finish cleanup on the next run loop iteration.
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    // Full cleanup (saves resume, removes from disk index etc.)
-                    [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
-
-                    if (!success)
-                    {
-                        NSAlert* alert = [NSAlert new];
-                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                        alert.informativeText = NSLocalizedString(
-                            @"The downloaded content did not match the expected version. The update was not applied.",
-                            "btpk apply error body");
-                        [alert runModal];
-                    }
-                    else
-                    {
-                        [self fullUpdateUI];
-                    }
-                });
+                [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
+                [self fullUpdateUI];
+                if (!success)
+                {
+                    NSAlert* alert = [NSAlert new];
+                    alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+                    alert.informativeText = NSLocalizedString(
+                        @"The downloaded content did not match the expected version. The update was not applied.",
+                        "btpk apply error body");
+                    [alert runModal];
+                }
             }];
             return; // skip normal download-complete notification for staging torrents
         }
-    }
 
+    }
     if ([notification.userInfo[@"WasRunning"] boolValue])
     {
         if (!self.fSoundPlaying && [self.fDefaults boolForKey:@"PlayDownloadSound"])
