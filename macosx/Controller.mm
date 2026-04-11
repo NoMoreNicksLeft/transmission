@@ -2831,11 +2831,18 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         Torrent* originalTorrent = self.fBtpkStagingTorrents[torrent.hashString];
         if (originalTorrent)
         {
+            // If staging torrent is still a magnet (no metadata yet), it fires
+            // TorrentFinishedDownloading because it has 0 bytes — ignore and wait.
+            if (torrent.magnet)
+            {
+                NSLog(@"btpk staging: finished before metadata fetched, waiting");
+                return;
+            }
+
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
             // Remove from fTorrents immediately so the UI timer cannot
             // access the staging torrent while the swap is in progress.
-            [torrent stopTransfer];
             [self.fTorrents removeObject:torrent];
 
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
