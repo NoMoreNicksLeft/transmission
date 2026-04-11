@@ -2716,6 +2716,18 @@ void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode)
     tor->set_btpk_update_mode(mode);
 }
 
+bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t benc_len)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), false);
+    tr_return_val_if_fail(benc_data != nullptr && benc_len > 0, false);
+    auto err = tr_error{};
+    auto const sv = std::string_view{ static_cast<char const*>(benc_data), benc_len };
+    bool const ok = tr_file_save(tor->torrent_file(), sv, &err);
+    if (!ok)
+        tr_logAddWarnTor(tor, fmt::format("tr_torrentSaveTorrentFile: {}", err.message()));
+    return ok;
+}
+
 void tr_torrentInjectBtpkUpdate(tr_torrent* tor, int64_t new_seq)
 {
     tr_return_if_fail(tr_isTorrent(tor));

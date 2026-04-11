@@ -2847,13 +2847,20 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             [self.fTorrents removeObject:torrent];
 
             // Perform the metainfo swap synchronously (no UI access inside).
-            [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
+            [originalTorrent performBtpkSwapFromStagingTorrent:torrent withBencData:nil completionHandler:^(BOOL success, NSData* bencData) {
                 BOOL const swapSucceeded = success;
                 // Defer full cleanup + UI refresh to next run loop so the
                 // notification/completeness call stack fully unwinds first.
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    // closeRemoveTorrent saves resume file and frees C++ handle.
+                    // closeRemoveTorrent frees the staging torrent's C++ handle
+                    // and removes its .magnet/.torrent files. Do this BEFORE
+                    // saving the new .torrent file so there's no collision.
                     [torrent closeRemoveTorrent:NO];
+
+                    // Now safe to write the new .torrent file — staging torrent is gone.
+                    if (swapSucceeded && bencData)
+                        [originalTorrent saveTorrentFileFromBencData:bencData];
+
                     [self fullUpdateUI];
                     if (!swapSucceeded)
                     {

@@ -1420,6 +1420,8 @@ void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq);
 // btpk update mode: 0=never, 1=when_offered, 2=always_versioned
 int tr_torrentBtpkUpdateMode(tr_torrent const* tor);
 void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode);
+// Save raw benc data as the torrent's .torrent file on disk.
+bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t benc_len);
 
 // TEST ONLY: Directly fire the btpk update callback as if the DHT
 // returned new_seq for this torrent. Bypasses DHT for testing.

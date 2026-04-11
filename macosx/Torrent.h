@@ -130,8 +130,10 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 - (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler;
 - (NSString*)magnetURIForPendingBtpkUpdate;
 - (void)performBtpkSwapFromStagingTorrent:(Torrent*)stagingTorrent
-                        completionHandler:(void (^)(BOOL success))handler;
+                              withBencData:(NSData* _Nullable)unusedBencData
+                        completionHandler:(void (^)(BOOL success, NSData* _Nullable bencData))handler;
 - (void)clearPendingBtpkUpdate;
+- (BOOL)saveTorrentFileFromBencData:(NSData*)data;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData

@@ -1002,17 +1002,25 @@ static NSString* btpkArchiveRoot(void)
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
 }
 
+- (BOOL)saveTorrentFileFromBencData:(NSData*)data
+{
+    if (!data || data.length == 0)
+        return NO;
+    return tr_torrentSaveTorrentFile(self.fHandle, data.bytes, data.length);
+}
+
 // Called after the staging torrent has finished downloading all pieces.
 // stagingTorrent: the completed Torrent* that holds the new content.
 // Returns YES and fires handler(YES) on success; handler(NO) on failure.
 - (void)performBtpkSwapFromStagingTorrent:(Torrent*)stagingTorrent
-                        completionHandler:(void (^)(BOOL success))handler
+                              withBencData:(NSData* _Nullable)unusedBencData
+                        completionHandler:(void (^)(BOOL success, NSData* _Nullable bencData))handler
 {
     // 1. Verify pending hash still set
     uint8_t pendingHash[20] = {};
     if (!tr_torrentPendingBtpkHash(self.fHandle, pendingHash))
     {
-        handler(NO); return;
+        handler(NO, nil); return;
     }
     int64_t const pendingSeq = tr_torrentPendingBtpkSeq(self.fHandle);
 
@@ -1022,7 +1030,7 @@ static NSString* btpkArchiveRoot(void)
     if (!bencData)
     {
         NSLog(@"btpk swap: cannot read staging torrent file %@", stagingTorrentFile);
-        handler(NO); return;
+        handler(NO, nil); return;
     }
 
     // 3. Parse and verify the infohash matches what DHT advertised
@@ -1030,13 +1038,13 @@ static NSString* btpkArchiveRoot(void)
     if (!newMetainfo.parse_benc({ static_cast<char const*>(bencData.bytes), bencData.length }))
     {
         NSLog(@"btpk swap: failed to parse staging torrent metainfo");
-        handler(NO); return;
+        handler(NO, nil); return;
     }
     auto const& newHash = newMetainfo.info_hash();
     if (memcmp(newHash.data(), pendingHash, 20) != 0)
     {
         NSLog(@"btpk swap: infohash mismatch");
-        handler(NO); return;
+        handler(NO, nil); return;
     }
 
     // BEP 9 only transfers the info dict — btpk_pub is a top-level field
@@ -1063,27 +1071,11 @@ static NSString* btpkArchiveRoot(void)
     BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
     NSLog(@"btpk swap: tr_torrentReplaceBtpkMetainfo returned %d", (int)ok);
     if (ok)
-    {
         tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
-
-        // Save the new .torrent file to disk so the updated metainfo survives restart.
-        auto const newTorrentPath = std::string{ tr_torrentFilename(self.fHandle) };
-        auto write_error = tr_error{};
-        tr_file_save(newTorrentPath, std::string_view{ static_cast<char const*>(bencData.bytes), bencData.length }, &write_error);
-        if (write_error)
-            NSLog(@"btpk swap: couldn't save new .torrent file: %s", std::string{ write_error.message() }.c_str());
-        else
-            NSLog(@"btpk swap: saved new .torrent to %s", newTorrentPath.c_str());
-
-        // Delete old .torrent file if its path differs from the new one.
-        NSString* const oldTorrentPath = stagingTorrentFile; // staging torrent's file = old path
-        if (oldTorrentPath && ![oldTorrentPath isEqualToString:@(newTorrentPath.c_str())])
-            [[NSFileManager defaultManager] removeItemAtPath:oldTorrentPath error:nil];
-    }
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
     NSLog(@"btpk swap: complete ok=%d", (int)ok);
 
-    handler(ok);
+    handler(ok, ok ? bencData : nil);
 }
 
 - (void)injectBtpkUpdateForTesting:(int64_t)seq
