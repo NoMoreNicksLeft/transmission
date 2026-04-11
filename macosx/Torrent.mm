@@ -281,6 +281,10 @@ static NSString* btpkArchiveRoot(void)
 
 - (void)update
 {
+    // Guard: if this torrent is being removed, don't touch the C++ handle.
+    if (self.beingRemoved)
+        return;
+
     //get previous stalled value before update
     BOOL const wasTransmitting = self.fStat != NULL && self.transmitting;
 

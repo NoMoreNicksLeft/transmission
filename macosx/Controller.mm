@@ -2841,8 +2841,9 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
-            // Remove from fTorrents NOW — synchronously — so the UI timer
-            // cannot access the staging torrent between now and the async cleanup.
+            // Mark as being removed and pull from fTorrents NOW — synchronously —
+            // so the UI timer cannot access the staging torrent's C++ handle.
+            torrent.beingRemoved = YES;
             [self.fTorrents removeObject:torrent];
 
             // Perform the metainfo swap synchronously (no UI access inside).

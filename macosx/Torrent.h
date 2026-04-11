@@ -63,6 +63,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 - (void)resetCache;
 
 @property(nonatomic, getter=isMagnet, readonly) BOOL magnet;
+@property(nonatomic) BOOL beingRemoved; // set before removal to guard update
 @property(nonatomic, readonly) NSString* magnetLink;
 
 @property(nonatomic, readonly) CGFloat ratio;
