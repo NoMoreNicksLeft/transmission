@@ -90,6 +90,7 @@ void tr_torrent::maybe_start_metadata_transfer(int64_t const size) noexcept
 
     if (!has_metainfo())
     {
+        tr_logAddDebugTor(this, "get_metadata_piece: no metainfo");
         return {};
     }
 
@@ -98,17 +99,23 @@ void tr_torrent::maybe_start_metadata_transfer(int64_t const size) noexcept
     if (auto const n_pieces = std::max(int64_t{ 1 }, div_ceil(info_dict_size, MetadataPieceSize));
         piece < 0 || piece >= n_pieces)
     {
+        tr_logAddDebugTor(this, fmt::format("get_metadata_piece: piece {} out of range (n_pieces={})", piece, n_pieces));
         return {};
     }
 
-    auto in = std::ifstream{ torrent_file(), std::ios_base::in | std::ios_base::binary };
+    auto const path = torrent_file();
+    auto in = std::ifstream{ path, std::ios_base::in | std::ios_base::binary };
     if (!in.is_open())
     {
+        tr_logAddWarnTor(this, fmt::format("get_metadata_piece: cannot open torrent file '{}'", path));
         return {};
     }
     auto const offset_in_info_dict = piece * MetadataPieceSize;
-    if (auto const offset_in_file = info_dict_offset() + offset_in_info_dict; !in.seekg(offset_in_file))
+    auto const offset_in_file = info_dict_offset() + offset_in_info_dict;
+    tr_logAddDebugTor(this, fmt::format("get_metadata_piece: piece={} info_dict_size={} offset={}", piece, info_dict_size, offset_in_file));
+    if (!in.seekg(offset_in_file))
     {
+        tr_logAddWarnTor(this, fmt::format("get_metadata_piece: seek to {} failed in '{}'", offset_in_file, path));
         return {};
     }
 
@@ -120,6 +127,7 @@ void tr_torrent::maybe_start_metadata_transfer(int64_t const size) noexcept
         return ret;
     }
 
+    tr_logAddWarnTor(this, fmt::format("get_metadata_piece: read {} bytes at offset {} failed", piece_len, offset_in_file));
     return {};
 }
 
