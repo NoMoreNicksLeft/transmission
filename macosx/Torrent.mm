@@ -814,11 +814,40 @@ static NSString* btpkArchiveRoot(void)
     uint8_t pendingHash[20] = {};
     if (!tr_torrentPendingBtpkHash(self.fHandle, pendingHash))
         return nil;
+
     // Build magnet:?xt=urn:btih:<hex>
     NSMutableString* hex = [NSMutableString stringWithCapacity:40];
     for (int i = 0; i < 20; i++)
         [hex appendFormat:@"%02x", pendingHash[i]];
-    return [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hex];
+    NSMutableString* uri = [NSMutableString stringWithFormat:@"magnet:?xt=urn:btih:%@", hex];
+
+    // Append peer hint from btpk.hints so the staging torrent connects
+    // directly to the publisher without waiting for DHT peer discovery.
+    // Format of btpk.hints: <node_id_hex> <ip> <port>
+    {
+        NSString* appSupport = [NSSearchPathForDirectoriesInDomains(
+            NSApplicationSupportDirectory, NSUserDomainMask, YES) firstObject];
+        NSString* hintsPath = [[appSupport stringByAppendingPathComponent:@"Transmission"]
+                                            stringByAppendingPathComponent:@"btpk.hints"];
+        NSString* hintsContent = [NSString stringWithContentsOfFile:hintsPath
+                                                           encoding:NSUTF8StringEncoding
+                                                              error:nil];
+        if (hintsContent.length > 0)
+        {
+            for (NSString* line in [hintsContent componentsSeparatedByString:@"\n"])
+            {
+                NSArray<NSString*>* parts = [[line stringByTrimmingCharactersInSet:
+                    NSCharacterSet.whitespaceCharacterSet] componentsSeparatedByString:@" "];
+                if (parts.count >= 3 && parts[1].length > 0 && parts[2].intValue > 0)
+                {
+                    [uri appendFormat:@"&x.pe=%@:%@", parts[1], parts[2]];
+                    break;
+                }
+            }
+        }
+    }
+
+    return uri;
 }
 
 - (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler
