@@ -2841,14 +2841,19 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
-            // Perform the metainfo swap synchronously.
-            // removeTorrentsImpl handles fTorrents removal AND table update atomically.
+            // Remove from fTorrents NOW — synchronously — so the UI timer
+            // cannot access the staging torrent between now and the async cleanup.
+            [self.fTorrents removeObject:torrent];
+
+            // Perform the metainfo swap synchronously (no UI access inside).
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
-                // Defer removal to next run loop iteration so the current
-                // completion/notification call stack fully unwinds first.
                 BOOL const swapSucceeded = success;
+                // Defer full cleanup + UI refresh to next run loop so the
+                // notification/completeness call stack fully unwinds first.
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
+                    // closeRemoveTorrent saves resume file and frees C++ handle.
+                    [torrent closeRemoveTorrent:NO];
+                    [self fullUpdateUI];
                     if (!swapSucceeded)
                     {
                         NSAlert* alert = [NSAlert new];
