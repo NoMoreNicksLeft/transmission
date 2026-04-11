@@ -176,7 +176,13 @@ static NSString* btpkArchiveRoot(void)
     //restore BtpkUpdateMode (default to WhenOffered for btpk torrents if not stored)
     NSNumber* btpkMode = history[@"BtpkUpdateMode"];
     if (btpkMode)
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)btpkMode.integerValue);
+    {
+        BtpkUpdateMode storedMode = (BtpkUpdateMode)btpkMode.integerValue;
+        // Migrate: if stored mode is Never but torrent has btpk, upgrade to WhenOffered
+        if (storedMode == BtpkUpdateModeNever && torrent.hasBtpk)
+            storedMode = BtpkUpdateModeWhenOffered;
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)storedMode);
+    }
     else if (torrent.hasBtpk)
         tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)BtpkUpdateModeWhenOffered);
     else
