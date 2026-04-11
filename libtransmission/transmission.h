@@ -1424,6 +1424,8 @@ void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode);
 bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t benc_len);
 // Prevent the next tr_torrentRemove from deleting the .torrent file (used for btpk staging cleanup).
 void tr_torrentSkipTorrentFileDelete(tr_torrent* tor);
+// Set the btpk public key on a torrent (e.g. after adding as magnet, before BEP 9 fetch).
+void tr_torrentSetBtpkFromResume(tr_torrent* tor, uint8_t const* pub_key_32, char const* salt, size_t salt_len);
 
 // TEST ONLY: Directly fire the btpk update callback as if the DHT
 // returned new_seq for this torrent. Bypasses DHT for testing.

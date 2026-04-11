@@ -2735,6 +2735,15 @@ void tr_torrentSkipTorrentFileDelete(tr_torrent* tor)
     tor->set_skip_torrent_file_delete();
 }
 
+void tr_torrentSetBtpkFromResume(tr_torrent* tor, uint8_t const* pub_key_32, char const* salt, size_t salt_len)
+{
+    tr_return_if_fail(tr_isTorrent(tor));
+    tr_return_if_fail(pub_key_32 != nullptr);
+    tr_magnet_metainfo::BtpkKey key;
+    std::copy(pub_key_32, pub_key_32 + 32, key.begin());
+    tor->set_btpk_from_resume(key, std::string{ salt, salt_len });
+}
+
 void tr_torrentInjectBtpkUpdate(tr_torrent* tor, int64_t new_seq)
 {
     tr_return_if_fail(tr_isTorrent(tor));

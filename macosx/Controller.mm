@@ -2410,6 +2410,10 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         return;
     }
 
+    // Copy btpk_pub from the original torrent into the staging torrent so
+    // set_metainfo (called after BEP 9 completes) can patch it into the .torrent file.
+    [stagingTorrent setBtpkKeyFromTorrent:torrent];
+
     // Register the staging torrent→original mapping
     if (!self.fBtpkStagingTorrents)
         self.fBtpkStagingTorrents = [NSMutableDictionary dictionary];

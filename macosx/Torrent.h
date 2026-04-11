@@ -135,6 +135,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 - (void)clearPendingBtpkUpdate;
 - (BOOL)saveTorrentFileFromBencData:(NSData*)data;
 - (void)skipTorrentFileDeleteOnRemoval;
+- (void)setBtpkKeyFromTorrent:(Torrent*)sourceTorrent;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData

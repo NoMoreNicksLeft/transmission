@@ -1007,6 +1007,17 @@ static NSString* btpkArchiveRoot(void)
     tr_torrentSkipTorrentFileDelete(self.fHandle);
 }
 
+- (void)setBtpkKeyFromTorrent:(Torrent*)sourceTorrent
+{
+    uint8_t pubKey[32] = {};
+    char saltBuf[256] = {};
+    if (tr_torrentBtpkGetPublicKey(sourceTorrent.fHandle, pubKey))
+    {
+        size_t const saltLen = tr_torrentBtpkGetSalt(sourceTorrent.fHandle, saltBuf, sizeof(saltBuf));
+        tr_torrentSetBtpkFromResume(self.fHandle, pubKey, saltBuf, saltLen);
+    }
+}
+
 - (BOOL)saveTorrentFileFromBencData:(NSData*)data
 {
     if (!data || data.length == 0)
@@ -1086,8 +1097,6 @@ static NSString* btpkArchiveRoot(void)
 
         // Save the new .torrent file NOW — synchronously, before the completion
         // handler fires and the staging torrent's session cleanup runs.
-        // The session thread will later delete files keyed to the staging hash,
-        // so we must write the file here while we still own the path.
         if (![self saveTorrentFileFromBencData:bencData])
             NSLog(@"btpk swap: WARNING: could not save new .torrent file");
     }
