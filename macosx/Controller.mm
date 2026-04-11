@@ -2364,7 +2364,8 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     // Archive path: btpkArchiveRoot/<name>/seq-<currentSeq>/<name>/
     {
         NSString* contentPath = torrent.dataLocation;
-        if (contentPath)
+        NSInteger const currentSeq = torrent.btpkSeq;
+        if (contentPath && currentSeq >= 0)
         {
             NSInteger const currentSeq = torrent.btpkSeq;
             NSString* appSupport = [NSSearchPathForDirectoriesInDomains(

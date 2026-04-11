@@ -1019,10 +1019,13 @@ static NSString* btpkArchiveRoot(void)
     // Archiving of old content happens in applyBtpkUpdateForTorrent: BEFORE
     // the staging download starts, so the staging torrent downloads into a
     // clean directory without conflicting with old files.
+    NSLog(@"btpk swap: calling tr_torrentReplaceBtpkMetainfo seq=%lld", (long long)pendingSeq);
     BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
+    NSLog(@"btpk swap: tr_torrentReplaceBtpkMetainfo returned %d", (int)ok);
     if (ok)
         tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
+    NSLog(@"btpk swap: complete ok=%d", (int)ok);
 
     handler(ok);
 }
