@@ -867,7 +867,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     // btpk update-available notification — "Apply" button applies the update inline
     UNNotificationAction* actionApply = [UNNotificationAction actionWithIdentifier:@"actionBtpkApply"
                                                                              title:NSLocalizedString(@"Apply", "btpk update notification button")
-                                                                           options:UNNotificationActionOptionForeground];
+                                                                           options:UNNotificationActionOptionNone];
     UNNotificationCategory* categoryBtpkUpdate = [UNNotificationCategory categoryWithIdentifier:@"categoryBtpkUpdate"
                                                                                         actions:@[ actionApply ]
                                                                               intentIdentifiers:@[]
