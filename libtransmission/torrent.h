@@ -787,6 +787,15 @@ struct tr_torrent
         btpk_seq_ = seq;
     }
 
+    [[nodiscard]] constexpr int btpk_update_mode() const noexcept
+    {
+        return btpk_update_mode_;
+    }
+    constexpr void set_btpk_update_mode(int mode) noexcept
+    {
+        btpk_update_mode_ = mode;
+    }
+
     // Pending update waiting for UI accept/apply.
     [[nodiscard]] constexpr std::optional<tr_sha1_digest_t> const& pending_btpk_hash() const noexcept
     {
@@ -1504,6 +1513,7 @@ private:
 
     bool sequential_download_ = false;
     int64_t btpk_seq_ = -1; // BEP 44 seq for last published mutable item
+    int btpk_update_mode_ = 1; // 0=never, 1=when_offered, 2=always_versioned (default: when_offered)
 
     // Pending btpk update detected by DHT resolver — new infohash and seq
     // waiting for the UI to accept/apply. Cleared after apply or dismiss.

@@ -100,6 +100,7 @@ enum // NOLINT(performance-enum-size)
     TR_KEY_btpk_pub,
     TR_KEY_btpk_salt,
     TR_KEY_btpk_seq,
+    TR_KEY_btpk_update_mode,
     TR_KEY_bytes_completed_camel_APICOMPAT,
     TR_KEY_bytes_completed,
     TR_KEY_bytes_to_client,

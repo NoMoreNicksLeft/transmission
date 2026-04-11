@@ -87,6 +87,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "btpk_pub"sv, // .torrent top-level
     "btpk_salt"sv, // .resume
     "btpk_seq"sv, // .resume
+    "btpk_update_mode"sv, // rpc torrent-get/set
     "bytesCompleted"sv, // rpc
     "bytes_completed"sv, // rpc
     "bytes_to_client"sv, // rpc

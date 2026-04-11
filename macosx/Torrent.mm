@@ -173,10 +173,15 @@ static NSString* btpkArchiveRoot(void)
     //restore GroupValue
     torrent.groupValue = [history[@"GroupValue"] intValue];
 
-    //restore BtpkUpdateMode (default to NSUserDefaults preference if not stored)
+    //restore BtpkUpdateMode (default to WhenOffered for btpk torrents if not stored)
     NSNumber* btpkMode = history[@"BtpkUpdateMode"];
-    torrent.btpkUpdateMode = btpkMode ? (BtpkUpdateMode)btpkMode.integerValue :
-                                        (BtpkUpdateMode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"];
+    if (btpkMode)
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)btpkMode.integerValue);
+    else if (torrent.hasBtpk)
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)BtpkUpdateModeWhenOffered);
+    else
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle,
+            (int)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
 
     //start transfer
     NSNumber* active;
@@ -200,7 +205,7 @@ static NSString* btpkArchiveRoot(void)
         @"WaitToStart" : @(self.waitingToStart),
         @"GroupValue" : @(self.groupValue),
         @"RemoveWhenFinishSeeding" : @(_removeWhenFinishSeeding),
-        @"BtpkUpdateMode" : @(self.btpkUpdateMode)
+        @"BtpkUpdateMode" : @(tr_torrentBtpkUpdateMode(self.fHandle))
     };
 }
 
@@ -784,6 +789,16 @@ static NSString* btpkArchiveRoot(void)
 - (NSInteger)pendingBtpkSeq
 {
     return (NSInteger)tr_torrentPendingBtpkSeq(self.fHandle);
+}
+
+- (BtpkUpdateMode)btpkUpdateMode
+{
+    return (BtpkUpdateMode)tr_torrentBtpkUpdateMode(self.fHandle);
+}
+
+- (void)setBtpkUpdateMode:(BtpkUpdateMode)mode
+{
+    tr_torrentSetBtpkUpdateMode(self.fHandle, (int)mode);
 }
 
 - (nullable NSString*)btpkFingerprintString

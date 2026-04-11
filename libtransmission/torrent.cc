@@ -2704,6 +2704,18 @@ void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq)
     tor->set_btpk_seq(seq);
 }
 
+int tr_torrentBtpkUpdateMode(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), 1);
+    return tor->btpk_update_mode();
+}
+
+void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode)
+{
+    tr_return_if_fail(tr_isTorrent(tor));
+    tor->set_btpk_update_mode(mode);
+}
+
 void tr_torrentInjectBtpkUpdate(tr_torrent* tor, int64_t new_seq)
 {
     tr_return_if_fail(tr_isTorrent(tor));

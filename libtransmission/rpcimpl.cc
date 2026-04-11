@@ -682,6 +682,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_availability:
     case TR_KEY_bandwidth_priority:
     case TR_KEY_bytes_completed:
+    case TR_KEY_btpk_update_mode:
     case TR_KEY_comment:
     case TR_KEY_corrupt_ever:
     case TR_KEY_creator:
@@ -834,6 +835,8 @@ namespace make_torrent_field_helpers
         return st.finished;
     case TR_KEY_is_private:
         return tor.is_private();
+    case TR_KEY_btpk_update_mode:
+        return tr_torrentBtpkUpdateMode(&tor);
     case TR_KEY_is_stalled:
         return st.isStalled;
     case TR_KEY_labels:
@@ -1411,6 +1414,12 @@ namespace make_torrent_field_helpers
                 err = Error::INVALID_TRACKER_LIST;
                 errmsg = {};
             }
+        }
+
+
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_update_mode); val)
+        {
+            tr_torrentSetBtpkUpdateMode(tor, static_cast<int>(*val));
         }
 
         session->rpcNotify(TR_RPC_TORRENT_CHANGED, tor);
