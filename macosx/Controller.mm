@@ -2620,7 +2620,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
                         // Show error alert on main thread (we're already there via foreground action)
                         NSAlert* alert = [NSAlert new];
                         alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                        alert.informativeText = NSLocalizedString(@"The local files did not match the version advertised by the update feed.",
+                        alert.informativeText = NSLocalizedString(@"The new content has not been downloaded yet. Download it first, then apply the update.",
                                                                   "btpk apply error body");
                         [alert runModal];
                     }
