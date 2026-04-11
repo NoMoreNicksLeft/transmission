@@ -2359,7 +2359,40 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         }
     }
 
+    // Archive old content BEFORE starting the staging download so the
+    // staging torrent downloads into a clean directory.
+    // Archive path: btpkArchiveRoot/<name>/seq-<currentSeq>/<name>/
+    {
+        NSString* contentPath = torrent.dataLocation;
+        if (contentPath)
+        {
+            NSInteger const currentSeq = torrent.btpkSeq;
+            NSString* appSupport = [NSSearchPathForDirectoriesInDomains(
+                NSApplicationSupportDirectory, NSUserDomainMask, YES) firstObject];
+            NSString* archiveRoot = [[NSUserDefaults.standardUserDefaults stringForKey:@"BtpkArchiveRoot"] ?: 
+                [NSHomeDirectory() stringByAppendingPathComponent:@".transmission/archive"]
+                stringByExpandingTildeInPath];
+            NSString* archiveDir = [[archiveRoot
+                stringByAppendingPathComponent:torrent.name]
+                stringByAppendingPathComponent:[NSString stringWithFormat:@"seq-%ld", (long)currentSeq]];
+            NSError* mkdirErr = nil;
+            [NSFileManager.defaultManager createDirectoryAtPath:archiveDir
+                                    withIntermediateDirectories:YES attributes:nil error:&mkdirErr];
+            if (!mkdirErr)
+            {
+                NSError* moveErr = nil;
+                NSString* dest = [archiveDir stringByAppendingPathComponent:torrent.name];
+                [NSFileManager.defaultManager moveItemAtPath:contentPath toPath:dest error:&moveErr];
+                if (moveErr)
+                    NSLog(@"btpk apply: archive move failed: %@", moveErr);
+                else
+                    NSLog(@"btpk apply: archived old content to %@", dest);
+            }
+        }
+    }
+
     // Create the staging torrent pointing to the same download directory
+    // (now clean after archive move above)
     NSString* downloadDir = torrent.currentDirectory;
     Torrent* stagingTorrent = [[Torrent alloc] initWithMagnetAddress:magnetURI
                                                             location:downloadDir
@@ -2800,22 +2833,25 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
 
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
-                // Remove the staging torrent (no data delete — files are now owned by original)
-                [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
+                // Remove the staging torrent on the next run loop iteration
+                // to avoid a use-after-free if the UI timer fires mid-removal.
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
 
-                if (!success)
-                {
-                    NSAlert* alert = [NSAlert new];
-                    alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                    alert.informativeText = NSLocalizedString(
-                        @"The downloaded content did not match the expected version. The update was not applied.",
-                        "btpk apply error body");
-                    [alert runModal];
-                }
-                else
-                {
-                    [self fullUpdateUI];
-                }
+                    if (!success)
+                    {
+                        NSAlert* alert = [NSAlert new];
+                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+                        alert.informativeText = NSLocalizedString(
+                            @"The downloaded content did not match the expected version. The update was not applied.",
+                            "btpk apply error body");
+                        [alert runModal];
+                    }
+                    else
+                    {
+                        [self fullUpdateUI];
+                    }
+                });
             }];
             return; // skip normal download-complete notification for staging torrents
         }

@@ -1014,27 +1014,11 @@ static NSString* btpkArchiveRoot(void)
         handler(NO); return;
     }
 
-    // 4. Archive existing content: move files to btpkArchiveRoot/<name>/seq-N/<name>/
-    NSString* const contentPath = self.dataLocation;
-    if (contentPath)
-    {
-        NSString* archiveDir = [[[btpkArchiveRoot()
-            stringByAppendingPathComponent:self.name]
-            stringByAppendingPathComponent:[NSString stringWithFormat:@"seq-%ld", (long)(pendingSeq - 1)]]
-            stringByAppendingPathComponent:self.name];
-        NSError* mkdirErr = nil;
-        [NSFileManager.defaultManager createDirectoryAtPath:archiveDir.stringByDeletingLastPathComponent
-                                withIntermediateDirectories:YES attributes:nil error:&mkdirErr];
-        if (!mkdirErr)
-        {
-            NSError* moveErr = nil;
-            [NSFileManager.defaultManager moveItemAtPath:contentPath toPath:archiveDir error:&moveErr];
-            if (moveErr)
-                NSLog(@"btpk swap: archive move failed: %@", moveErr);
-        }
-    }
 
-    // 5. Swap metainfo on the original torrent
+    // 4. Swap metainfo on the original torrent.
+    // Archiving of old content happens in applyBtpkUpdateForTorrent: BEFORE
+    // the staging download starts, so the staging torrent downloads into a
+    // clean directory without conflicting with old files.
     BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
     if (ok)
         tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
