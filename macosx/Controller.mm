@@ -868,7 +868,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     UNNotificationAction* actionApply = [UNNotificationAction actionWithIdentifier:@"actionBtpkApply"
                                                                              title:NSLocalizedString(@"Apply", "btpk update notification button")
                                                                            options:UNNotificationActionOptionNone];
-    UNNotificationCategory* categoryBtpkUpdate = [UNNotificationCategory categoryWithIdentifier:@"categoryBtpkUpdate"
+    UNNotificationCategory* categoryBtpkUpdate = [UNNotificationCategory categoryWithIdentifier:@"categoryBtpkUpdate2"
                                                                                         actions:@[ actionApply ]
                                                                               intentIdentifiers:@[]
                                                                                         options:UNNotificationCategoryOptionNone];
@@ -2293,7 +2293,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             content.body = body;
             // Embed the torrent hash so we can act on it if the user clicks
             content.userInfo = @{@"btpkHash" : torrent.hashString, @"btpkSeq" : @(seq)};
-            content.categoryIdentifier = @"categoryBtpkUpdate";
+            content.categoryIdentifier = @"categoryBtpkUpdate2";
 
             UNNotificationRequest* req = [UNNotificationRequest
                 requestWithIdentifier:[NSString stringWithFormat:@"btpk-%@-%lld", torrent.hashString, (long long)seq]
