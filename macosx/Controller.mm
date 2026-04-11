@@ -2844,17 +2844,21 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             // Perform the metainfo swap synchronously.
             // removeTorrentsImpl handles fTorrents removal AND table update atomically.
             [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
-                [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
-                [self fullUpdateUI];
-                if (!success)
-                {
-                    NSAlert* alert = [NSAlert new];
-                    alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                    alert.informativeText = NSLocalizedString(
-                        @"The downloaded content did not match the expected version. The update was not applied.",
-                        "btpk apply error body");
-                    [alert runModal];
-                }
+                // Defer removal to next run loop iteration so the current
+                // completion/notification call stack fully unwinds first.
+                BOOL const swapSucceeded = success;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
+                    if (!swapSucceeded)
+                    {
+                        NSAlert* alert = [NSAlert new];
+                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+                        alert.informativeText = NSLocalizedString(
+                            @"The downloaded content did not match the expected version. The update was not applied.",
+                            "btpk apply error body");
+                        [alert runModal];
+                    }
+                });
             }];
             return; // skip normal download-complete notification for staging torrents
         }
