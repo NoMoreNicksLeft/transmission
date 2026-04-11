@@ -134,6 +134,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
                         completionHandler:(void (^)(BOOL success, NSData* _Nullable bencData))handler;
 - (void)clearPendingBtpkUpdate;
 - (BOOL)saveTorrentFileFromBencData:(NSData*)data;
+- (void)skipTorrentFileDeleteOnRemoval;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData

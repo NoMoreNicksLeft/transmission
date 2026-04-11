@@ -783,7 +783,8 @@ void tr_torrentFreeInSessionThread(tr_torrent* tor)
 
     if (tor->is_deleting_)
     {
-        tr_torrent_metainfo::remove_file(tor->session->torrentDir(), tor->name(), tor->info_hash_string(), ".torrent"sv);
+        if (!tor->skip_torrent_file_delete_)
+            tr_torrent_metainfo::remove_file(tor->session->torrentDir(), tor->name(), tor->info_hash_string(), ".torrent"sv);
         tr_torrent_metainfo::remove_file(tor->session->torrentDir(), tor->name(), tor->info_hash_string(), ".magnet"sv);
         tr_torrent_metainfo::remove_file(tor->session->resumeDir(), tor->name(), tor->info_hash_string(), ".resume"sv);
     }
@@ -2726,6 +2727,12 @@ bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t be
     if (!ok)
         tr_logAddWarnTor(tor, fmt::format("tr_torrentSaveTorrentFile: {}", err.message()));
     return ok;
+}
+
+void tr_torrentSkipTorrentFileDelete(tr_torrent* tor)
+{
+    tr_return_if_fail(tr_isTorrent(tor));
+    tor->set_skip_torrent_file_delete();
 }
 
 void tr_torrentInjectBtpkUpdate(tr_torrent* tor, int64_t new_seq)

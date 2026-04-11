@@ -2852,14 +2852,11 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
                 // Defer full cleanup + UI refresh to next run loop so the
                 // notification/completeness call stack fully unwinds first.
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    // closeRemoveTorrent frees the staging torrent's C++ handle
-                    // and removes its .magnet/.torrent files. Do this BEFORE
-                    // saving the new .torrent file so there's no collision.
+                    // Tell the session thread NOT to delete the .torrent file
+                    // when cleaning up the staging torrent — the file now belongs
+                    // to the updated original torrent (same hash after swap).
+                    [torrent skipTorrentFileDeleteOnRemoval];
                     [torrent closeRemoveTorrent:NO];
-
-                    // Now safe to write the new .torrent file — staging torrent is gone.
-                    if (swapSucceeded && bencData)
-                        [originalTorrent saveTorrentFileFromBencData:bencData];
 
                     [self fullUpdateUI];
                     if (!swapSucceeded)

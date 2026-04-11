@@ -795,6 +795,10 @@ struct tr_torrent
     {
         btpk_update_mode_ = mode;
     }
+    constexpr void set_skip_torrent_file_delete() noexcept
+    {
+        skip_torrent_file_delete_ = true;
+    }
 
     // Pending update waiting for UI accept/apply.
     [[nodiscard]] constexpr std::optional<tr_sha1_digest_t> const& pending_btpk_hash() const noexcept
@@ -1502,6 +1506,7 @@ private:
     uint16_t max_connected_peers_ = TrDefaultPeerLimitTorrent;
 
     bool is_deleting_ = false;
+    bool skip_torrent_file_delete_ = false; // set for btpk staging removal to preserve swapped .torrent
     bool is_dirty_ = false;
     bool is_queued_ = false;
     bool is_running_ = false;

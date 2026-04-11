@@ -1002,11 +1002,21 @@ static NSString* btpkArchiveRoot(void)
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
 }
 
+- (void)skipTorrentFileDeleteOnRemoval
+{
+    tr_torrentSkipTorrentFileDelete(self.fHandle);
+}
+
 - (BOOL)saveTorrentFileFromBencData:(NSData*)data
 {
     if (!data || data.length == 0)
+    {
+        NSLog(@"saveTorrentFileFromBencData: nil or empty data");
         return NO;
-    return tr_torrentSaveTorrentFile(self.fHandle, data.bytes, data.length);
+    }
+    BOOL const ok = tr_torrentSaveTorrentFile(self.fHandle, data.bytes, data.length);
+    NSLog(@"saveTorrentFileFromBencData: saved=%d path=%s", (int)ok, tr_torrentFilename(self.fHandle).c_str());
+    return ok;
 }
 
 // Called after the staging torrent has finished downloading all pieces.
@@ -1071,7 +1081,16 @@ static NSString* btpkArchiveRoot(void)
     BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
     NSLog(@"btpk swap: tr_torrentReplaceBtpkMetainfo returned %d", (int)ok);
     if (ok)
+    {
         tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
+
+        // Save the new .torrent file NOW — synchronously, before the completion
+        // handler fires and the staging torrent's session cleanup runs.
+        // The session thread will later delete files keyed to the staging hash,
+        // so we must write the file here while we still own the path.
+        if (![self saveTorrentFileFromBencData:bencData])
+            NSLog(@"btpk swap: WARNING: could not save new .torrent file");
+    }
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
     NSLog(@"btpk swap: complete ok=%d", (int)ok);
 
