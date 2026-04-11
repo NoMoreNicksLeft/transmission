@@ -326,6 +326,9 @@ static void removeKeRangerRansomware()
 
 @property(nonatomic) NSMutableSet<Torrent*>* fAddingTransfers;
 
+// btpk staging: maps staging torrent hashString → original Torrent*
+@property(nonatomic) NSMutableDictionary<NSString*, Torrent*>* fBtpkStagingTorrents;
+
 @property(nonatomic) NSMutableSet<NSWindowController*>* fAddWindows;
 @property(nonatomic) URLSheetWindowController* fUrlSheetController;
 
@@ -334,6 +337,7 @@ static void removeKeRangerRansomware()
 @property(nonatomic) BOOL fSoundPlaying;
 
 - (void)removeTorrentsImpl:(NSArray<Torrent*>*)torrents deleteData:(BOOL)deleteData;
+- (void)applyBtpkUpdateForTorrent:(Torrent*)torrent;
 
 @end
 
@@ -2330,18 +2334,64 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         return;
     }
 
-    [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
-        if (!success)
+    [self applyBtpkUpdateForTorrent:torrent];
+}
+
+- (void)applyBtpkUpdateForTorrent:(Torrent*)torrent
+{
+    NSString* magnetURI = torrent.magnetURIForPendingBtpkUpdate;
+    if (!magnetURI)
+    {
+        NSLog(@"btpk apply: no pending update for torrent %@", torrent.name);
+        return;
+    }
+
+    // Check for existing staging torrent for this update
+    if (self.fBtpkStagingTorrents)
+    {
+        for (NSString* hash in self.fBtpkStagingTorrents)
         {
-            NSAlert* alert = [NSAlert new];
-            alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-            alert.informativeText = NSLocalizedString(
-                @"The local files did not match the version advertised by the update feed. "
-                 "The publisher may have changed file content that differs from your local copy.",
-                "btpk apply error body");
-            [alert runModal];
+            if (self.fBtpkStagingTorrents[hash] == torrent)
+            {
+                NSLog(@"btpk apply: staging download already in progress for %@", torrent.name);
+                return;
+            }
         }
-    }];
+    }
+
+    // Create the staging torrent pointing to the same download directory
+    NSString* downloadDir = torrent.currentDirectory;
+    Torrent* stagingTorrent = [[Torrent alloc] initWithMagnetAddress:magnetURI
+                                                            location:downloadDir
+                                                                 lib:self.fLib];
+    if (!stagingTorrent)
+    {
+        NSLog(@"btpk apply: failed to create staging torrent from magnet %@", magnetURI);
+        NSAlert* alert = [NSAlert new];
+        alert.messageText = NSLocalizedString(@"Update could not be started", "btpk apply start error title");
+        alert.informativeText = NSLocalizedString(
+            @"Could not create download for the new version. The magnet link may be invalid.",
+            "btpk apply start error body");
+        [alert runModal];
+        return;
+    }
+
+    // Register the staging torrent→original mapping
+    if (!self.fBtpkStagingTorrents)
+        self.fBtpkStagingTorrents = [NSMutableDictionary dictionary];
+    self.fBtpkStagingTorrents[stagingTorrent.hashString] = torrent;
+
+    // Add to torrents list and start
+    stagingTorrent.queuePosition = self.fTorrents.count;
+    [stagingTorrent update];
+    [self.fTorrents addObject:stagingTorrent];
+    if (!self.fAddingTransfers)
+        self.fAddingTransfers = [[NSMutableSet alloc] init];
+    [self.fAddingTransfers addObject:stagingTorrent];
+    [stagingTorrent startTransfer];
+
+    [self fullUpdateUI];
+    NSLog(@"btpk apply: started staging download for %@ hash=%@", torrent.name, stagingTorrent.hashString);
 }
 
 - (void)revealFile:(id)sender
@@ -2613,19 +2663,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         {
             Torrent* torrent = [self torrentForHash:hash];
             if (torrent)
-            {
-                [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
-                    if (!success)
-                    {
-                        // Show error alert on main thread (we're already there via foreground action)
-                        NSAlert* alert = [NSAlert new];
-                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                        alert.informativeText = NSLocalizedString(@"The new content has not been downloaded yet. Download it first, then apply the update.",
-                                                                  "btpk apply error body");
-                        [alert runModal];
-                    }
-                }];
-            }
+                [self applyBtpkUpdateForTorrent:torrent];
         }
     }
     completionHandler();
@@ -2752,6 +2790,36 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 - (void)torrentFinishedDownloading:(NSNotification*)notification
 {
     Torrent* torrent = notification.object;
+
+    // Check if this is a btpk staging torrent
+    if (self.fBtpkStagingTorrents)
+    {
+        Torrent* originalTorrent = self.fBtpkStagingTorrents[torrent.hashString];
+        if (originalTorrent)
+        {
+            [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
+
+            [originalTorrent performBtpkSwapFromStagingTorrent:torrent completionHandler:^(BOOL success) {
+                // Remove the staging torrent (no data delete — files are now owned by original)
+                [self removeTorrentsImpl:@[ torrent ] deleteData:NO];
+
+                if (!success)
+                {
+                    NSAlert* alert = [NSAlert new];
+                    alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+                    alert.informativeText = NSLocalizedString(
+                        @"The downloaded content did not match the expected version. The update was not applied.",
+                        "btpk apply error body");
+                    [alert runModal];
+                }
+                else
+                {
+                    [self fullUpdateUI];
+                }
+            }];
+            return; // skip normal download-complete notification for staging torrents
+        }
+    }
 
     if ([notification.userInfo[@"WasRunning"] boolValue])
     {

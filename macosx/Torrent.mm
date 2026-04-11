@@ -809,6 +809,18 @@ static NSString* btpkArchiveRoot(void)
     return memcmp(bytes + 64, expectedPub, 32) == 0;
 }
 
+- (NSString*)magnetURIForPendingBtpkUpdate
+{
+    uint8_t pendingHash[20] = {};
+    if (!tr_torrentPendingBtpkHash(self.fHandle, pendingHash))
+        return nil;
+    // Build magnet:?xt=urn:btih:<hex>
+    NSMutableString* hex = [NSMutableString stringWithCapacity:40];
+    for (int i = 0; i < 20; i++)
+        [hex appendFormat:@"%02x", pendingHash[i]];
+    return [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hex];
+}
+
 - (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler
 {
     // Ensure there's actually a pending update to apply.
@@ -934,6 +946,72 @@ static NSString* btpkArchiveRoot(void)
 - (void)clearPendingBtpkUpdate
 {
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
+}
+
+// Called after the staging torrent has finished downloading all pieces.
+// stagingTorrent: the completed Torrent* that holds the new content.
+// Returns YES and fires handler(YES) on success; handler(NO) on failure.
+- (void)performBtpkSwapFromStagingTorrent:(Torrent*)stagingTorrent
+                        completionHandler:(void (^)(BOOL success))handler
+{
+    // 1. Verify pending hash still set
+    uint8_t pendingHash[20] = {};
+    if (!tr_torrentPendingBtpkHash(self.fHandle, pendingHash))
+    {
+        handler(NO); return;
+    }
+    int64_t const pendingSeq = tr_torrentPendingBtpkSeq(self.fHandle);
+
+    // 2. Read the staging torrent's .torrent file (written by BEP 9 after metadata fetch)
+    NSString* const stagingTorrentFile = @(tr_torrentFilename(stagingTorrent.fHandle).c_str());
+    NSData* bencData = [NSData dataWithContentsOfFile:stagingTorrentFile];
+    if (!bencData)
+    {
+        NSLog(@"btpk swap: cannot read staging torrent file %@", stagingTorrentFile);
+        handler(NO); return;
+    }
+
+    // 3. Parse and verify the infohash matches what DHT advertised
+    auto newMetainfo = tr_torrent_metainfo{};
+    if (!newMetainfo.parse_benc({ static_cast<char const*>(bencData.bytes), bencData.length }))
+    {
+        NSLog(@"btpk swap: failed to parse staging torrent metainfo");
+        handler(NO); return;
+    }
+    auto const& newHash = newMetainfo.info_hash();
+    if (memcmp(newHash.data(), pendingHash, 20) != 0)
+    {
+        NSLog(@"btpk swap: infohash mismatch");
+        handler(NO); return;
+    }
+
+    // 4. Archive existing content: move files to btpkArchiveRoot/<name>/seq-N/<name>/
+    NSString* const contentPath = self.dataLocation;
+    if (contentPath)
+    {
+        NSString* archiveDir = [[[btpkArchiveRoot()
+            stringByAppendingPathComponent:self.name]
+            stringByAppendingPathComponent:[NSString stringWithFormat:@"seq-%ld", (long)(pendingSeq - 1)]]
+            stringByAppendingPathComponent:self.name];
+        NSError* mkdirErr = nil;
+        [NSFileManager.defaultManager createDirectoryAtPath:archiveDir.stringByDeletingLastPathComponent
+                                withIntermediateDirectories:YES attributes:nil error:&mkdirErr];
+        if (!mkdirErr)
+        {
+            NSError* moveErr = nil;
+            [NSFileManager.defaultManager moveItemAtPath:contentPath toPath:archiveDir error:&moveErr];
+            if (moveErr)
+                NSLog(@"btpk swap: archive move failed: %@", moveErr);
+        }
+    }
+
+    // 5. Swap metainfo on the original torrent
+    BOOL const ok = tr_torrentReplaceBtpkMetainfo(self.fHandle, std::move(newMetainfo));
+    if (ok)
+        tr_torrentSetBtpkSeq(self.fHandle, pendingSeq);
+    tr_torrentClearPendingBtpkUpdate(self.fHandle);
+
+    handler(ok);
 }
 
 - (void)injectBtpkUpdateForTesting:(int64_t)seq

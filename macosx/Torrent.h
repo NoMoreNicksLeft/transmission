@@ -127,6 +127,9 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 /// key in keyData, publish via DHT, and call the handler with the new btpk:
 /// magnet URI (or an error). The key bytes are zeroed inside before returning.
 - (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler;
+- (NSString*)magnetURIForPendingBtpkUpdate;
+- (void)performBtpkSwapFromStagingTorrent:(Torrent*)stagingTorrent
+                        completionHandler:(void (^)(BOOL success))handler;
 - (void)clearPendingBtpkUpdate;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
 
