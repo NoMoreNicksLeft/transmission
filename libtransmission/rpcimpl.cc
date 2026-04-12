@@ -2772,7 +2772,7 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
     auto addr = tr_address{};
     if (!addr.from_string(*address_sv))
         return { Error::INVALID_PARAMS, "invalid address" };
-    session->maybe_add_dht_node(addr, tr_port::from_host(static_cast<uint16_t>(*port_val)));
+    session->add_dht_hint_node(addr, tr_port::from_host(static_cast<uint16_t>(*port_val)));
     return { Error::SUCCESS, {} };
 }
 

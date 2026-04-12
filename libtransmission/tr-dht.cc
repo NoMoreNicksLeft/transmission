@@ -194,6 +194,21 @@ public:
         }
     }
 
+    void add_hint_node(tr_address const& addr, tr_port port) override
+    {
+        // Also add to routing table so DHT can communicate with it
+        maybe_add_node(addr, port);
+        // Store as a persistent hint — injected into every future BEP 44 GET
+        if (addr.is_ipv4())
+        {
+            auto sin = sockaddr_in{};
+            sin.sin_family = AF_INET;
+            sin.sin_addr = addr.addr.addr4;
+            sin.sin_port = port.network();
+            hint_nodes_.push_back(sin);
+        }
+    }
+
     void get_item(unsigned char const* target, int64_t seq_known) override
     {
         // Load hint nodes from <config_dir>/btpk.hints (lines: <node_id_hex> <ip> <port>)
@@ -251,6 +266,19 @@ public:
                 target,
                 reinterpret_cast<sockaddr const*>(&sin),
                 static_cast<int>(sizeof(sin)));
+        }
+        // Also inject programmatic hint nodes (from dht_add_node RPC)
+        for (auto const& sin : hint_nodes_)
+        {
+            mediator_.api().get_add_hint(
+                target,
+                reinterpret_cast<sockaddr const*>(&sin),
+                static_cast<int>(sizeof(sin)));
+            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                fprintf(f, "get_item: rpc hint node %s:%d\n",
+                    inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
+                fclose(f);
+            }
         }
     }
 
@@ -710,6 +738,9 @@ private:
     tr_port const peer_port_;
     tr_socket_t const udp4_socket_;
     tr_socket_t const udp6_socket_;
+
+    // Persistent hint nodes injected via dht_add_node RPC — used in every BEP 44 GET
+    std::vector<sockaddr_in> hint_nodes_;
 
     Mediator& mediator_;
     std::string const state_filename_;

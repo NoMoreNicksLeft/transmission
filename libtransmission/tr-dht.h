@@ -161,6 +161,7 @@ public:
     virtual ~tr_dht() = default;
 
     virtual void maybe_add_node(tr_address const& address, tr_port port) = 0;
+    virtual void add_hint_node(tr_address const& address, tr_port port) = 0;
     virtual void handle_message(unsigned char const* msg, size_t msglen, struct sockaddr* from, socklen_t fromlen) = 0;
 
     // BEP 44

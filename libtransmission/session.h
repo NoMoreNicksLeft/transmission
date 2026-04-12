@@ -1219,6 +1219,15 @@ public:
         }
     }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void add_dht_hint_node(tr_address const& addr, tr_port port)
+    {
+        if (dht_)
+        {
+            dht_->add_hint_node(addr, port);
+        }
+    }
+
 private:
     constexpr bool& scriptEnabledFlag(TrScript i)
     {
