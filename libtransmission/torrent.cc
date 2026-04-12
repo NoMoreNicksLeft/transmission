@@ -1113,6 +1113,13 @@ void tr_torrent::set_metainfo(tr_torrent_metainfo tm)
                 m->insert_or_assign(
                     tr_quark_new("btpk_pub"sv),
                     std::string{ reinterpret_cast<char const*>(key.data()), key.size() });
+                // Also write btpk_salt if present
+                if (!metainfo_.btpk_salt().empty())
+                {
+                    m->insert_or_assign(
+                        TR_KEY_btpk_salt,
+                        metainfo_.btpk_salt());
+                }
                 auto const contents = serde.to_string(*ov);
                 auto patch_error = tr_error{};
                 tr_file_save(torrent_file(), contents, &patch_error);
