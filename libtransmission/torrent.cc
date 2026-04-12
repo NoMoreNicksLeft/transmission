@@ -2826,9 +2826,9 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
     mark_edited();
 
     // Re-verify local files so the torrent knows it's still complete
-    // after the metainfo swap. Without this, completion_ is reset to
-    // zero by on_metainfo_updated() and the torrent appears to need
-    // downloading even though the files are already present.
+    // after the metainfo swap. Set start_when_stable_ so it resumes
+    // seeding automatically once verification passes.
+    start_when_stable_ = is_running();
     tr_torrentVerify(this);
 
     // Refresh the DHT subscription so the resolver's last_seq advances
