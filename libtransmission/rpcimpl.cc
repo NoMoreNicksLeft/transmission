@@ -2769,10 +2769,10 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
     auto const port_val = args_in.value_if<int64_t>(TR_KEY_port);
     if (!address_sv || !port_val)
         return { Error::INVALID_PARAMS, "dht_add_node requires address and port" };
-    auto addr = tr_address{};
-    if (!addr.from_string(*address_sv))
+    auto const addr = tr_address::from_string(*address_sv);
+    if (!addr)
         return { Error::INVALID_PARAMS, "invalid address" };
-    session->add_dht_hint_node(addr, tr_port::from_host(static_cast<uint16_t>(*port_val)));
+    session->add_dht_hint_node(*addr, tr_port::from_host(static_cast<uint16_t>(*port_val)));
     return { Error::SUCCESS, {} };
 }
 
