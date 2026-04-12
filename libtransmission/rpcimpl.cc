@@ -2788,7 +2788,7 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
 
 using SyncHandler = std::pair<JsonRpc::Error::Code, std::string> (*)(tr_session*, tr_variant::Map const&, tr_variant::Map&);
 
-auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, bool /*has_side_effects*/>, 20U>{ {
+auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, bool /*has_side_effects*/>, 26U>{ {
     { TR_KEY_free_space, { freeSpace, false } },
     { TR_KEY_group_get, { groupGet, false } },
     { TR_KEY_group_set, { groupSet, true } },
