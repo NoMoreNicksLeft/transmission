@@ -319,6 +319,18 @@ static NSMutableSet* creatorWindowControllerSet;
         libtransmission::BtpkPublicKey pub{};
         std::copy_n(priv->data() + 64, 32, pub.data());
         self.fBuilder->set_btpk_public_key(pub);
+        // Generate a unique per-torrent salt so each torrent gets its own
+        // DHT slot even when the same keypair is reused for multiple torrents.
+        // SHA1(pubkey + salt) is the DHT target — without salt all torrents
+        // with the same keypair compete for one slot (BEP 44).
+        {
+            uint8_t saltBytes[8];
+            arc4random_buf(saltBytes, sizeof(saltBytes));
+            char saltHex[17] = {};
+            for (int i = 0; i < 8; i++)
+                snprintf(saltHex + i*2, 3, "%02x", saltBytes[i]);
+            self.fBuilder->set_btpk_salt(std::string_view{ saltHex, 16 });
+        }
         auto const fp = libtransmission::tr_btpk_fingerprint(pub);
         self.fBtpkFingerprint.stringValue = [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
         libtransmission::tr_btpk_zero_key(*priv);
@@ -412,6 +424,18 @@ static NSMutableSet* creatorWindowControllerSet;
     // Store the public key on the builder — the private key is NOT stored by the app.
     // The user must copy it to their password manager before closing this window.
     self.fBuilder->set_btpk_public_key(pub);
+        // Generate a unique per-torrent salt so each torrent gets its own
+        // DHT slot even when the same keypair is reused for multiple torrents.
+        // SHA1(pubkey + salt) is the DHT target — without salt all torrents
+        // with the same keypair compete for one slot (BEP 44).
+        {
+            uint8_t saltBytes[8];
+            arc4random_buf(saltBytes, sizeof(saltBytes));
+            char saltHex[17] = {};
+            for (int i = 0; i < 8; i++)
+                snprintf(saltHex + i*2, 3, "%02x", saltBytes[i]);
+            self.fBuilder->set_btpk_salt(std::string_view{ saltHex, 16 });
+        }
 
     // Securely erase the private key from memory — we have no further use for it.
     libtransmission::tr_btpk_zero_key(priv);
@@ -801,6 +825,18 @@ static NSMutableSet* creatorWindowControllerSet;
                 libtransmission::BtpkPublicKey pub{};
                 std::copy_n(priv->data() + 64, 32, pub.data());
                 self.fBuilder->set_btpk_public_key(pub);
+        // Generate a unique per-torrent salt so each torrent gets its own
+        // DHT slot even when the same keypair is reused for multiple torrents.
+        // SHA1(pubkey + salt) is the DHT target — without salt all torrents
+        // with the same keypair compete for one slot (BEP 44).
+        {
+            uint8_t saltBytes[8];
+            arc4random_buf(saltBytes, sizeof(saltBytes));
+            char saltHex[17] = {};
+            for (int i = 0; i < 8; i++)
+                snprintf(saltHex + i*2, 3, "%02x", saltBytes[i]);
+            self.fBuilder->set_btpk_salt(std::string_view{ saltHex, 16 });
+        }
                 auto const fp = libtransmission::tr_btpk_fingerprint(pub);
                 self.fBtpkFingerprint.stringValue = [NSString stringWithFormat:@"Fingerprint: %s", fp.c_str()];
                 libtransmission::tr_btpk_zero_key(*priv);

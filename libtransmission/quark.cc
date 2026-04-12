@@ -133,6 +133,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "details_window_height"sv, // gtk app
     "details_window_width"sv, // gtk app
     "dht-enabled"sv, // daemon, rpc, tr_session::Settings
+    "dht_add_node"sv, // rpc: add a DHT bootstrap node
     "dht_enabled"sv, // daemon, rpc, tr_session::Settings
     "dnd"sv, // .resume
     "done-date"sv, // .resume

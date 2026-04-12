@@ -2760,6 +2760,22 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
 
 // ---
 
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> dhtAddNode(tr_session* session,
+                                                                      tr_variant::Map const& args_in,
+                                                                      tr_variant::Map& /*args_out*/)
+{
+    using namespace JsonRpc;
+    auto const address_sv = args_in.value_if<std::string_view>(TR_KEY_address);
+    auto const port_val = args_in.value_if<int64_t>(TR_KEY_port);
+    if (!address_sv || !port_val)
+        return { Error::INVALID_PARAMS, "dht_add_node requires address and port" };
+    auto addr = tr_address{};
+    if (!addr.from_string(*address_sv))
+        return { Error::INVALID_PARAMS, "invalid address" };
+    session->maybe_add_dht_node(addr, tr_port::from_host(static_cast<uint16_t>(*port_val)));
+    return { Error::SUCCESS, {} };
+}
+
 [[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> sessionClose(tr_session* session,
                                                                         tr_variant::Map const& /*args_in*/,
                                                                         tr_variant::Map& /*args_out*/)
@@ -2780,6 +2796,7 @@ auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, 
     { TR_KEY_queue_move_down, { queueMoveDown, true } },
     { TR_KEY_queue_move_top, { queueMoveTop, true } },
     { TR_KEY_queue_move_up, { queueMoveUp, true } },
+    { TR_KEY_dht_add_node, { dhtAddNode, true } },
     { TR_KEY_session_close, { sessionClose, true } },
     { TR_KEY_session_get, { sessionGet, false } },
     { TR_KEY_session_set, { sessionSet, true } },
