@@ -360,6 +360,11 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
                       pub.begin());
             tm_.btpk_key_ = pub;
         }
+        else if (pathIs(BtpkSaltKey))
+        {
+            // BEP 46: restore the per-torrent salt stored as a top-level .torrent field
+            tm_.btpk_salt_ = std::string{ value };
+        }
         else if (pathIs(CreatedByKey) || pathIs(CreatedByUtf8Key))
         {
             tm_.creator_ = tr_strv_convert_utf8(value);
@@ -628,6 +633,7 @@ private:
     static constexpr std::string_view AnnounceListKey = "announce-list"sv;
     static constexpr std::string_view AttrKey = "attr"sv;
     static constexpr std::string_view BtpkPubKey = "btpk_pub"sv;
+    static constexpr std::string_view BtpkSaltKey = "btpk_salt"sv;
     static constexpr std::string_view AzureusPrivatePropertiesKey = "azureus_private_properties"sv;
     static constexpr std::string_view AzureusPropertiesKey = "azureus_properties"sv;
     static constexpr std::string_view ChecksumKey = "checksum"sv;

@@ -374,6 +374,8 @@ std::string tr_metainfo_builder::benc(tr_error* error) const
     if (btpk_public_key_)
     {
         top.try_emplace(TR_KEY_btpk_pub, tr_variant::make_raw(btpk_public_key_->data(), btpk_public_key_->size()));
+        if (!btpk_salt_.empty())
+            top.try_emplace(TR_KEY_btpk_salt, btpk_salt_);
     }
 
     return tr_variant_serde::benc().to_string(tr_variant{ std::move(top) });
