@@ -2825,17 +2825,13 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
     set_dirty();
     mark_edited();
 
-    // Re-verify local files after the metainfo swap.
-    // Use verify_done_callback_ to restart the torrent after verify,
-    // because did_files_disappear() inside tr_torrentVerify may reset
-    // start_when_stable_ to false if new files aren't on disk yet.
-    if (is_running())
+    // Re-verify local files after the metainfo swap, then restart.
+    // Always set the callback — the torrent should always be active
+    // after a btpk update (downloading new pieces or seeding).
+    verify_done_callback_ = [](tr_torrent* t)
     {
-        verify_done_callback_ = [](tr_torrent* t)
-        {
-            t->start(false, true);
-        };
-    }
+        t->start(false, true);
+    };
     tr_torrentVerify(this);
 
     // Refresh the DHT subscription so the resolver's last_seq advances
