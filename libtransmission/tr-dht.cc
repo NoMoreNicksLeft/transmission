@@ -206,6 +206,11 @@ public:
             sin.sin_addr = addr.addr.addr4;
             sin.sin_port = port.network();
             hint_nodes_.push_back(sin);
+            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                fprintf(f, "add_hint_node: stored %s:%d (total hints: %zu)\n",
+                    inet_ntoa(sin.sin_addr), ntohs(sin.sin_port), hint_nodes_.size());
+                fclose(f);
+            }
         }
     }
 
