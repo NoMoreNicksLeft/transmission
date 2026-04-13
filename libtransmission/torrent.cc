@@ -2883,10 +2883,21 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
         if (tor == nullptr || tor->is_deleting_)
             return;
         if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "btpk post-swap: calling start() directly\n");
+            fprintf(f, "btpk post-swap: setting callback and verifying\n");
             fclose(f);
         }
-        tor->start(true /*bypass_queue*/, {});
+        // Set the callback from within the session thread so it is in place
+        // before verify_add runs — no race with other session-thread lambdas.
+        tor->verify_done_callback_ = [](tr_torrent* t)
+        {
+            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                fprintf(f, "btpk verify_done_callback: pct=%d starting\n",
+                    (int)(t->completion_.percent_done() * 100));
+                fclose(f);
+            }
+            t->start(true /*bypass_queue*/, {});
+        };
+        tr_torrentVerify(tor);
     });
 
     // Refresh the DHT subscription so the resolver's last_seq advances
