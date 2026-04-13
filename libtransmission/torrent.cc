@@ -1778,6 +1778,9 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
     // so the torrent restarts after swap even if verify was interrupted.
     if (aborted && tor_->verify_done_callback_ && !tor_->is_deleting_)
     {
+        // Verify was aborted (racing with staging torrent cleanup).
+        // Re-queue verify so it runs to completion — the callback will
+        // fire after the full verify pass, not after a partial one.
         tor_->session->run_in_session_thread(
             [tor_id = tor_->id(), session = tor_->session]()
             {
@@ -1785,12 +1788,10 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
                 if (tor == nullptr || tor->is_deleting_ || !tor->verify_done_callback_)
                     return;
                 if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                    fprintf(f, "verify aborted but firing btpk callback for %s\n",
-                        tor->name().c_str());
+                    fprintf(f, "verify aborted — re-queuing for %s\n", tor->name().c_str());
                     fclose(f);
                 }
-                auto cb = std::move(tor->verify_done_callback_);
-                cb(tor);
+                tr_torrentVerify(tor);
             });
     }
 
