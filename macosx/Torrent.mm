@@ -1076,6 +1076,15 @@ static NSString* btpkArchiveRoot(void)
     tr_torrentClearPendingBtpkUpdate(self.fHandle);
     NSLog(@"btpk swap: complete ok=%d", (int)ok);
 
+    if (ok)
+    {
+        // Rebuild the ObjC file list from the updated C++ metainfo so the
+        // inspector Files tab shows the new file tree after the swap.
+        [self createFileList];
+        // Force the inspector to reload its file outline by resetting fSet.
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdateTorrentsState" object:nil];
+    }
+
     handler(ok, ok ? bencData : nil);
 }
 
