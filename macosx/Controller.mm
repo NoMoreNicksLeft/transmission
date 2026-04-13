@@ -822,6 +822,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     [nc addObserver:self.fWindow selector:@selector(makeKeyWindow) name:@"MakeWindowKey" object:nil];
 
     [nc addObserver:self selector:@selector(fullUpdateUI) name:@"UpdateTorrentsState" object:nil];
+    [nc addObserver:self selector:@selector(btpkMetainfoSwapped:) name:@"BtpkMetainfoSwapped" object:nil];
 
     [nc addObserver:self selector:@selector(applyFilter) name:@"ApplyFilter" object:nil];
 
@@ -2536,6 +2537,14 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     }
 
     [self.fWindow.toolbar validateVisibleItems];
+}
+
+- (void)btpkMetainfoSwapped:(NSNotification*)notification
+{
+    // The metainfo on a btpk torrent was swapped — the file list has changed.
+    // Reset the inspector so it reloads from the updated file list.
+    [self resetInfo];
+    [self fullUpdateUI];
 }
 
 - (void)resetInfo

@@ -1081,8 +1081,10 @@ static NSString* btpkArchiveRoot(void)
         // Rebuild the ObjC file list from the updated C++ metainfo so the
         // inspector Files tab shows the new file tree after the swap.
         [self createFileList];
-        // Force the inspector to reload its file outline by resetting fSet.
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"UpdateTorrentsState" object:nil];
+        // Force the inspector to reload its file outline. UpdateTorrentsState
+        // alone only calls updateInfoStats which does not reset fSet — we need
+        // to post the torrent as the object so Controller can call resetInfo.
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"BtpkMetainfoSwapped" object:self];
     }
 
     handler(ok, ok ? bencData : nil);
