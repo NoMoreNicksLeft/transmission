@@ -186,6 +186,10 @@ void tr_verify_worker::remove(tr_sha1_digest_t const& info_hash)
                  [&info_hash](auto const& node) { return node.matches(info_hash); });
              iter != std::end(todo_))
     {
+        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+            fprintf(f, "verify_remove: ABORTING queued verify\n");
+            fclose(f);
+        }
         iter->mediator_->on_verify_done(true /*aborted*/);
         todo_.erase(iter);
     }

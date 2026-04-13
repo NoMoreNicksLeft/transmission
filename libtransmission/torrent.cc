@@ -1627,6 +1627,14 @@ void tr_torrentVerify(tr_torrent* tor)
 {
     tr_return_if_fail(tr_isTorrent(tor));
 
+    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+        fprintf(f, "tr_torrentVerify called: %s callback=%d\n",
+            tor->name().c_str(), (int)bool(tor->verify_done_callback_));
+        // print a mini stack trace via caller address
+        void* caller = __builtin_return_address(0);
+        fprintf(f, "  caller=%p\n", caller);
+        fclose(f);
+    }
     tor->session->run_in_session_thread(
         [tor, session = tor->session, tor_id = tor->id()]()
         {
@@ -1650,7 +1658,14 @@ void tr_torrentVerify(tr_torrent* tor)
                 tor->stop_now();
             }
 
-            if (did_files_disappear(tor))
+            bool const btpk_files_gone = did_files_disappear(tor);
+            if (auto* dbgf = fopen("/tmp/btpk_debug.txt", "a"); dbgf != nullptr) {
+                fprintf(dbgf, "tr_torrentVerify lambda: files_gone=%d has_any=%d callback=%d\n",
+                    (int)btpk_files_gone, (int)tor->has_any_local_data(),
+                    (int)bool(tor->verify_done_callback_));
+                fclose(dbgf);
+            }
+            if (btpk_files_gone)
             {
                 tor->error().set_local_error(
                     _("Paused torrent as no data was found! Ensure your drives are connected or use \"Set Location\", "
@@ -1759,6 +1774,26 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
 
     tor_->set_verify_state(VerifyState::None);
 
+    // If aborted but we have a btpk verify_done_callback_, fire it anyway
+    // so the torrent restarts after swap even if verify was interrupted.
+    if (aborted && tor_->verify_done_callback_ && !tor_->is_deleting_)
+    {
+        tor_->session->run_in_session_thread(
+            [tor_id = tor_->id(), session = tor_->session]()
+            {
+                auto* const tor = session->torrents().get(tor_id);
+                if (tor == nullptr || tor->is_deleting_ || !tor->verify_done_callback_)
+                    return;
+                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                    fprintf(f, "verify aborted but firing btpk callback for %s\n",
+                        tor->name().c_str());
+                    fclose(f);
+                }
+                auto cb = std::move(tor->verify_done_callback_);
+                cb(tor);
+            });
+    }
+
     if (!aborted && !tor_->is_deleting_)
     {
         tor_->session->run_in_session_thread(
@@ -1779,9 +1814,21 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
 
                 tor->recheck_completeness();
 
+                if (auto* dbgf2 = fopen("/tmp/btpk_debug.txt", "a"); dbgf2 != nullptr) {
+                    fprintf(dbgf2, "verify completion callback check: callback=%d percent=%d\n",
+                        (int)bool(tor->verify_done_callback_),
+                        (int)(tor->completion_.percent_done() * 100));
+                    fclose(dbgf2);
+                }
                 if (tor->verify_done_callback_)
                 {
-                    tor->verify_done_callback_(tor);
+                    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+                        fprintf(f, "verify_done_callback_ firing for %s pct=%d\n",
+                            tor->name().c_str(), (int)(tor->completion_.percent_done()*100));
+                        fclose(f);
+                    }
+                    auto cb = std::move(tor->verify_done_callback_);
+                    cb(tor);
                 }
 
                 if (tor->start_when_stable_)
@@ -2825,14 +2872,22 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
     set_dirty();
     mark_edited();
 
-    // Re-verify local files after the metainfo swap, then restart.
-    // Always set the callback — the torrent should always be active
-    // after a btpk update (downloading new pieces or seeding).
-    verify_done_callback_ = [](tr_torrent* t)
+    // After the btpk metainfo swap, skip tr_torrentVerify entirely.
+    // tr_torrentVerify races with staging torrent cleanup on the session thread:
+    // verify_remove aborts the queued verify before it starts. Instead,
+    // dispatch start() directly — recheck_completeness() inside start_in_session_thread
+    // will determine the correct download state from what is already on disk.
+    session->run_in_session_thread([this, session = this->session, tor_id = this->id()]
     {
-        t->start(false, true);
-    };
-    tr_torrentVerify(this);
+        auto* const tor = session->torrents().get(tor_id);
+        if (tor == nullptr || tor->is_deleting_)
+            return;
+        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
+            fprintf(f, "btpk post-swap: calling start() directly\n");
+            fclose(f);
+        }
+        tor->start(true /*bypass_queue*/, {});
+    });
 
     // Refresh the DHT subscription so the resolver's last_seq advances
     // to match what we just published, preventing it from re-downloading
