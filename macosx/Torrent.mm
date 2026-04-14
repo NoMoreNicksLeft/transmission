@@ -173,21 +173,27 @@ static NSString* btpkArchiveRoot(void)
     //restore GroupValue
     torrent.groupValue = [history[@"GroupValue"] intValue];
 
-    //restore BtpkUpdateMode (default to WhenOffered for btpk torrents if not stored)
-    NSNumber* btpkMode = history[@"BtpkUpdateMode"];
-    if (btpkMode)
+    // btpk update mode: resume.cc is now the source of truth (loaded before this
+    // method runs). Only fall back to the ObjC history dict for migration from
+    // older resume files that predate the libtransmission field.
+    // If resume.cc already set a non-default value, leave it alone.
+    if (tr_torrentBtpkUpdateMode(torrent.fHandle) == TR_BTPK_UPDATE_WHEN_OFFERED)
     {
-        BtpkUpdateMode storedMode = (BtpkUpdateMode)btpkMode.integerValue;
-        // Migrate: if stored mode is Never but torrent has btpk, upgrade to WhenOffered
-        if (storedMode == BtpkUpdateModeNever && torrent.hasBtpk)
-            storedMode = BtpkUpdateModeWhenOffered;
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (tr_btpk_update_mode)storedMode);
+        NSNumber* btpkMode = history[@"BtpkUpdateMode"];
+        if (btpkMode)
+        {
+            BtpkUpdateMode storedMode = (BtpkUpdateMode)btpkMode.integerValue;
+            if (storedMode == BtpkUpdateModeNever && torrent.hasBtpk)
+                storedMode = BtpkUpdateModeWhenOffered;
+            tr_torrentSetBtpkUpdateMode(torrent.fHandle, (tr_btpk_update_mode)storedMode);
+        }
+        else if (!torrent.hasBtpk)
+        {
+            // Non-btpk torrent: apply global default
+            tr_torrentSetBtpkUpdateMode(torrent.fHandle,
+                (tr_btpk_update_mode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
+        }
     }
-    else if (torrent.hasBtpk)
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle, TR_BTPK_UPDATE_WHEN_OFFERED);
-    else
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle,
-            (tr_btpk_update_mode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
 
     //start transfer
     NSNumber* active;
@@ -210,8 +216,8 @@ static NSString* btpkArchiveRoot(void)
         @"Active" : @(self.active),
         @"WaitToStart" : @(self.waitingToStart),
         @"GroupValue" : @(self.groupValue),
-        @"RemoveWhenFinishSeeding" : @(_removeWhenFinishSeeding),
-        @"BtpkUpdateMode" : @(tr_torrentBtpkUpdateMode(self.fHandle))
+        @"RemoveWhenFinishSeeding" : @(_removeWhenFinishSeeding)
+        // BtpkUpdateMode intentionally omitted — now persisted by libtransmission resume.cc
     };
 }
 

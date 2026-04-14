@@ -162,28 +162,25 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
     self.fDeleteCheck.state = self.fDeleteTorrentEnableInitially ? NSControlStateValueOn : NSControlStateValueOff;
     self.fDeleteCheck.enabled = self.fCanToggleDelete;
 
-    // Show update behavior row for btpk torrents, pre-populated from prefs
+    // Show update behavior row for btpk torrents.
+    // Pre-populate from the torrent's own per-torrent values (already set from
+    // resume.cc or defaults). NSUserDefaults is only the fallback for brand-new
+    // torrents whose per-torrent values haven't been set yet.
     if (self.torrent.hasBtpk)
     {
-        NSInteger const defaultMode = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"];
-        [self.fUpdateModePopUp selectItemWithTag:defaultMode];
+        [self.fUpdateModePopUp selectItemWithTag:(NSInteger)self.torrent.btpkUpdateMode];
         self.fUpdateModeLabel.hidden = NO;
         self.fUpdateModePopUp.hidden = NO;
-        // Pre-populate allow checkboxes from prefs
-        self.fUpdateModeAllowAdditional.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowAdditional"] ?
-            NSControlStateValueOn :
-            NSControlStateValueOff;
-        self.fUpdateModeAllowRenaming.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowRenaming"] ?
-            NSControlStateValueOn :
-            NSControlStateValueOff;
-        self.fUpdateModeAllowOverwrites.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowOverwrites"] ?
-            NSControlStateValueOn :
-            NSControlStateValueOff;
-        self.fUpdateModeAllowDeletions.state = [NSUserDefaults.standardUserDefaults boolForKey:@"MutableAllowDeletions"] ?
-            NSControlStateValueOn :
-            NSControlStateValueOff;
-        self.fUpdateModeVersionsField.integerValue = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableVersionsToKeep"];
-        self.fUpdateModeStorageField.integerValue = [NSUserDefaults.standardUserDefaults integerForKey:@"MutableMaxStorageGB"];
+        self.fUpdateModeAllowAdditional.state = self.torrent.btpkAllowAdditional ?
+            NSControlStateValueOn : NSControlStateValueOff;
+        self.fUpdateModeAllowRenaming.state = self.torrent.btpkAllowRenaming ?
+            NSControlStateValueOn : NSControlStateValueOff;
+        self.fUpdateModeAllowOverwrites.state = self.torrent.btpkAllowOverwrites ?
+            NSControlStateValueOn : NSControlStateValueOff;
+        self.fUpdateModeAllowDeletions.state = self.torrent.btpkAllowDeletions ?
+            NSControlStateValueOn : NSControlStateValueOff;
+        self.fUpdateModeVersionsField.integerValue = self.torrent.btpkVersionsToKeep;
+        self.fUpdateModeStorageField.integerValue = self.torrent.btpkMaxStorageGb;
         [self updateAllowCheckboxVisibility];
         // Push Trash torrent button down to make room
         self.fUpdateModeBoxSpacing.constant = 58.0;
@@ -429,7 +426,15 @@ typedef NS_ENUM(NSUInteger, PopupPriority) {
     [self.torrent setGroupValue:self.fGroupValue determinationType:self.fGroupValueDetermination];
 
     if (self.torrent.hasBtpk)
+    {
         self.torrent.btpkUpdateMode = (BtpkUpdateMode)[self.fUpdateModePopUp selectedTag];
+        self.torrent.btpkAllowAdditional = self.fUpdateModeAllowAdditional.state == NSControlStateValueOn;
+        self.torrent.btpkAllowRenaming   = self.fUpdateModeAllowRenaming.state   == NSControlStateValueOn;
+        self.torrent.btpkAllowOverwrites  = self.fUpdateModeAllowOverwrites.state  == NSControlStateValueOn;
+        self.torrent.btpkAllowDeletions   = self.fUpdateModeAllowDeletions.state   == NSControlStateValueOn;
+        self.torrent.btpkVersionsToKeep  = self.fUpdateModeVersionsField.integerValue;
+        self.torrent.btpkMaxStorageGb    = self.fUpdateModeStorageField.integerValue;
+    }
 
     if (self.fTorrentFile && self.fCanToggleDelete && self.fDeleteCheck.state == NSControlStateValueOn)
     {
