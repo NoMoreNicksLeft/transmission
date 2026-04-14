@@ -683,6 +683,12 @@ namespace make_torrent_field_helpers
     case TR_KEY_bandwidth_priority:
     case TR_KEY_bytes_completed:
     case TR_KEY_btpk_update_mode:
+    case TR_KEY_btpk_allow_additional:
+    case TR_KEY_btpk_allow_renaming:
+    case TR_KEY_btpk_allow_overwrites:
+    case TR_KEY_btpk_allow_deletions:
+    case TR_KEY_btpk_versions_to_keep:
+    case TR_KEY_btpk_max_storage_gb:
     case TR_KEY_comment:
     case TR_KEY_corrupt_ever:
     case TR_KEY_creator:
@@ -837,6 +843,18 @@ namespace make_torrent_field_helpers
         return tor.is_private();
     case TR_KEY_btpk_update_mode:
         return tr_torrentBtpkUpdateMode(&tor);
+    case TR_KEY_btpk_allow_additional:
+        return tr_torrentBtpkAllowAdditional(&tor);
+    case TR_KEY_btpk_allow_renaming:
+        return tr_torrentBtpkAllowRenaming(&tor);
+    case TR_KEY_btpk_allow_overwrites:
+        return tr_torrentBtpkAllowOverwrites(&tor);
+    case TR_KEY_btpk_allow_deletions:
+        return tr_torrentBtpkAllowDeletions(&tor);
+    case TR_KEY_btpk_versions_to_keep:
+        return int64_t{ tr_torrentBtpkVersionsToKeep(&tor) };
+    case TR_KEY_btpk_max_storage_gb:
+        return int64_t{ tr_torrentBtpkMaxStorageGb(&tor) };
     case TR_KEY_is_stalled:
         return st.isStalled;
     case TR_KEY_labels:
@@ -1419,8 +1437,20 @@ namespace make_torrent_field_helpers
 
         if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_update_mode); val)
         {
-            tr_torrentSetBtpkUpdateMode(tor, static_cast<int>(*val));
+            tr_torrentSetBtpkUpdateMode(tor, static_cast<tr_btpk_update_mode>(*val));
         }
+        if (auto const val = args_in.value_if<bool>(TR_KEY_btpk_allow_additional); val)
+            tr_torrentSetBtpkAllowAdditional(tor, *val);
+        if (auto const val = args_in.value_if<bool>(TR_KEY_btpk_allow_renaming); val)
+            tr_torrentSetBtpkAllowRenaming(tor, *val);
+        if (auto const val = args_in.value_if<bool>(TR_KEY_btpk_allow_overwrites); val)
+            tr_torrentSetBtpkAllowOverwrites(tor, *val);
+        if (auto const val = args_in.value_if<bool>(TR_KEY_btpk_allow_deletions); val)
+            tr_torrentSetBtpkAllowDeletions(tor, *val);
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_versions_to_keep); val)
+            tr_torrentSetBtpkVersionsToKeep(tor, static_cast<int>(*val));
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_max_storage_gb); val)
+            tr_torrentSetBtpkMaxStorageGb(tor, static_cast<int>(*val));
 
         session->rpcNotify(TR_RPC_TORRENT_CHANGED, tor);
     }

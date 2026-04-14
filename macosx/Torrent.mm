@@ -181,13 +181,13 @@ static NSString* btpkArchiveRoot(void)
         // Migrate: if stored mode is Never but torrent has btpk, upgrade to WhenOffered
         if (storedMode == BtpkUpdateModeNever && torrent.hasBtpk)
             storedMode = BtpkUpdateModeWhenOffered;
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)storedMode);
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (tr_btpk_update_mode)storedMode);
     }
     else if (torrent.hasBtpk)
-        tr_torrentSetBtpkUpdateMode(torrent.fHandle, (int)BtpkUpdateModeWhenOffered);
+        tr_torrentSetBtpkUpdateMode(torrent.fHandle, TR_BTPK_UPDATE_WHEN_OFFERED);
     else
         tr_torrentSetBtpkUpdateMode(torrent.fHandle,
-            (int)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
+            (tr_btpk_update_mode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
 
     //start transfer
     NSNumber* active;
@@ -808,8 +808,21 @@ static NSString* btpkArchiveRoot(void)
 
 - (void)setBtpkUpdateMode:(BtpkUpdateMode)mode
 {
-    tr_torrentSetBtpkUpdateMode(self.fHandle, (int)mode);
+    tr_torrentSetBtpkUpdateMode(self.fHandle, (tr_btpk_update_mode)mode);
 }
+
+- (BOOL)btpkAllowAdditional { return tr_torrentBtpkAllowAdditional(self.fHandle); }
+- (void)setBtpkAllowAdditional:(BOOL)v { tr_torrentSetBtpkAllowAdditional(self.fHandle, v); }
+- (BOOL)btpkAllowRenaming { return tr_torrentBtpkAllowRenaming(self.fHandle); }
+- (void)setBtpkAllowRenaming:(BOOL)v { tr_torrentSetBtpkAllowRenaming(self.fHandle, v); }
+- (BOOL)btpkAllowOverwrites { return tr_torrentBtpkAllowOverwrites(self.fHandle); }
+- (void)setBtpkAllowOverwrites:(BOOL)v { tr_torrentSetBtpkAllowOverwrites(self.fHandle, v); }
+- (BOOL)btpkAllowDeletions { return tr_torrentBtpkAllowDeletions(self.fHandle); }
+- (void)setBtpkAllowDeletions:(BOOL)v { tr_torrentSetBtpkAllowDeletions(self.fHandle, v); }
+- (NSInteger)btpkVersionsToKeep { return tr_torrentBtpkVersionsToKeep(self.fHandle); }
+- (void)setBtpkVersionsToKeep:(NSInteger)v { tr_torrentSetBtpkVersionsToKeep(self.fHandle, (int)v); }
+- (NSInteger)btpkMaxStorageGb { return tr_torrentBtpkMaxStorageGb(self.fHandle); }
+- (void)setBtpkMaxStorageGb:(NSInteger)v { tr_torrentSetBtpkMaxStorageGb(self.fHandle, (int)v); }
 
 - (nullable NSString*)btpkFingerprintString
 {

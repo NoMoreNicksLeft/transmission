@@ -11,10 +11,11 @@
 
 typedef NS_ENUM(NSUInteger, TorrentDeterminationType) { TorrentDeterminationAutomatic = 0, TorrentDeterminationUserSpecified };
 
+// Alias the C enum for ObjC callers — tr_btpk_update_mode is the canonical definition
 typedef NS_ENUM(NSInteger, BtpkUpdateMode) {
-    BtpkUpdateModeNever = 0,
-    BtpkUpdateModeWhenOffered = 1,
-    BtpkUpdateModeVersioned = 2,
+    BtpkUpdateModeNever        = TR_BTPK_UPDATE_NEVER,
+    BtpkUpdateModeWhenOffered  = TR_BTPK_UPDATE_WHEN_OFFERED,
+    BtpkUpdateModeVersioned    = TR_BTPK_UPDATE_VERSIONED,
 };
 
 extern NSString* const kTorrentDidChangeGroupNotification;
@@ -117,6 +118,14 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic, readonly) BOOL hasBtpk;
 @property(nonatomic) BtpkUpdateMode btpkUpdateMode;
 @property(nonatomic, readonly) NSInteger btpkSeq;
+
+// Per-torrent btpk update permissions
+@property(nonatomic) BOOL btpkAllowAdditional;
+@property(nonatomic) BOOL btpkAllowRenaming;
+@property(nonatomic) BOOL btpkAllowOverwrites;
+@property(nonatomic) BOOL btpkAllowDeletions;
+@property(nonatomic) NSInteger btpkVersionsToKeep;
+@property(nonatomic) NSInteger btpkMaxStorageGb;
 @property(nonatomic, readonly) NSInteger pendingBtpkSeq;
 @property(nonatomic, readonly, nullable) NSString* btpkFingerprintString;
 

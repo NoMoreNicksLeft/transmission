@@ -26,6 +26,9 @@
                 <outlet property="fRatioPopUp" destination="9" id="74"/>
                 <outlet property="fRemoveSeedingCompleteCheck" destination="113" id="118"/>
                 <outlet property="fSeedingView" destination="wfz-WZ-zVG" id="zLN-y6-kI2"/>
+                <outlet property="fBtpkView" destination="btpk-view-1" id="btpk-outlet-1"/>
+                <outlet property="fBtpkEnabledCheck" destination="btpk-check-1" id="btpk-outlet-2"/>
+                <outlet property="fBtpkModePopUp" destination="btpk-popup-1" id="btpk-outlet-3"/>
                 <outlet property="fUploadLimitCheck" destination="8" id="67"/>
                 <outlet property="fUploadLimitField" destination="19" id="71"/>
                 <outlet property="fUploadLimitLabel" destination="18" id="72"/>
@@ -441,6 +444,70 @@
                                 <constraint firstItem="81" firstAttribute="top" secondItem="10" secondAttribute="bottom" constant="3" id="wLX-Jw-Ssi"/>
                             </constraints>
                         </customView>
+
+                        <!-- btpk update behavior section -->
+                        <customView horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-view-1">
+                            <rect key="frame" x="0.0" y="0.0" width="318" height="76"/>
+                            <subviews>
+                                <!-- Section header -->
+                                <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-label-1">
+                                    <rect key="frame" x="-2" y="62" width="110" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update Behavior" id="btpk-label-1c">
+                                        <font key="font" metaFont="smallSystemBold"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <!-- "Receive updates for this torrent" checkbox -->
+                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-check-1">
+                                    <rect key="frame" x="-1" y="40" width="230" height="16"/>
+                                    <buttonCell key="cell" type="check" title="Receive updates for this torrent" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-check-1c">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <action selector="setBtpkUpdateEnabled:" target="-2" id="btpk-action-1"/>
+                                    </connections>
+                                </button>
+                                <!-- "When to apply" label -->
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-label-2">
+                                    <rect key="frame" x="-2" y="16" width="70" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="When offered:" id="btpk-label-2c">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <!-- Apply mode popup -->
+                                <popUpButton verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-popup-1">
+                                    <rect key="frame" x="76" y="12" width="130" height="20"/>
+                                    <popUpButtonCell key="cell" type="roundRect" title="Ask Me" bezelStyle="roundedRect" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" preferredEdge="maxY" selectedItem="btpk-popup-ask" id="btpk-popup-1c">
+                                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <menu key="menu" id="btpk-popup-menu">
+                                            <items>
+                                                <menuItem title="Ask Me" state="on" id="btpk-popup-ask"/>
+                                                <menuItem title="Apply Automatically" id="btpk-popup-auto"/>
+                                            </items>
+                                        </menu>
+                                    </popUpButtonCell>
+                                    <connections>
+                                        <action selector="setBtpkUpdateMode:" target="-2" id="btpk-action-2"/>
+                                    </connections>
+                                </popUpButton>
+                            </subviews>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="76" id="btpk-height"/>
+                                <constraint firstItem="btpk-label-1" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c1"/>
+                                <constraint firstItem="btpk-label-1" firstAttribute="top" secondItem="btpk-view-1" secondAttribute="top" id="btpk-c2"/>
+                                <constraint firstItem="btpk-check-1" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c3"/>
+                                <constraint firstItem="btpk-check-1" firstAttribute="top" secondItem="btpk-label-1" secondAttribute="bottom" constant="2" id="btpk-c4"/>
+                                <constraint firstItem="btpk-label-2" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c5"/>
+                                <constraint firstItem="btpk-label-2" firstAttribute="top" secondItem="btpk-check-1" secondAttribute="bottom" constant="8" id="btpk-c6"/>
+                                <constraint firstItem="btpk-popup-1" firstAttribute="leading" secondItem="btpk-label-2" secondAttribute="trailing" constant="8" id="btpk-c7"/>
+                                <constraint firstItem="btpk-popup-1" firstAttribute="baseline" secondItem="btpk-label-2" secondAttribute="baseline" id="btpk-c8"/>
+                            </constraints>
+                        </customView>
                     </subviews>
                     <constraints>
                         <constraint firstAttribute="trailing" secondItem="wfz-WZ-zVG" secondAttribute="trailing" id="8Wr-ya-ZGx"/>
@@ -448,8 +515,10 @@
                     <visibilityPriorities>
                         <integer value="1000"/>
                         <integer value="1000"/>
+                        <integer value="1000"/>
                     </visibilityPriorities>
                     <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
                         <real value="3.4028234663852886e+38"/>
                         <real value="3.4028234663852886e+38"/>
                     </customSpacing>

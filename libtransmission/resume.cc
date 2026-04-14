@@ -794,6 +794,13 @@ tr_resume::fields_t load_from_file(tr_torrent* tor, tr_torrent::ResumeHelper& he
         auto const salt_sv = map.value_if<std::string_view>(TR_KEY_btpk_salt).value_or(std::string_view{});
         if (!tor->metainfo().has_btpk())
             tor->set_btpk_from_resume(key, std::string{ salt_sv });
+        // Restore per-torrent btpk update permissions
+        if (auto v = map.value_if<bool>(TR_KEY_btpk_allow_additional); v) tor->set_btpk_allow_additional(*v);
+        if (auto v = map.value_if<bool>(TR_KEY_btpk_allow_renaming);   v) tor->set_btpk_allow_renaming(*v);
+        if (auto v = map.value_if<bool>(TR_KEY_btpk_allow_overwrites);  v) tor->set_btpk_allow_overwrites(*v);
+        if (auto v = map.value_if<bool>(TR_KEY_btpk_allow_deletions);   v) tor->set_btpk_allow_deletions(*v);
+        if (auto v = map.value_if<int64_t>(TR_KEY_btpk_versions_to_keep); v) tor->set_btpk_versions_to_keep(static_cast<int>(*v));
+        if (auto v = map.value_if<int64_t>(TR_KEY_btpk_max_storage_gb);   v) tor->set_btpk_max_storage_gb(static_cast<int>(*v));
     }
 
     if ((fields_to_load & tr_resume::Peers) != 0)
@@ -986,6 +993,13 @@ void save(tr_torrent* const tor, tr_torrent::ResumeHelper const& helper)
         map.try_emplace(TR_KEY_btpk_pub, std::string_view{ reinterpret_cast<char const*>(key.data()), key.size() });
         if (!tor->metainfo().btpk_salt().empty())
             map.try_emplace(TR_KEY_btpk_salt, std::string_view{ tor->metainfo().btpk_salt() });
+        // Save per-torrent btpk update permissions
+        map.try_emplace(TR_KEY_btpk_allow_additional, tor->btpk_allow_additional());
+        map.try_emplace(TR_KEY_btpk_allow_renaming,   tor->btpk_allow_renaming());
+        map.try_emplace(TR_KEY_btpk_allow_overwrites,  tor->btpk_allow_overwrites());
+        map.try_emplace(TR_KEY_btpk_allow_deletions,   tor->btpk_allow_deletions());
+        map.try_emplace(TR_KEY_btpk_versions_to_keep,  int64_t{ tor->btpk_versions_to_keep() });
+        map.try_emplace(TR_KEY_btpk_max_storage_gb,    int64_t{ tor->btpk_max_storage_gb() });
     }
     save_peers(map, tor);
 

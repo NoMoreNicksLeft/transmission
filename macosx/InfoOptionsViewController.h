@@ -33,7 +33,13 @@
 
 - (IBAction)setPeersConnectLimit:(id)sender;
 
+- (IBAction)setBtpkUpdateEnabled:(id)sender;
+- (IBAction)setBtpkUpdateMode:(id)sender;
+
 @property(nonatomic) IBOutlet NSView* fPriorityView;
+@property(nonatomic) IBOutlet NSView* fBtpkView;
+@property(nonatomic) IBOutlet NSButton* fBtpkEnabledCheck;
+@property(nonatomic) IBOutlet NSPopUpButton* fBtpkModePopUp;
 @property(nonatomic) CGFloat oldHeight;
 
 @end

@@ -1417,9 +1417,30 @@ bool tr_torrentReplaceBtpkMetainfo(tr_torrent* tor, tr_torrent_metainfo new_meta
 // Returns -1 if never published.
 int64_t tr_torrentBtpkSeq(tr_torrent const* tor);
 void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq);
-// btpk update mode: 0=never, 1=when_offered, 2=always_versioned
-int tr_torrentBtpkUpdateMode(tr_torrent const* tor);
-void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode);
+// Per-torrent btpk update mode
+typedef enum tr_btpk_update_mode
+{
+    TR_BTPK_UPDATE_NEVER = 0,        // never apply updates
+    TR_BTPK_UPDATE_WHEN_OFFERED = 1, // notify user and let them decide
+    TR_BTPK_UPDATE_VERSIONED = 2,    // apply automatically, keep old versions
+} tr_btpk_update_mode;
+
+tr_btpk_update_mode tr_torrentBtpkUpdateMode(tr_torrent const* tor);
+void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, tr_btpk_update_mode mode);
+
+// btpk per-torrent update permissions
+bool tr_torrentBtpkAllowAdditional(tr_torrent const* tor);
+void tr_torrentSetBtpkAllowAdditional(tr_torrent* tor, bool v);
+bool tr_torrentBtpkAllowRenaming(tr_torrent const* tor);
+void tr_torrentSetBtpkAllowRenaming(tr_torrent* tor, bool v);
+bool tr_torrentBtpkAllowOverwrites(tr_torrent const* tor);
+void tr_torrentSetBtpkAllowOverwrites(tr_torrent* tor, bool v);
+bool tr_torrentBtpkAllowDeletions(tr_torrent const* tor);
+void tr_torrentSetBtpkAllowDeletions(tr_torrent* tor, bool v);
+int tr_torrentBtpkVersionsToKeep(tr_torrent const* tor);
+void tr_torrentSetBtpkVersionsToKeep(tr_torrent* tor, int v);
+int tr_torrentBtpkMaxStorageGb(tr_torrent const* tor);
+void tr_torrentSetBtpkMaxStorageGb(tr_torrent* tor, int v);
 // Save raw benc data as the torrent's .torrent file on disk.
 bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t benc_len);
 // Prevent the next tr_torrentRemove from deleting the .torrent file (used for btpk staging cleanup).

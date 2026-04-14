@@ -2760,17 +2760,30 @@ void tr_torrentSetBtpkSeq(tr_torrent* tor, int64_t seq)
     tor->set_btpk_seq(seq);
 }
 
-int tr_torrentBtpkUpdateMode(tr_torrent const* tor)
+tr_btpk_update_mode tr_torrentBtpkUpdateMode(tr_torrent const* tor)
 {
-    tr_return_val_if_fail(tr_isTorrent(tor), 1);
-    return tor->btpk_update_mode();
+    tr_return_val_if_fail(tr_isTorrent(tor), TR_BTPK_UPDATE_WHEN_OFFERED);
+    return static_cast<tr_btpk_update_mode>(tor->btpk_update_mode());
 }
 
-void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, int mode)
+void tr_torrentSetBtpkUpdateMode(tr_torrent* tor, tr_btpk_update_mode mode)
 {
     tr_return_if_fail(tr_isTorrent(tor));
-    tor->set_btpk_update_mode(mode);
+    tor->set_btpk_update_mode(static_cast<int>(mode));
 }
+
+bool tr_torrentBtpkAllowAdditional(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), true);  return tor->btpk_allow_additional(); }
+void tr_torrentSetBtpkAllowAdditional(tr_torrent* tor, bool v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_allow_additional(v); }
+bool tr_torrentBtpkAllowRenaming(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), true);  return tor->btpk_allow_renaming(); }
+void tr_torrentSetBtpkAllowRenaming(tr_torrent* tor, bool v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_allow_renaming(v); }
+bool tr_torrentBtpkAllowOverwrites(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), false); return tor->btpk_allow_overwrites(); }
+void tr_torrentSetBtpkAllowOverwrites(tr_torrent* tor, bool v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_allow_overwrites(v); }
+bool tr_torrentBtpkAllowDeletions(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), true);  return tor->btpk_allow_deletions(); }
+void tr_torrentSetBtpkAllowDeletions(tr_torrent* tor, bool v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_allow_deletions(v); }
+int tr_torrentBtpkVersionsToKeep(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), 3); return tor->btpk_versions_to_keep(); }
+void tr_torrentSetBtpkVersionsToKeep(tr_torrent* tor, int v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_versions_to_keep(v); }
+int tr_torrentBtpkMaxStorageGb(tr_torrent const* tor) { tr_return_val_if_fail(tr_isTorrent(tor), 0); return tor->btpk_max_storage_gb(); }
+void tr_torrentSetBtpkMaxStorageGb(tr_torrent* tor, int v) { tr_return_if_fail(tr_isTorrent(tor)); tor->set_btpk_max_storage_gb(v); }
 
 bool tr_torrentSaveTorrentFile(tr_torrent* tor, void const* benc_data, size_t benc_len)
 {

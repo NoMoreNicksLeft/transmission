@@ -84,10 +84,16 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "blocklist_updates_enabled"sv, // gtk app, qt app
     "blocklist_url"sv, // rpc, tr_session::Settings
     "blocks"sv,
+    "btpk_allow_additional"sv, // .resume, rpc
+    "btpk_allow_deletions"sv, // .resume, rpc
+    "btpk_allow_overwrites"sv, // .resume, rpc
+    "btpk_allow_renaming"sv, // .resume, rpc
+    "btpk_max_storage_gb"sv, // .resume, rpc
     "btpk_pub"sv, // .torrent top-level
     "btpk_salt"sv, // .resume
     "btpk_seq"sv, // .resume
     "btpk_update_mode"sv, // rpc torrent-get/set
+    "btpk_versions_to_keep"sv, // .resume, rpc
     "bytesCompleted"sv, // rpc
     "bytes_completed"sv, // rpc
     "bytes_to_client"sv, // rpc
