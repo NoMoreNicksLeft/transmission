@@ -547,6 +547,9 @@
                                 </textField>
                                 <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-fld-ver">
                                     <rect key="frame" x="86" y="16" width="45" height="19"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="45" id="btpk-fld-ver-w"/>
+                                    </constraints>
                                     <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="btpk-fld-verc">
                                         <numberFormatter key="formatter" formatterBehavior="custom10_4" allowsFloats="NO" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="42" id="btpk-fld-ver-fmt">
                                             <integer key="minimum" value="1"/>
@@ -580,6 +583,9 @@
                                 </textField>
                                 <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-fld-sto">
                                     <rect key="frame" x="258" y="16" width="45" height="19"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="45" id="btpk-fld-sto-w"/>
+                                    </constraints>
                                     <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="btpk-fld-stoc">
                                         <numberFormatter key="formatter" formatterBehavior="custom10_4" allowsFloats="NO" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="42" id="btpk-fld-sto-fmt">
                                             <integer key="minimum" value="0"/>
@@ -620,7 +626,7 @@
                                 <constraint firstItem="btpk-chk-del" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="centerX" constant="1" id="btpk-c13"/>
                                 <constraint firstItem="btpk-chk-del" firstAttribute="top" secondItem="btpk-chk-ovr" secondAttribute="top" id="btpk-c14"/>
                                 <constraint firstItem="btpk-lbl-ver" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c15"/>
-                                <constraint firstItem="btpk-lbl-ver" firstAttribute="top" secondItem="btpk-chk-ovr" secondAttribute="bottom" constant="6" id="btpk-c16"/>
+                                <constraint firstItem="btpk-lbl-ver" firstAttribute="top" secondItem="btpk-popup-1" secondAttribute="bottom" constant="8" id="btpk-c16"/>
                                 <constraint firstItem="btpk-fld-ver" firstAttribute="leading" secondItem="btpk-lbl-ver" secondAttribute="trailing" constant="8" id="btpk-c17"/>
                                 <constraint firstItem="btpk-fld-ver" firstAttribute="baseline" secondItem="btpk-lbl-ver" secondAttribute="baseline" id="btpk-c18"/>
                                 <constraint firstItem="btpk-lbl-veru" firstAttribute="leading" secondItem="btpk-fld-ver" secondAttribute="trailing" constant="4" id="btpk-c19"/>

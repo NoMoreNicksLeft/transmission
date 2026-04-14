@@ -116,9 +116,15 @@ static CGFloat const kStackViewSpacing = 8.0;
 {
     if (self.fBtpkView.hidden)
         return 0.0;
-    // Fixed height view — always 130px when visible.
-    // clipsToBounds on fBtpkView prevents hidden subviews intercepting events.
-    return 130.0 + kStackViewSpacing;
+    // Header (14) + gap (2) + popup row (20) + gap below popup (8) = base 44px
+    CGFloat height = 44.0;
+    // WhenOffered: + 2 checkbox rows (16+4+16) + gap (6) = +42
+    if (!self.fBtpkAllowAdditionalCheck.hidden)
+        height += 42.0;
+    // Versioned: versions/storage row (19) + bottom padding (6) = +25
+    if (!self.fBtpkVersionsLabel.hidden)
+        height += 25.0;
+    return height + kStackViewSpacing;
 }
 
 - (void)updateBtpkViewHeight
@@ -551,6 +557,9 @@ static CGFloat const kStackViewSpacing = 8.0;
         }
         if (showVersioned)
         {
+
+
+
             self.fBtpkVersionsField.enabled = YES;
             self.fBtpkStorageField.enabled  = YES;
             if (!multipleVers) self.fBtpkVersionsField.integerValue = vers;
