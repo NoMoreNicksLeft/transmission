@@ -44,6 +44,7 @@
 
 @property(nonatomic) IBOutlet NSView* fPriorityView;
 @property(nonatomic) IBOutlet NSView* fBtpkView;
+@property(nonatomic) IBOutlet NSLayoutConstraint* fBtpkHeightConstraint;
 @property(nonatomic) IBOutlet NSPopUpButton* fBtpkModePopUp;
 @property(nonatomic) IBOutlet NSButton* fBtpkAllowAdditionalCheck;
 @property(nonatomic) IBOutlet NSButton* fBtpkAllowRenamingCheck;

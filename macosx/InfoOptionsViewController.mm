@@ -76,6 +76,12 @@ static CGFloat const kStackViewSpacing = 8.0;
 - (void)awakeFromNib
 {
     [super awakeFromNib];
+    // Clip btpk subviews so hidden controls outside the frame don't intercept mouse events
+    self.fBtpkView.wantsLayer = YES;
+    self.fBtpkView.clipsToBounds = YES;
+    // Hide btpk section by default until a btpk torrent is selected
+    self.fBtpkView.hidden = YES;
+    [self updateBtpkViewHeight];
     [self checkWindowSize];
 
     [self setGlobalLabels];
@@ -100,28 +106,19 @@ static CGFloat const kStackViewSpacing = 8.0;
 {
     if (self.fBtpkView.hidden)
         return 0.0;
-    // Header (14) + gap (4) + popup row (20) = base 38px
-    CGFloat height = 38.0;
-    // WhenOffered: + 2 checkbox rows (16+4+16) = +36
-    if (!self.fBtpkAllowAdditionalCheck.hidden)
-        height += 36.0;
-    // Versioned: + versions/storage row (19+6) = +25
-    if (!self.fBtpkVersionsLabel.hidden)
-        height += 25.0;
-    return height + kStackViewSpacing;
+    // Fixed height view — always 130px when visible.
+    // clipsToBounds on fBtpkView prevents hidden subviews intercepting events.
+    return 130.0 + kStackViewSpacing;
 }
 
 - (void)updateBtpkViewHeight
 {
-    // Set an explicit frame height on the btpk view so the stack view
-    // can calculate its layout correctly without a XIB height constraint.
-    if (!self.fBtpkView)
+    if (!self.fBtpkView || !self.fBtpkHeightConstraint)
         return;
-    CGFloat const h = self.fBtpkView.hidden ? 0.0 :
-        (self.fBtpkViewHeight - kStackViewSpacing);
-    NSRect frame = self.fBtpkView.frame;
-    frame.size.height = MAX(h, 0.0);
-    self.fBtpkView.frame = frame;
+    CGFloat const h = self.fBtpkView.hidden ? 1.0
+        : MAX(self.fBtpkViewHeight - kStackViewSpacing, 1.0);
+    self.fBtpkHeightConstraint.constant = h;
+    [self.fBtpkView.superview layoutSubtreeIfNeeded];
 }
 
 - (CGFloat)fVertLayoutHeight

@@ -27,6 +27,7 @@
                 <outlet property="fRemoveSeedingCompleteCheck" destination="113" id="118"/>
                 <outlet property="fSeedingView" destination="wfz-WZ-zVG" id="zLN-y6-kI2"/>
                 <outlet property="fBtpkView" destination="btpk-view-1" id="btpk-outlet-1"/>
+                <outlet property="fBtpkHeightConstraint" destination="btpk-height" id="btpk-outlet-hc"/>
                 <outlet property="fBtpkModePopUp" destination="btpk-popup-1" id="btpk-outlet-3"/>
                 <outlet property="fBtpkAllowAdditionalCheck" destination="btpk-chk-add" id="btpk-outlet-4"/>
                 <outlet property="fBtpkAllowRenamingCheck" destination="btpk-chk-ren" id="btpk-outlet-5"/>
@@ -460,7 +461,7 @@
                             <subviews>
                                 <!-- Section header -->
                                 <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-hdr">
-                                    <rect key="frame" x="-2" y="106" width="110" height="14"/>
+                                    <rect key="frame" x="-2" y="112" width="110" height="14"/>
                                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update Behavior" id="btpk-hdrc">
                                         <font key="font" metaFont="smallSystemBold"/>
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -469,7 +470,7 @@
                                 </textField>
                                 <!-- Update mode label + popup -->
                                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-mode-lbl">
-                                    <rect key="frame" x="-2" y="84" width="88" height="14"/>
+                                    <rect key="frame" x="-2" y="94" width="88" height="14"/>
                                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update behavior:" id="btpk-mode-lblc">
                                         <font key="font" metaFont="smallSystem"/>
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -477,7 +478,7 @@
                                     </textFieldCell>
                                 </textField>
                                 <popUpButton verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-popup-1">
-                                    <rect key="frame" x="94" y="80" width="140" height="20"/>
+                                    <rect key="frame" x="94" y="90" width="140" height="20"/>
                                     <popUpButtonCell key="cell" type="roundRect" title="When Offered" bezelStyle="roundedRect" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" preferredEdge="maxY" selectedItem="btpk-mi-never" id="btpk-popup-1c">
                                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
@@ -495,7 +496,7 @@
                                 </popUpButton>
                                 <!-- Allow checkboxes row 1 -->
                                 <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-add">
-                                    <rect key="frame" x="-1" y="60" width="152" height="16"/>
+                                    <rect key="frame" x="-1" y="64" width="152" height="16"/>
                                     <buttonCell key="cell" type="check" title="Allow additional files" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-addc">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
@@ -505,7 +506,7 @@
                                     </connections>
                                 </button>
                                 <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-ren">
-                                    <rect key="frame" x="159" y="60" width="152" height="16"/>
+                                    <rect key="frame" x="159" y="64" width="152" height="16"/>
                                     <buttonCell key="cell" type="check" title="Allow file renaming" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-renc">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
@@ -516,7 +517,7 @@
                                 </button>
                                 <!-- Allow checkboxes row 2 -->
                                 <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-ovr">
-                                    <rect key="frame" x="-1" y="40" width="152" height="16"/>
+                                    <rect key="frame" x="-1" y="44" width="152" height="16"/>
                                     <buttonCell key="cell" type="check" title="Allow file overwrites" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-ovrc">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
@@ -526,7 +527,7 @@
                                     </connections>
                                 </button>
                                 <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-del">
-                                    <rect key="frame" x="159" y="40" width="152" height="16"/>
+                                    <rect key="frame" x="159" y="44" width="152" height="16"/>
                                     <buttonCell key="cell" type="check" title="Allow file deletions" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-delc">
                                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
@@ -603,7 +604,7 @@
                                 </textField>
                             </subviews>
                             <constraints>
-                                <!-- height determined dynamically by InfoOptionsViewController -->
+                                <constraint firstAttribute="height" constant="76" id="btpk-height"/>
                                 <constraint firstItem="btpk-hdr" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c1"/>
                                 <constraint firstItem="btpk-hdr" firstAttribute="top" secondItem="btpk-view-1" secondAttribute="top" id="btpk-c2"/>
                                 <constraint firstItem="btpk-mode-lbl" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c3"/>
