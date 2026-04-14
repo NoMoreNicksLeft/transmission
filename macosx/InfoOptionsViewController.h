@@ -33,13 +33,27 @@
 
 - (IBAction)setPeersConnectLimit:(id)sender;
 
-- (IBAction)setBtpkUpdateEnabled:(id)sender;
 - (IBAction)setBtpkUpdateMode:(id)sender;
+- (IBAction)setBtpkAllowAdditional:(id)sender;
+- (IBAction)setBtpkAllowRenaming:(id)sender;
+- (IBAction)setBtpkAllowOverwrites:(id)sender;
+- (IBAction)setBtpkAllowDeletions:(id)sender;
+- (IBAction)setBtpkVersionsToKeep:(id)sender;
+- (IBAction)setBtpkMaxStorageGb:(id)sender;
 
 @property(nonatomic) IBOutlet NSView* fPriorityView;
 @property(nonatomic) IBOutlet NSView* fBtpkView;
-@property(nonatomic) IBOutlet NSButton* fBtpkEnabledCheck;
 @property(nonatomic) IBOutlet NSPopUpButton* fBtpkModePopUp;
+@property(nonatomic) IBOutlet NSButton* fBtpkAllowAdditionalCheck;
+@property(nonatomic) IBOutlet NSButton* fBtpkAllowRenamingCheck;
+@property(nonatomic) IBOutlet NSButton* fBtpkAllowOverwritesCheck;
+@property(nonatomic) IBOutlet NSButton* fBtpkAllowDeletionsCheck;
+@property(nonatomic) IBOutlet NSTextField* fBtpkVersionsField;
+@property(nonatomic) IBOutlet NSTextField* fBtpkStorageField;
+@property(nonatomic) IBOutlet NSTextField* fBtpkVersionsLabel;
+@property(nonatomic) IBOutlet NSTextField* fBtpkStorageLabel;
+@property(nonatomic) IBOutlet NSTextField* fBtpkVersionsUnit;
+@property(nonatomic) IBOutlet NSTextField* fBtpkStorageUnit;
 @property(nonatomic) CGFloat oldHeight;
 
 @end

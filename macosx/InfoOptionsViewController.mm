@@ -448,6 +448,80 @@ static CGFloat const kStackViewSpacing = 8.0;
     {
         self.fPeersConnectField.stringValue = @"";
     }
+
+    // btpk update behavior section — shown only for btpk torrents
+    enumerator = [self.fTorrents objectEnumerator];
+    torrent = [enumerator nextObject];
+    BOOL const hasBtpk = torrent.hasBtpk;
+    self.fBtpkView.hidden = !hasBtpk;
+    if (hasBtpk)
+    {
+        // Aggregate mode across selected torrents
+        NSInteger btpkMode = torrent.btpkUpdateMode;
+        BOOL multiplesModes = NO;
+        BOOL multiplesAllow = NO;
+        BOOL allowAdd = torrent.btpkAllowAdditional;
+        BOOL allowRen = torrent.btpkAllowRenaming;
+        BOOL allowOvr = torrent.btpkAllowOverwrites;
+        BOOL allowDel = torrent.btpkAllowDeletions;
+        NSInteger vers = torrent.btpkVersionsToKeep;
+        NSInteger stor = torrent.btpkMaxStorageGb;
+        BOOL multipleVers = NO, multipleStor = NO;
+
+        while ((torrent = [enumerator nextObject]))
+        {
+            if (!torrent.hasBtpk) continue;
+            if ((NSInteger)torrent.btpkUpdateMode != btpkMode) multiplesModes = YES;
+            if (torrent.btpkAllowAdditional != allowAdd ||
+                torrent.btpkAllowRenaming   != allowRen ||
+                torrent.btpkAllowOverwrites  != allowOvr ||
+                torrent.btpkAllowDeletions   != allowDel) multiplesAllow = YES;
+            if (torrent.btpkVersionsToKeep != vers) multipleVers = YES;
+            if (torrent.btpkMaxStorageGb   != stor) multipleStor = YES;
+        }
+
+        // Mode popup
+        if (multiplesModes)
+            [self.fBtpkModePopUp selectItemAtIndex:-1];
+        else
+            [self.fBtpkModePopUp selectItemWithTag:btpkMode];
+        self.fBtpkModePopUp.enabled = YES;
+
+        // Checkboxes — shown when mode != Never
+        BOOL const showChecks = !multiplesModes && btpkMode != BtpkUpdateModeNever;
+        BOOL const showVersioned = !multiplesModes && btpkMode == BtpkUpdateModeVersioned;
+        self.fBtpkAllowAdditionalCheck.hidden = !showChecks;
+        self.fBtpkAllowRenamingCheck.hidden   = !showChecks;
+        self.fBtpkAllowOverwritesCheck.hidden  = !showChecks;
+        self.fBtpkAllowDeletionsCheck.hidden   = !showChecks;
+        self.fBtpkVersionsLabel.hidden  = !showVersioned;
+        self.fBtpkVersionsField.hidden  = !showVersioned;
+        self.fBtpkVersionsUnit.hidden   = !showVersioned;
+        self.fBtpkStorageLabel.hidden   = !showVersioned;
+        self.fBtpkStorageField.hidden   = !showVersioned;
+        self.fBtpkStorageUnit.hidden    = !showVersioned;
+
+        if (showChecks)
+        {
+            self.fBtpkAllowAdditionalCheck.state = multiplesAllow ? NSControlStateValueMixed :
+                allowAdd ? NSControlStateValueOn : NSControlStateValueOff;
+            self.fBtpkAllowRenamingCheck.state   = multiplesAllow ? NSControlStateValueMixed :
+                allowRen ? NSControlStateValueOn : NSControlStateValueOff;
+            self.fBtpkAllowOverwritesCheck.state  = multiplesAllow ? NSControlStateValueMixed :
+                allowOvr ? NSControlStateValueOn : NSControlStateValueOff;
+            self.fBtpkAllowDeletionsCheck.state   = multiplesAllow ? NSControlStateValueMixed :
+                allowDel ? NSControlStateValueOn : NSControlStateValueOff;
+        }
+        if (showVersioned)
+        {
+            self.fBtpkVersionsField.enabled = YES;
+            self.fBtpkStorageField.enabled  = YES;
+            if (!multipleVers) self.fBtpkVersionsField.integerValue = vers;
+            else               self.fBtpkVersionsField.stringValue = @"";
+            if (!multipleStor) self.fBtpkStorageField.integerValue = stor;
+            else               self.fBtpkStorageField.stringValue = @"";
+        }
+    }
 }
 
 - (void)setUseSpeedLimit:(id)sender
@@ -663,6 +737,69 @@ static CGFloat const kStackViewSpacing = 8.0;
         torrent.maxPeerConnect = limit;
     }
 
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkUpdateMode:(id)sender
+{
+    NSInteger const mode = [self.fBtpkModePopUp selectedTag];
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk)
+            torrent.btpkUpdateMode = (BtpkUpdateMode)mode;
+    // Show/hide checkboxes and versioned fields based on new mode
+    [self updateOptions];
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkAllowAdditional:(id)sender
+{
+    if (((NSButton*)sender).state == NSControlStateValueMixed) [sender setState:NSControlStateValueOn];
+    BOOL const v = ((NSButton*)sender).state == NSControlStateValueOn;
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkAllowAdditional = v;
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkAllowRenaming:(id)sender
+{
+    if (((NSButton*)sender).state == NSControlStateValueMixed) [sender setState:NSControlStateValueOn];
+    BOOL const v = ((NSButton*)sender).state == NSControlStateValueOn;
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkAllowRenaming = v;
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkAllowOverwrites:(id)sender
+{
+    if (((NSButton*)sender).state == NSControlStateValueMixed) [sender setState:NSControlStateValueOn];
+    BOOL const v = ((NSButton*)sender).state == NSControlStateValueOn;
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkAllowOverwrites = v;
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkAllowDeletions:(id)sender
+{
+    if (((NSButton*)sender).state == NSControlStateValueMixed) [sender setState:NSControlStateValueOn];
+    BOOL const v = ((NSButton*)sender).state == NSControlStateValueOn;
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkAllowDeletions = v;
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkVersionsToKeep:(id)sender
+{
+    NSInteger const v = [sender integerValue];
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkVersionsToKeep = v;
+    [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
+}
+
+- (IBAction)setBtpkMaxStorageGb:(id)sender
+{
+    NSInteger const v = [sender integerValue];
+    for (Torrent* torrent in self.fTorrents)
+        if (torrent.hasBtpk) torrent.btpkMaxStorageGb = v;
     [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
 }
 

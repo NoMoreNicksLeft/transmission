@@ -27,8 +27,17 @@
                 <outlet property="fRemoveSeedingCompleteCheck" destination="113" id="118"/>
                 <outlet property="fSeedingView" destination="wfz-WZ-zVG" id="zLN-y6-kI2"/>
                 <outlet property="fBtpkView" destination="btpk-view-1" id="btpk-outlet-1"/>
-                <outlet property="fBtpkEnabledCheck" destination="btpk-check-1" id="btpk-outlet-2"/>
                 <outlet property="fBtpkModePopUp" destination="btpk-popup-1" id="btpk-outlet-3"/>
+                <outlet property="fBtpkAllowAdditionalCheck" destination="btpk-chk-add" id="btpk-outlet-4"/>
+                <outlet property="fBtpkAllowRenamingCheck" destination="btpk-chk-ren" id="btpk-outlet-5"/>
+                <outlet property="fBtpkAllowOverwritesCheck" destination="btpk-chk-ovr" id="btpk-outlet-6"/>
+                <outlet property="fBtpkAllowDeletionsCheck" destination="btpk-chk-del" id="btpk-outlet-7"/>
+                <outlet property="fBtpkVersionsField" destination="btpk-fld-ver" id="btpk-outlet-8"/>
+                <outlet property="fBtpkStorageField" destination="btpk-fld-sto" id="btpk-outlet-9"/>
+                <outlet property="fBtpkVersionsLabel" destination="btpk-lbl-ver" id="btpk-outlet-10"/>
+                <outlet property="fBtpkStorageLabel" destination="btpk-lbl-sto" id="btpk-outlet-11"/>
+                <outlet property="fBtpkVersionsUnit" destination="btpk-lbl-veru" id="btpk-outlet-12"/>
+                <outlet property="fBtpkStorageUnit" destination="btpk-lbl-stou" id="btpk-outlet-13"/>
                 <outlet property="fUploadLimitCheck" destination="8" id="67"/>
                 <outlet property="fUploadLimitField" destination="19" id="71"/>
                 <outlet property="fUploadLimitLabel" destination="18" id="72"/>
@@ -447,65 +456,180 @@
 
                         <!-- btpk update behavior section -->
                         <customView horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-view-1">
-                            <rect key="frame" x="0.0" y="0.0" width="318" height="76"/>
+                            <rect key="frame" x="0.0" y="0.0" width="318" height="120"/>
                             <subviews>
                                 <!-- Section header -->
-                                <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-label-1">
-                                    <rect key="frame" x="-2" y="62" width="110" height="14"/>
-                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update Behavior" id="btpk-label-1c">
+                                <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-hdr">
+                                    <rect key="frame" x="-2" y="106" width="110" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update Behavior" id="btpk-hdrc">
                                         <font key="font" metaFont="smallSystemBold"/>
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                     </textFieldCell>
                                 </textField>
-                                <!-- "Receive updates for this torrent" checkbox -->
-                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-check-1">
-                                    <rect key="frame" x="-1" y="40" width="230" height="16"/>
-                                    <buttonCell key="cell" type="check" title="Receive updates for this torrent" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-check-1c">
-                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                        <font key="font" metaFont="smallSystem"/>
-                                    </buttonCell>
-                                    <connections>
-                                        <action selector="setBtpkUpdateEnabled:" target="-2" id="btpk-action-1"/>
-                                    </connections>
-                                </button>
-                                <!-- "When to apply" label -->
-                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-label-2">
-                                    <rect key="frame" x="-2" y="16" width="70" height="14"/>
-                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="When offered:" id="btpk-label-2c">
+                                <!-- Update mode label + popup -->
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-mode-lbl">
+                                    <rect key="frame" x="-2" y="84" width="88" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Update behavior:" id="btpk-mode-lblc">
                                         <font key="font" metaFont="smallSystem"/>
                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                     </textFieldCell>
                                 </textField>
-                                <!-- Apply mode popup -->
                                 <popUpButton verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-popup-1">
-                                    <rect key="frame" x="76" y="12" width="130" height="20"/>
-                                    <popUpButtonCell key="cell" type="roundRect" title="Ask Me" bezelStyle="roundedRect" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" preferredEdge="maxY" selectedItem="btpk-popup-ask" id="btpk-popup-1c">
+                                    <rect key="frame" x="94" y="80" width="140" height="20"/>
+                                    <popUpButtonCell key="cell" type="roundRect" title="When Offered" bezelStyle="roundedRect" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" inset="2" preferredEdge="maxY" selectedItem="btpk-mi-never" id="btpk-popup-1c">
                                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                         <font key="font" metaFont="smallSystem"/>
                                         <menu key="menu" id="btpk-popup-menu">
                                             <items>
-                                                <menuItem title="Ask Me" state="on" id="btpk-popup-ask"/>
-                                                <menuItem title="Apply Automatically" id="btpk-popup-auto"/>
+                                                <menuItem title="Never" tag="0" id="btpk-mi-never"/>
+                                                <menuItem title="When Offered" state="on" tag="1" id="btpk-mi-when"/>
+                                                <menuItem title="Always (Versioned)" tag="2" id="btpk-mi-vers"/>
                                             </items>
                                         </menu>
                                     </popUpButtonCell>
                                     <connections>
-                                        <action selector="setBtpkUpdateMode:" target="-2" id="btpk-action-2"/>
+                                        <action selector="setBtpkUpdateMode:" target="-2" id="btpk-popup-act"/>
                                     </connections>
                                 </popUpButton>
+                                <!-- Allow checkboxes row 1 -->
+                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-add">
+                                    <rect key="frame" x="-1" y="60" width="152" height="16"/>
+                                    <buttonCell key="cell" type="check" title="Allow additional files" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-addc">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <action selector="setBtpkAllowAdditional:" target="-2" id="btpk-chk-add-act"/>
+                                    </connections>
+                                </button>
+                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-ren">
+                                    <rect key="frame" x="159" y="60" width="152" height="16"/>
+                                    <buttonCell key="cell" type="check" title="Allow file renaming" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-renc">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <action selector="setBtpkAllowRenaming:" target="-2" id="btpk-chk-ren-act"/>
+                                    </connections>
+                                </button>
+                                <!-- Allow checkboxes row 2 -->
+                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-ovr">
+                                    <rect key="frame" x="-1" y="40" width="152" height="16"/>
+                                    <buttonCell key="cell" type="check" title="Allow file overwrites" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-ovrc">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <action selector="setBtpkAllowOverwrites:" target="-2" id="btpk-chk-ovr-act"/>
+                                    </connections>
+                                </button>
+                                <button horizontalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-chk-del">
+                                    <rect key="frame" x="159" y="40" width="152" height="16"/>
+                                    <buttonCell key="cell" type="check" title="Allow file deletions" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" allowsMixedState="YES" inset="2" id="btpk-chk-delc">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="smallSystem"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <action selector="setBtpkAllowDeletions:" target="-2" id="btpk-chk-del-act"/>
+                                    </connections>
+                                </button>
+                                <!-- Versions to keep (versioned mode only) -->
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-lbl-ver">
+                                    <rect key="frame" x="-2" y="18" width="80" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Keep versions:" id="btpk-lbl-verc">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-fld-ver">
+                                    <rect key="frame" x="86" y="16" width="45" height="19"/>
+                                    <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="btpk-fld-verc">
+                                        <numberFormatter key="formatter" formatterBehavior="custom10_4" allowsFloats="NO" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="42" id="btpk-fld-ver-fmt">
+                                            <integer key="minimum" value="1"/>
+                                            <real key="maximum" value="99"/>
+                                        </numberFormatter>
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <action selector="setBtpkVersionsToKeep:" target="-2" id="btpk-fld-ver-act"/>
+                                        <outlet property="delegate" destination="-2" id="btpk-fld-ver-del"/>
+                                    </connections>
+                                </textField>
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-lbl-veru">
+                                    <rect key="frame" x="139" y="18" width="40" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="versions" id="btpk-lbl-veruc">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <!-- Max storage (versioned mode only) -->
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-lbl-sto">
+                                    <rect key="frame" x="190" y="18" width="60" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="Max storage:" id="btpk-lbl-stoc">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-fld-sto">
+                                    <rect key="frame" x="258" y="16" width="45" height="19"/>
+                                    <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="btpk-fld-stoc">
+                                        <numberFormatter key="formatter" formatterBehavior="custom10_4" allowsFloats="NO" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="42" id="btpk-fld-sto-fmt">
+                                            <integer key="minimum" value="0"/>
+                                            <real key="maximum" value="9999"/>
+                                        </numberFormatter>
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <action selector="setBtpkMaxStorageGb:" target="-2" id="btpk-fld-sto-act"/>
+                                        <outlet property="delegate" destination="-2" id="btpk-fld-sto-del"/>
+                                    </connections>
+                                </textField>
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="0.0" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-lbl-stou">
+                                    <rect key="frame" x="307" y="18" width="20" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" title="GB" id="btpk-lbl-stouc">
+                                        <font key="font" metaFont="smallSystem"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
                             </subviews>
                             <constraints>
-                                <constraint firstAttribute="height" constant="76" id="btpk-height"/>
-                                <constraint firstItem="btpk-label-1" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c1"/>
-                                <constraint firstItem="btpk-label-1" firstAttribute="top" secondItem="btpk-view-1" secondAttribute="top" id="btpk-c2"/>
-                                <constraint firstItem="btpk-check-1" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c3"/>
-                                <constraint firstItem="btpk-check-1" firstAttribute="top" secondItem="btpk-label-1" secondAttribute="bottom" constant="2" id="btpk-c4"/>
-                                <constraint firstItem="btpk-label-2" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c5"/>
-                                <constraint firstItem="btpk-label-2" firstAttribute="top" secondItem="btpk-check-1" secondAttribute="bottom" constant="8" id="btpk-c6"/>
-                                <constraint firstItem="btpk-popup-1" firstAttribute="leading" secondItem="btpk-label-2" secondAttribute="trailing" constant="8" id="btpk-c7"/>
-                                <constraint firstItem="btpk-popup-1" firstAttribute="baseline" secondItem="btpk-label-2" secondAttribute="baseline" id="btpk-c8"/>
+                                <constraint firstAttribute="height" constant="120" id="btpk-height"/>
+                                <constraint firstItem="btpk-hdr" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c1"/>
+                                <constraint firstItem="btpk-hdr" firstAttribute="top" secondItem="btpk-view-1" secondAttribute="top" id="btpk-c2"/>
+                                <constraint firstItem="btpk-mode-lbl" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c3"/>
+                                <constraint firstItem="btpk-mode-lbl" firstAttribute="top" secondItem="btpk-hdr" secondAttribute="bottom" constant="2" id="btpk-c4"/>
+                                <constraint firstItem="btpk-popup-1" firstAttribute="leading" secondItem="btpk-mode-lbl" secondAttribute="trailing" constant="8" id="btpk-c5"/>
+                                <constraint firstItem="btpk-popup-1" firstAttribute="baseline" secondItem="btpk-mode-lbl" secondAttribute="baseline" id="btpk-c6"/>
+                                <constraint firstItem="btpk-chk-add" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c7"/>
+                                <constraint firstItem="btpk-chk-add" firstAttribute="top" secondItem="btpk-popup-1" secondAttribute="bottom" constant="4" id="btpk-c8"/>
+                                <constraint firstItem="btpk-chk-ren" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="centerX" constant="1" id="btpk-c9"/>
+                                <constraint firstItem="btpk-chk-ren" firstAttribute="top" secondItem="btpk-chk-add" secondAttribute="top" id="btpk-c10"/>
+                                <constraint firstItem="btpk-chk-ovr" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c11"/>
+                                <constraint firstItem="btpk-chk-ovr" firstAttribute="top" secondItem="btpk-chk-add" secondAttribute="bottom" constant="4" id="btpk-c12"/>
+                                <constraint firstItem="btpk-chk-del" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="centerX" constant="1" id="btpk-c13"/>
+                                <constraint firstItem="btpk-chk-del" firstAttribute="top" secondItem="btpk-chk-ovr" secondAttribute="top" id="btpk-c14"/>
+                                <constraint firstItem="btpk-lbl-ver" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c15"/>
+                                <constraint firstItem="btpk-lbl-ver" firstAttribute="top" secondItem="btpk-chk-ovr" secondAttribute="bottom" constant="6" id="btpk-c16"/>
+                                <constraint firstItem="btpk-fld-ver" firstAttribute="leading" secondItem="btpk-lbl-ver" secondAttribute="trailing" constant="8" id="btpk-c17"/>
+                                <constraint firstItem="btpk-fld-ver" firstAttribute="baseline" secondItem="btpk-lbl-ver" secondAttribute="baseline" id="btpk-c18"/>
+                                <constraint firstItem="btpk-lbl-veru" firstAttribute="leading" secondItem="btpk-fld-ver" secondAttribute="trailing" constant="4" id="btpk-c19"/>
+                                <constraint firstItem="btpk-lbl-veru" firstAttribute="baseline" secondItem="btpk-lbl-ver" secondAttribute="baseline" id="btpk-c20"/>
+                                <constraint firstItem="btpk-lbl-sto" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="centerX" constant="1" id="btpk-c21"/>
+                                <constraint firstItem="btpk-lbl-sto" firstAttribute="top" secondItem="btpk-lbl-ver" secondAttribute="top" id="btpk-c22"/>
+                                <constraint firstItem="btpk-fld-sto" firstAttribute="leading" secondItem="btpk-lbl-sto" secondAttribute="trailing" constant="8" id="btpk-c23"/>
+                                <constraint firstItem="btpk-fld-sto" firstAttribute="baseline" secondItem="btpk-lbl-sto" secondAttribute="baseline" id="btpk-c24"/>
+                                <constraint firstItem="btpk-lbl-stou" firstAttribute="leading" secondItem="btpk-fld-sto" secondAttribute="trailing" constant="4" id="btpk-c25"/>
+                                <constraint firstItem="btpk-lbl-stou" firstAttribute="baseline" secondItem="btpk-lbl-sto" secondAttribute="baseline" id="btpk-c26"/>
                             </constraints>
                         </customView>
                     </subviews>
