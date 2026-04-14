@@ -206,11 +206,6 @@ public:
             sin.sin_addr = addr.addr.addr4;
             sin.sin_port = port.network();
             hint_nodes_.push_back(sin);
-            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                fprintf(f, "add_hint_node: stored %s:%d (total hints: %zu)\n",
-                    inet_ntoa(sin.sin_addr), ntohs(sin.sin_port), hint_nodes_.size());
-                fclose(f);
-            }
         }
     }
 
@@ -239,10 +234,6 @@ public:
                 sin.sin_port = htons(static_cast<uint16_t>(port_num));
                 mediator_.api().insert_node(node_id, reinterpret_cast<sockaddr*>(&sin), sizeof(sin));
                 hint_addrs.emplace_back(sin);
-                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                    fprintf(f, "get_item: hint node %s %s:%d\n", id_hex.c_str(), ip_str.c_str(), port_num);
-                    fclose(f);
-                }
             }
         }
         mediator_.api().bep44_get(
@@ -250,12 +241,6 @@ public:
             seq_known,
             [](void* closure, dht_bep44_item const* item)
             {
-                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-                {
-                    fprintf(f, "bep44_get callback item=%s\n", item ? "non-null" : "NULL");
-                    if (item) fprintf(f, "  seq=%lld mutable=%d\n", (long long)item->seq, item->mutable_item);
-                    fclose(f);
-                }
                 if (item != nullptr)
                 {
                     auto* self = static_cast<tr_dht_impl*>(closure);
@@ -279,11 +264,6 @@ public:
                 target,
                 reinterpret_cast<sockaddr const*>(&sin),
                 static_cast<int>(sizeof(sin)));
-            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                fprintf(f, "get_item: rpc hint node %s:%d\n",
-                    inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
-                fclose(f);
-            }
         }
     }
 

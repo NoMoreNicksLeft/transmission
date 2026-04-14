@@ -2267,9 +2267,6 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     NSAssert(NSThread.isMainThread, @"btpkUpdateAvailable must be called on main thread");
     NSLog(@"btpkUpdateAvailable: torrent=%@ seq=%lld mode=%ld", torrent.name, (long long)seq, (long)torrent.btpkUpdateMode);
     [@[torrent.name] enumerateObjectsUsingBlock:^(NSString* n, NSUInteger, BOOL*) {
-        FILE* f = fopen("/tmp/btpk_debug.txt", "a");
-        if(f) { fprintf(f, "btpkUpdateAvailable: name=%s seq=%lld mode=%ld\n",
-                        n.UTF8String, (long long)seq, (long)torrent.btpkUpdateMode); fclose(f); }
     }];
 
     switch (torrent.btpkUpdateMode)
@@ -2302,9 +2299,6 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
                               trigger:nil]; // deliver immediately
             [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:req withCompletionHandler:^(NSError* _Nullable error) {
                 NSLog(@"btpk notification result: error=%@", error);
-                FILE* f = fopen("/tmp/btpk_debug.txt", "a");
-                if(f) { fprintf(f, "btpk notification result: error=%s\n",
-                                error ? error.localizedDescription.UTF8String : "none"); fclose(f); }
             }];
             break;
         }

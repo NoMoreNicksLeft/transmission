@@ -132,11 +132,6 @@ std::optional<tr_sha1_digest_t> tr_mutable_resolver::decode_v(uint8_t const* v, 
 bool tr_mutable_resolver::on_dht_item(dht_bep44_item const& item)
 {
     auto dbg = [&](char const* reason) {
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "on_dht_item: rejected by '%s' seq=%lld last_seq=%lld mutable=%d\n",
-                    reason, (long long)item.seq, (long long)last_seq_, item.mutable_item);
-            fclose(f);
-        }
     };
     // Must be a mutable item
     if (!item.mutable_item)
@@ -186,13 +181,6 @@ bool tr_mutable_resolver::on_dht_item(dht_bep44_item const& item)
     auto const maybe_hash = decode_v(item.v, item.v_len);
     if (!maybe_hash)
     {
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "decode_v failed: v_len=%d v_hex=", item.v_len);
-            for (int i = 0; i < item.v_len && i < 40; i++)
-                fprintf(f, "%02x", (unsigned char)item.v[i]);
-            fprintf(f, "\n");
-            fclose(f);
-        }
         dbg("decode_v"); return false;
     }
 
@@ -203,10 +191,6 @@ bool tr_mutable_resolver::on_dht_item(dht_bep44_item const& item)
     if (last_infohash_ != maybe_hash)
     {
         last_infohash_ = maybe_hash;
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "on_dht_item: ACCEPTED seq=%lld firing callback\n", (long long)item.seq);
-            fclose(f);
-        }
         on_infohash_(*maybe_hash, item.seq);
     }
 

@@ -1393,19 +1393,11 @@ void tr_peerMsgsImpl::parse_ut_metadata(MessageReader& payload_in)
     if (msg_type == MetadataMsgType::Reject)
     {
         logtrace(this, fmt::format("got ut_metadata REJECT for piece {}", piece));
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "ut_metadata REJECT piece=%lld\n", (long long)piece);
-            fclose(f);
-        }
     }
 
     if (auto const piece_len = msg_end - serde.end();
         msg_type == MetadataMsgType::Data && piece * MetadataPieceSize + piece_len <= total_size)
     {
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "ut_metadata DATA piece=%lld len=%zu\n", (long long)piece, piece_len);
-            fclose(f);
-        }
         tor_.set_metadata_piece(piece, serde.end(), piece_len);
     }
 
@@ -1897,10 +1889,6 @@ void tr_peerMsgsImpl::maybe_send_metadata_requests(time_t now) const
 
     if (auto const piece = tor_.get_next_metadata_request(now); piece)
     {
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "ut_metadata REQUEST piece=%lld ut_id=%d\n", (long long)*piece, (int)ut_metadata_id_);
-            fclose(f);
-        }
         auto tmp = tr_variant{};
         tr_variantInitDict(&tmp, 3);
         tr_variantDictAddInt(&tmp, TR_KEY_msg_type, MetadataMsgType::Request);

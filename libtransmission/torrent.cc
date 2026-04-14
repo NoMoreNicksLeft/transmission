@@ -1627,14 +1627,6 @@ void tr_torrentVerify(tr_torrent* tor)
 {
     tr_return_if_fail(tr_isTorrent(tor));
 
-    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-        fprintf(f, "tr_torrentVerify called: %s callback=%d\n",
-            tor->name().c_str(), (int)bool(tor->verify_done_callback_));
-        // print a mini stack trace via caller address
-        void* caller = __builtin_return_address(0);
-        fprintf(f, "  caller=%p\n", caller);
-        fclose(f);
-    }
     tor->session->run_in_session_thread(
         [tor, session = tor->session, tor_id = tor->id()]()
         {
@@ -1659,12 +1651,6 @@ void tr_torrentVerify(tr_torrent* tor)
             }
 
             bool const btpk_files_gone = did_files_disappear(tor);
-            if (auto* dbgf = fopen("/tmp/btpk_debug.txt", "a"); dbgf != nullptr) {
-                fprintf(dbgf, "tr_torrentVerify lambda: files_gone=%d has_any=%d callback=%d\n",
-                    (int)btpk_files_gone, (int)tor->has_any_local_data(),
-                    (int)bool(tor->verify_done_callback_));
-                fclose(dbgf);
-            }
             if (btpk_files_gone)
             {
                 tor->error().set_local_error(
@@ -1787,10 +1773,6 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
                 auto* const tor = session->torrents().get(tor_id);
                 if (tor == nullptr || tor->is_deleting_ || !tor->verify_done_callback_)
                     return;
-                if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                    fprintf(f, "verify aborted — re-queuing for %s\n", tor->name().c_str());
-                    fclose(f);
-                }
                 tr_torrentVerify(tor);
             });
     }
@@ -1815,19 +1797,8 @@ void tr_torrent::VerifyMediator::on_verify_done(bool const aborted)
 
                 tor->recheck_completeness();
 
-                if (auto* dbgf2 = fopen("/tmp/btpk_debug.txt", "a"); dbgf2 != nullptr) {
-                    fprintf(dbgf2, "verify completion callback check: callback=%d percent=%d\n",
-                        (int)bool(tor->verify_done_callback_),
-                        (int)(tor->completion_.percent_done() * 100));
-                    fclose(dbgf2);
-                }
                 if (tor->verify_done_callback_)
                 {
-                    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                        fprintf(f, "verify_done_callback_ firing for %s pct=%d\n",
-                            tor->name().c_str(), (int)(tor->completion_.percent_done()*100));
-                        fclose(f);
-                    }
                     auto cb = std::move(tor->verify_done_callback_);
                     cb(tor);
                 }
@@ -2946,6 +2917,13 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
     // boundaries and are only comparable across two metainfos if both the piece size and
     // the file's byte offset within the torrent are identical, which is not guaranteed when
     // the publisher adds or removes other files. File size is the strongest practical signal.
+    //
+    // BEP 52 (BitTorrent v2) introduces a per-file merkle root hash (pieces root) that would
+    // allow exact file identity matching across versions regardless of path, size, or position.
+    // Transmission currently parses but discards pieces root (torrent-metainfo.cc: "currently
+    // unused"). Once v2 support matures, rename detection should be upgraded to compare
+    // pieces root values for files whose paths changed, falling back to this size heuristic
+    // for v1-only or hybrid torrents where pieces root is unavailable.
     if (!btpk_allow_renaming_)
     {
         // Collect sizes of files that vanished from old
@@ -2988,19 +2966,10 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
         auto* const tor = session->torrents().get(tor_id);
         if (tor == nullptr || tor->is_deleting_)
             return;
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-            fprintf(f, "btpk post-swap: setting callback and verifying\n");
-            fclose(f);
-        }
         // Set the callback from within the session thread so it is in place
         // before verify_add runs — no race with other session-thread lambdas.
         tor->verify_done_callback_ = [](tr_torrent* t)
         {
-            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                fprintf(f, "btpk verify_done_callback: pct=%d starting\n",
-                    (int)(t->completion_.percent_done() * 100));
-                fclose(f);
-            }
             t->start(true /*bypass_queue*/, {});
         };
         tr_torrentVerify(tor);

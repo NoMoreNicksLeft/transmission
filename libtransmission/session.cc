@@ -249,21 +249,10 @@ void tr_session::DhtMediator::add_pex(tr_sha1_digest_t const& info_hash, tr_pex 
 
 void tr_session::DhtMediator::on_bep44_item(dht_bep44_item const& item)
 {
-    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-    {
-        fprintf(f, "on_bep44_item seq=%lld mutable=%d subs=%zu\n",
-                (long long)item.seq, item.mutable_item, btpk_subscriptions_.size());
-        fclose(f);
-    }
     for (auto& [tor_id, resolver] : btpk_subscriptions_)
     {
         if (resolver.on_dht_item(item))
         {
-            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-            {
-                fprintf(f, "  accepted by tor_id=%d\n", (int)tor_id);
-                fclose(f);
-            }
             break;
         }
     }
@@ -274,12 +263,6 @@ void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
                                                     std::string_view salt)
 {
     // Diagnostic: write to a temp file so we can confirm this runs
-    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-    {
-        fprintf(f, "add_btpk_subscription tor_id=%d salt_len=%zu\n",
-                (int)tor_id, salt.size());
-        fclose(f);
-    }
     // Build the InfohashCallback: when the resolver fires with a new infohash,
     // look up the torrent and update it.
     auto cb = [this, tor_id](tr_sha1_digest_t const& new_hash, int64_t new_seq)
@@ -311,8 +294,8 @@ void tr_session::DhtMediator::add_btpk_subscription(tr_torrent_id_t tor_id,
     {
         using namespace std::chrono_literals;
         btpk_poll_timer_ = timer_maker().create([this]() { on_btpk_poll_timer(); });
-        auto const jitter_ms = tr_rand_int(10U * 1000U); // 0–10 sec jitter for testing
-        btpk_poll_timer_->start_repeating(2min + std::chrono::milliseconds{ jitter_ms });
+        auto const jitter_ms = tr_rand_int(10U * 1000U); // 0–10 sec jitter to avoid thundering herd
+        btpk_poll_timer_->start_repeating(60min + std::chrono::milliseconds{ jitter_ms });
     }
 }
 
@@ -327,23 +310,12 @@ void tr_session::DhtMediator::remove_btpk_subscription(tr_torrent_id_t tor_id)
 
 void tr_session::DhtMediator::on_btpk_poll_timer()
 {
-    if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-    {
-        fprintf(f, "on_btpk_poll_timer subs=%zu dht=%s\n",
-                btpk_subscriptions_.size(), session_.dht_ ? "yes" : "no");
-        fclose(f);
-    }
     if (!session_.dht_ || btpk_subscriptions_.empty())
     {
         return;
     }
     for (auto const& [tor_id, resolver] : btpk_subscriptions_)
     {
-        if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr)
-        {
-            fprintf(f, "  get_item tor_id=%d last_seq=%lld\n", (int)tor_id, (long long)resolver.last_seq());
-            fclose(f);
-        }
         session_.dht_->get_item(resolver.target().data(), resolver.last_seq());
     }
 }

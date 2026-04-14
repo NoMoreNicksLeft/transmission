@@ -1228,10 +1228,6 @@ public:
         }
         else
         {
-            if (auto* f = fopen("/tmp/btpk_debug.txt", "a"); f != nullptr) {
-                fprintf(f, "add_dht_hint_node: dht_ is NULL\n");
-                fclose(f);
-            }
         }
     }
 
