@@ -50,7 +50,7 @@
         <customView clipsToBounds="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2" userLabel="Options">
             <rect key="frame" x="0.0" y="0.0" width="375" height="298"/>
             <subviews>
-                <stackView distribution="fill" orientation="vertical" alignment="leading" horizontalStackHuggingPriority="750" verticalStackHuggingPriority="250" verticalHuggingPriority="1000" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KYq-Jm-g2s">
+                <stackView distribution="fill" orientation="vertical" alignment="leading" horizontalStackHuggingPriority="750" verticalStackHuggingPriority="250" verticalHuggingPriority="1000" detachesHiddenViews="NO" translatesAutoresizingMaskIntoConstraints="NO" id="KYq-Jm-g2s">
                     <rect key="frame" x="12" y="12" width="318" height="274"/>
                     <subviews>
                         <customView horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="2Ow-Hq-XLB">
@@ -631,6 +631,7 @@
                                 <constraint firstItem="btpk-fld-sto" firstAttribute="baseline" secondItem="btpk-lbl-sto" secondAttribute="baseline" id="btpk-c24"/>
                                 <constraint firstItem="btpk-lbl-stou" firstAttribute="leading" secondItem="btpk-fld-sto" secondAttribute="trailing" constant="4" id="btpk-c25"/>
                                 <constraint firstItem="btpk-lbl-stou" firstAttribute="baseline" secondItem="btpk-lbl-sto" secondAttribute="baseline" id="btpk-c26"/>
+
                             </constraints>
                         </customView>
                     </subviews>

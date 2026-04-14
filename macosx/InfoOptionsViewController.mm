@@ -76,12 +76,13 @@ static CGFloat const kStackViewSpacing = 8.0;
 - (void)awakeFromNib
 {
     [super awakeFromNib];
-    // Clip btpk subviews so hidden controls outside the frame don't intercept mouse events
     self.fBtpkView.wantsLayer = YES;
     self.fBtpkView.clipsToBounds = YES;
-    // Hide btpk section by default until a btpk torrent is selected
+    // Start with btpk section collapsed (height=0, hidden)
+    // until updateOptions is called with a btpk torrent selected
     self.fBtpkView.hidden = YES;
-    [self updateBtpkViewHeight];
+    if (self.fBtpkHeightConstraint)
+        self.fBtpkHeightConstraint.constant = 0.0;
     [self checkWindowSize];
 
     [self setGlobalLabels];
