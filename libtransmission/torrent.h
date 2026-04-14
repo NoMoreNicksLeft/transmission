@@ -1532,11 +1532,11 @@ private:
     int64_t btpk_seq_ = -1; // BEP 44 seq for last published mutable item
     int btpk_update_mode_ = 1; // 0=never, 1=when_offered, 2=always_versioned (default: when_offered)
     bool btpk_allow_additional_ = true;  // allow new files in update
-    bool btpk_allow_renaming_ = true;    // allow renamed files in update
-    bool btpk_allow_overwrites_ = false; // allow changed file content in update
-    bool btpk_allow_deletions_ = true;   // allow deleted files in update
-    int btpk_versions_to_keep_ = 3;      // versioned mode: number of old versions to keep
-    int btpk_max_storage_gb_ = 0;        // versioned mode: max storage in GB (0=unlimited)
+    bool btpk_allow_renaming_ = false;   // allow renamed files in update
+    bool btpk_allow_overwrites_ = true;  // allow changed file content in update
+    bool btpk_allow_deletions_ = false;  // allow deleted files in update
+    int btpk_versions_to_keep_ = 5;      // versioned mode: number of old versions to keep
+    int btpk_max_storage_gb_ = 10;       // versioned mode: max storage in GB (0=unlimited)
 
     // Pending btpk update detected by DHT resolver — new infohash and seq
     // waiting for the UI to accept/apply. Cleared after apply or dismiss.
