@@ -2880,6 +2880,94 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
         return false;
     }
 
+    // Enforce per-torrent allow flags by comparing old and new file lists.
+    // Build a map of path→size for both old and new metainfos (skipping padding).
+    auto const& old_files = metainfo_.files();
+    auto const& new_files = new_metainfo.files();
+
+    std::map<std::string, uint64_t> old_map;
+    for (tr_file_index_t i = 0, n = old_files.file_count(); i < n; ++i)
+        if (!old_files.file_is_padding(i))
+            old_map.emplace(old_files.path(i), old_files.file_size(i));
+
+    std::map<std::string, uint64_t> new_map;
+    for (tr_file_index_t i = 0, n = new_files.file_count(); i < n; ++i)
+        if (!new_files.file_is_padding(i))
+            new_map.emplace(new_files.path(i), new_files.file_size(i));
+
+    // Additional files: paths in new but not in old
+    if (!btpk_allow_additional_)
+    {
+        for (auto const& [path, size] : new_map)
+        {
+            if (old_map.find(path) == old_map.end())
+            {
+                tr_logAddWarnTor(this, fmt::format(
+                    "replace_btpk_metainfo: blocked — new file '{}' not allowed (allow_additional=false)", path));
+                return false;
+            }
+        }
+    }
+
+    // Deleted files: paths in old but not in new
+    if (!btpk_allow_deletions_)
+    {
+        for (auto const& [path, size] : old_map)
+        {
+            if (new_map.find(path) == new_map.end())
+            {
+                tr_logAddWarnTor(this, fmt::format(
+                    "replace_btpk_metainfo: blocked — deleted file '{}' not allowed (allow_deletions=false)", path));
+                return false;
+            }
+        }
+    }
+
+    // Overwrites: same path in both but different size
+    if (!btpk_allow_overwrites_)
+    {
+        for (auto const& [path, old_size] : old_map)
+        {
+            auto const it = new_map.find(path);
+            if (it != new_map.end() && it->second != old_size)
+            {
+                tr_logAddWarnTor(this, fmt::format(
+                    "replace_btpk_metainfo: blocked — file '{}' size changed {} → {} (allow_overwrites=false)",
+                    path, old_size, it->second));
+                return false;
+            }
+        }
+    }
+
+    // Renaming: detect by finding files where size matches an old file but path changed.
+    // We identify renames as: a path disappeared from old AND a new path appeared with the
+    // same file size. This is a heuristic — torrent metainfo carries no rename identity.
+    if (!btpk_allow_renaming_)
+    {
+        // Collect sizes of files that vanished from old
+        std::map<uint64_t, std::string> old_gone; // size → old_path (last one wins for dupes)
+        for (auto const& [path, size] : old_map)
+            if (new_map.find(path) == new_map.end())
+                old_gone[size] = path;
+
+        // Collect paths that appeared in new
+        for (auto const& [path, size] : new_map)
+        {
+            if (old_map.find(path) == old_map.end())
+            {
+                // New path — if its size matches something that vanished, treat as rename
+                auto const it = old_gone.find(size);
+                if (it != old_gone.end())
+                {
+                    tr_logAddWarnTor(this, fmt::format(
+                        "replace_btpk_metainfo: blocked — file renamed '{}' → '{}' (allow_renaming=false)",
+                        it->second, path));
+                    return false;
+                }
+            }
+        }
+    }
+
     metainfo_ = std::move(new_metainfo);
     on_metainfo_updated();
     on_announce_list_changed();
