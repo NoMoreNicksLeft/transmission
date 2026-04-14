@@ -2941,7 +2941,11 @@ bool tr_torrent::replace_btpk_metainfo(tr_torrent_metainfo new_metainfo)
 
     // Renaming: detect by finding files where size matches an old file but path changed.
     // We identify renames as: a path disappeared from old AND a new path appeared with the
-    // same file size. This is a heuristic — torrent metainfo carries no rename identity.
+    // same file size. This is the best available heuristic — torrent metainfo has no per-file
+    // identity token (no UUID, no content hash per file). Piece hashes exist but span file
+    // boundaries and are only comparable across two metainfos if both the piece size and
+    // the file's byte offset within the torrent are identical, which is not guaranteed when
+    // the publisher adds or removes other files. File size is the strongest practical signal.
     if (!btpk_allow_renaming_)
     {
         // Collect sizes of files that vanished from old
