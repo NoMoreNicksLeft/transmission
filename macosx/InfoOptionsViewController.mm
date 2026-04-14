@@ -98,8 +98,17 @@ static CGFloat const kStackViewSpacing = 8.0;
 
 - (CGFloat)fBtpkViewHeight
 {
-    // Include btpk section height only when visible
-    return self.fBtpkView.hidden ? 0.0 : NSHeight(self.fBtpkView.frame) + kStackViewSpacing;
+    if (self.fBtpkView.hidden)
+        return 0.0;
+    // Header (14) + gap (4) + popup row (20) = base 38px
+    CGFloat height = 38.0;
+    // WhenOffered: + 2 checkbox rows (16+4+16) = +36
+    if (!self.fBtpkAllowAdditionalCheck.hidden)
+        height += 36.0;
+    // Versioned: + versions/storage row (19+6) = +25
+    if (!self.fBtpkVersionsLabel.hidden)
+        height += 25.0;
+    return height + kStackViewSpacing;
 }
 
 - (CGFloat)fVertLayoutHeight
@@ -499,7 +508,7 @@ static CGFloat const kStackViewSpacing = 8.0;
         self.fBtpkModePopUp.enabled = YES;
 
         // Checkboxes — shown when mode != Never
-        BOOL const showChecks = !multiplesModes && btpkMode != BtpkUpdateModeNever;
+        BOOL const showChecks    = !multiplesModes && btpkMode == BtpkUpdateModeWhenOffered;
         BOOL const showVersioned = !multiplesModes && btpkMode == BtpkUpdateModeVersioned;
         self.fBtpkAllowAdditionalCheck.hidden = !showChecks;
         self.fBtpkAllowRenamingCheck.hidden   = !showChecks;
@@ -757,8 +766,9 @@ static CGFloat const kStackViewSpacing = 8.0;
     for (Torrent* torrent in self.fTorrents)
         if (torrent.hasBtpk)
             torrent.btpkUpdateMode = (BtpkUpdateMode)mode;
-    // Show/hide checkboxes and versioned fields based on new mode
+    // updateOptions sets checkbox/versioned visibility, then checkWindowSize resizes
     [self updateOptions];
+    [self checkWindowSize];
     [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
 }
 
