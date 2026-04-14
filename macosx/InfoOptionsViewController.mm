@@ -111,6 +111,19 @@ static CGFloat const kStackViewSpacing = 8.0;
     return height + kStackViewSpacing;
 }
 
+- (void)updateBtpkViewHeight
+{
+    // Set an explicit frame height on the btpk view so the stack view
+    // can calculate its layout correctly without a XIB height constraint.
+    if (!self.fBtpkView)
+        return;
+    CGFloat const h = self.fBtpkView.hidden ? 0.0 :
+        (self.fBtpkViewHeight - kStackViewSpacing);
+    NSRect frame = self.fBtpkView.frame;
+    frame.size.height = MAX(h, 0.0);
+    self.fBtpkView.frame = frame;
+}
+
 - (CGFloat)fVertLayoutHeight
 {
     return NSHeight(self.fPriorityView.frame) + NSHeight(self.fSeedingView.frame)
@@ -471,9 +484,6 @@ static CGFloat const kStackViewSpacing = 8.0;
     BOOL const hasBtpk = torrent.hasBtpk;
     BOOL const btpkWasHidden = self.fBtpkView.hidden;
     self.fBtpkView.hidden = !hasBtpk;
-    // If btpk visibility changed, resize the window to fit
-    if (btpkWasHidden != self.fBtpkView.hidden)
-        [self checkWindowSize];
     if (hasBtpk)
     {
         // Aggregate mode across selected torrents
@@ -542,6 +552,10 @@ static CGFloat const kStackViewSpacing = 8.0;
             else               self.fBtpkStorageField.stringValue = @"";
         }
     }
+    // Update btpk view frame height and resize window to fit
+    [self updateBtpkViewHeight];
+    if (btpkWasHidden != self.fBtpkView.hidden || hasBtpk)
+        [self checkWindowSize];
 }
 
 - (void)setUseSpeedLimit:(id)sender
@@ -766,8 +780,9 @@ static CGFloat const kStackViewSpacing = 8.0;
     for (Torrent* torrent in self.fTorrents)
         if (torrent.hasBtpk)
             torrent.btpkUpdateMode = (BtpkUpdateMode)mode;
-    // updateOptions sets checkbox/versioned visibility, then checkWindowSize resizes
+    // updateOptions sets checkbox/versioned visibility, then update frame + resize
     [self updateOptions];
+    [self updateBtpkViewHeight];
     [self checkWindowSize];
     [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
 }

@@ -40,6 +40,7 @@
 - (IBAction)setBtpkAllowDeletions:(id)sender;
 - (IBAction)setBtpkVersionsToKeep:(id)sender;
 - (IBAction)setBtpkMaxStorageGb:(id)sender;
+- (void)updateBtpkViewHeight;
 
 @property(nonatomic) IBOutlet NSView* fPriorityView;
 @property(nonatomic) IBOutlet NSView* fBtpkView;
