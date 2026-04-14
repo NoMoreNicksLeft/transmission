@@ -112,29 +112,20 @@ static CGFloat const kStackViewSpacing = 8.0;
     return NSWidth(self.fPriorityView.frame) + NSWidth(self.fSeedingView.frame) + (2 * kStackViewInset) + kStackViewSpacing;
 }
 
+// Fixed height of the btpk section at its tallest state (When Offered with checkboxes).
+// Other modes leave empty space at the bottom rather than resizing the window.
+static CGFloat const kBtpkViewHeight = 86.0;
+
 - (CGFloat)fBtpkViewHeight
 {
-    if (self.fBtpkView.hidden)
-        return 0.0;
-    // Header (14) + gap (2) + popup row (20) + gap below popup (8) = base 44px
-    CGFloat height = 44.0;
-    // WhenOffered: + 2 checkbox rows (16+4+16) + gap (6) = +42
-    if (!self.fBtpkAllowAdditionalCheck.hidden)
-        height += 42.0;
-    // Versioned: versions/storage row (19) + bottom padding (6) = +25
-    if (!self.fBtpkVersionsLabel.hidden)
-        height += 25.0;
-    return height + kStackViewSpacing;
+    return self.fBtpkView.hidden ? 0.0 : kBtpkViewHeight + kStackViewSpacing;
 }
 
 - (void)updateBtpkViewHeight
 {
     if (!self.fBtpkView || !self.fBtpkHeightConstraint)
         return;
-    CGFloat const h = self.fBtpkView.hidden ? 1.0
-        : MAX(self.fBtpkViewHeight - kStackViewSpacing, 1.0);
-    self.fBtpkHeightConstraint.constant = h;
-    [self.fBtpkView.superview layoutSubtreeIfNeeded];
+    self.fBtpkHeightConstraint.constant = self.fBtpkView.hidden ? 0.0 : kBtpkViewHeight;
 }
 
 - (CGFloat)fVertLayoutHeight
@@ -568,9 +559,9 @@ static CGFloat const kStackViewSpacing = 8.0;
             else               self.fBtpkStorageField.stringValue = @"";
         }
     }
-    // Update btpk view frame height and resize window to fit
     [self updateBtpkViewHeight];
-    if (btpkWasHidden != self.fBtpkView.hidden || hasBtpk)
+    // Only resize window when btpk section appears/disappears (torrent selection changes)
+    if (btpkWasHidden != self.fBtpkView.hidden)
         [self checkWindowSize];
 }
 
@@ -796,10 +787,7 @@ static CGFloat const kStackViewSpacing = 8.0;
     for (Torrent* torrent in self.fTorrents)
         if (torrent.hasBtpk)
             torrent.btpkUpdateMode = (BtpkUpdateMode)mode;
-    // updateOptions sets checkbox/versioned visibility, then update frame + resize
     [self updateOptions];
-    [self updateBtpkViewHeight];
-    [self checkWindowSize];
     [NSNotificationCenter.defaultCenter postNotificationName:@"UpdateOptionsNotification" object:self];
 }
 

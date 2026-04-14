@@ -610,7 +610,7 @@
                                 </textField>
                             </subviews>
                             <constraints>
-                                <constraint firstAttribute="height" constant="76" id="btpk-height"/>
+                                <constraint firstAttribute="height" constant="86" id="btpk-height"/>
                                 <constraint firstItem="btpk-hdr" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c1"/>
                                 <constraint firstItem="btpk-hdr" firstAttribute="top" secondItem="btpk-view-1" secondAttribute="top" id="btpk-c2"/>
                                 <constraint firstItem="btpk-mode-lbl" firstAttribute="leading" secondItem="btpk-view-1" secondAttribute="leading" id="btpk-c3"/>
