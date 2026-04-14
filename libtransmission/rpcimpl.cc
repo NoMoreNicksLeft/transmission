@@ -689,6 +689,8 @@ namespace make_torrent_field_helpers
     case TR_KEY_btpk_allow_deletions:
     case TR_KEY_btpk_versions_to_keep:
     case TR_KEY_btpk_max_storage_gb:
+    case TR_KEY_btpk_pending_seq:
+    case TR_KEY_btpk_apply_in_progress:
     case TR_KEY_comment:
     case TR_KEY_corrupt_ever:
     case TR_KEY_creator:
@@ -855,6 +857,10 @@ namespace make_torrent_field_helpers
         return int64_t{ tr_torrentBtpkVersionsToKeep(&tor) };
     case TR_KEY_btpk_max_storage_gb:
         return int64_t{ tr_torrentBtpkMaxStorageGb(&tor) };
+    case TR_KEY_btpk_pending_seq:
+        return tr_torrentPendingBtpkSeq(&tor);
+    case TR_KEY_btpk_apply_in_progress:
+        return tr_torrentBtpkApplyInProgress(&tor);
     case TR_KEY_is_stalled:
         return st.isStalled;
     case TR_KEY_labels:

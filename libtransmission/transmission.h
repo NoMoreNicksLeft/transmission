@@ -1422,6 +1422,10 @@ void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path);
 // Returns the pending btpk update seq (-1 if none pending).
 int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
 
+// Returns true if a btpk apply flow is in progress for this torrent
+// (i.e. a staging torrent is actively fetching the new version).
+bool tr_torrentBtpkApplyInProgress(tr_torrent const* tor);
+
 // Copies the pending btpk update infohash into buf (20 bytes). Returns false if none pending.
 bool tr_torrentPendingBtpkHash(tr_torrent const* tor, uint8_t* buf);
 

@@ -799,6 +799,11 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return (NSInteger)tr_torrentPendingBtpkSeq(self.fHandle);
 }
 
+- (BOOL)btpkApplyInProgress
+{
+    return tr_torrentBtpkApplyInProgress(self.fHandle);
+}
+
 - (BtpkUpdateMode)btpkUpdateMode
 {
     return (BtpkUpdateMode)tr_torrentBtpkUpdateMode(self.fHandle);
@@ -1438,6 +1443,12 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
 - (NSString*)statusString
 {
     NSString* string;
+
+    // btpk update fetch in progress — surface this regardless of normal activity
+    if (self.btpkApplyInProgress)
+    {
+        return [NSLocalizedString(@"Fetching update", "Torrent -> status string") stringByAppendingEllipsis];
+    }
 
     if (self.anyErrorOrWarning)
     {

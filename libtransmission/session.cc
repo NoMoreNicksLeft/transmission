@@ -2254,6 +2254,13 @@ void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path)
     session->setBtpkArchiveRoot(path);
 }
 
+bool tr_torrentBtpkApplyInProgress(tr_torrent const* tor)
+{
+    if (!tr_isTorrent(tor))
+        return false;
+    return tor->session->btpkApplyInProgressFor(tor->id());
+}
+
 std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session)
 {
     auto const sv = session->btpkArchiveRoot();

@@ -127,6 +127,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic) NSInteger btpkVersionsToKeep;
 @property(nonatomic) NSInteger btpkMaxStorageGb;
 @property(nonatomic, readonly) NSInteger pendingBtpkSeq;
+@property(nonatomic, readonly) BOOL btpkApplyInProgress;
 @property(nonatomic, readonly, nullable) NSString* btpkFingerprintString;
 
 /// Returns YES if the 96-byte private key in keyData has a matching public key

@@ -906,6 +906,14 @@ public:
     void setBtpkArchiveRoot(std::string_view path) { btpk_archive_root_ = path; }
     [[nodiscard]] std::string_view btpkArchiveRoot() const noexcept { return btpk_archive_root_; }
 
+    [[nodiscard]] bool btpkApplyInProgressFor(tr_torrent_id_t tor_id) const noexcept
+    {
+        for (auto const& [staging_id, orig_id] : btpk_staging_map_)
+            if (orig_id == tor_id)
+                return true;
+        return false;
+    }
+
     // Apply a pending btpk update for `tor`. Called from tr_torrentApplyBtpkUpdate().
     // Must be called on the session thread.
     bool applyBtpkUpdateInSessionThread(tr_torrent* tor);
