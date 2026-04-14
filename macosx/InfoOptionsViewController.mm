@@ -96,9 +96,16 @@ static CGFloat const kStackViewSpacing = 8.0;
     return NSWidth(self.fPriorityView.frame) + NSWidth(self.fSeedingView.frame) + (2 * kStackViewInset) + kStackViewSpacing;
 }
 
+- (CGFloat)fBtpkViewHeight
+{
+    // Include btpk section height only when visible
+    return self.fBtpkView.hidden ? 0.0 : NSHeight(self.fBtpkView.frame) + kStackViewSpacing;
+}
+
 - (CGFloat)fVertLayoutHeight
 {
-    return NSHeight(self.fPriorityView.frame) + NSHeight(self.fSeedingView.frame) + (2 * kStackViewInset) + kStackViewSpacing;
+    return NSHeight(self.fPriorityView.frame) + NSHeight(self.fSeedingView.frame)
+        + self.fBtpkViewHeight + (2 * kStackViewInset) + kStackViewSpacing;
 }
 
 - (CGFloat)fHeightChange
@@ -453,7 +460,11 @@ static CGFloat const kStackViewSpacing = 8.0;
     enumerator = [self.fTorrents objectEnumerator];
     torrent = [enumerator nextObject];
     BOOL const hasBtpk = torrent.hasBtpk;
+    BOOL const btpkWasHidden = self.fBtpkView.hidden;
     self.fBtpkView.hidden = !hasBtpk;
+    // If btpk visibility changed, resize the window to fit
+    if (btpkWasHidden != self.fBtpkView.hidden)
+        [self checkWindowSize];
     if (hasBtpk)
     {
         // Aggregate mode across selected torrents
