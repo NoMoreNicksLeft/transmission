@@ -456,7 +456,7 @@
                         </customView>
 
                         <!-- btpk update behavior section -->
-                        <customView horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-view-1">
+                        <customView horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="btpk-view-1" customClass="BtpkContainerView">
                             <rect key="frame" x="0.0" y="0.0" width="318" height="120"/>
                             <subviews>
                                 <!-- Section header -->

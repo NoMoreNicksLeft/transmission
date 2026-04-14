@@ -7,6 +7,17 @@
 #import "Torrent.h"
 #import "Utils.h"
 
+// NSView subclass that passes through mouse events when hidden,
+// so the btpk section never intercepts clicks on controls above it.
+@interface BtpkContainerView : NSView
+@end
+@implementation BtpkContainerView
+- (NSView*)hitTest:(NSPoint)point
+{
+    return self.hidden ? nil : [super hitTest:point];
+}
+@end
+
 typedef NS_ENUM(NSInteger, OptionPopupType) {
     OptionPopupTypeGlobal = 0,
     OptionPopupTypeNoLimit = 1,
@@ -76,10 +87,8 @@ static CGFloat const kStackViewSpacing = 8.0;
 - (void)awakeFromNib
 {
     [super awakeFromNib];
-    self.fBtpkView.wantsLayer = YES;
-    self.fBtpkView.clipsToBounds = YES;
-    // Start with btpk section collapsed (height=0, hidden)
-    // until updateOptions is called with a btpk torrent selected
+    // BtpkContainerView.hitTest: returns nil when hidden, so no mouse
+    // events are intercepted even if the view frame overlaps other controls.
     self.fBtpkView.hidden = YES;
     if (self.fBtpkHeightConstraint)
         self.fBtpkHeightConstraint.constant = 0.0;
