@@ -36,6 +36,7 @@
 #include "libtransmission/cache.h"
 #include "libtransmission/crypto-utils.h"
 #include "libtransmission/file.h"
+#include "libtransmission/error.h"
 #include "libtransmission/ip-cache.h"
 #include "libtransmission/interned-string.h"
 #include "libtransmission/log.h"
@@ -2239,6 +2240,247 @@ void tr_sessionSetBtpkUpdateCallback(tr_session* session, tr_btpk_update_func ca
 {
     session->setBtpkUpdateCallback(callback, user_data);
 }
+// ---------------------------------------------------------------------------
+// btpk apply flow — session-level implementation
+// ---------------------------------------------------------------------------
+
+void tr_sessionSetBtpkApplyDoneCallback(tr_session* session, tr_btpk_apply_done_func callback, void* user_data)
+{
+    session->setBtpkApplyDoneCallback(callback, user_data);
+}
+
+void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path)
+{
+    session->setBtpkArchiveRoot(path);
+}
+
+std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session)
+{
+    auto const sv = session->btpkArchiveRoot();
+    if (!sv.empty())
+        return std::string{ sv };
+    return session->configDir() + "/btpk-archive";
+}
+
+bool tr_torrentApplyBtpkUpdate(tr_torrent* tor)
+{
+    if (!tr_isTorrent(tor))
+        return false;
+
+    // Check a pending update exists before dispatching
+    uint8_t hash_check[20] = {};
+    if (!tr_torrentPendingBtpkHash(tor, hash_check))
+        return false;
+
+    auto* session = tor->session;
+    auto const tor_id = tor->id();
+    session->run_in_session_thread([session, tor_id]()
+    {
+        auto* t = session->torrents().get(tor_id);
+        if (t != nullptr)
+            session->applyBtpkUpdateInSessionThread(t);
+    });
+    return true;
+}
+
+bool tr_session::applyBtpkUpdateInSessionThread(tr_torrent* tor)
+{
+    TR_ASSERT(is_session_thread());
+
+    // 1. Verify a pending update exists
+    uint8_t pending_hash[20] = {};
+    if (!tr_torrentPendingBtpkHash(tor, pending_hash))
+    {
+        tr_logAddWarnTor(tor, "btpk apply: no pending update");
+        return false;
+    }
+
+    // 2. Dedup — skip if a staging torrent for this original is already running
+    for (auto const& [staging_id, orig_id] : btpk_staging_map_)
+    {
+        if (orig_id == tor->id())
+        {
+            tr_logAddDebugTor(tor, "btpk apply: staging download already in progress");
+            return false;
+        }
+    }
+
+    // 3. Archive old content:
+    //    <download_dir>/<name> → <archive_root>/<name>/seq-<N>/<name>
+    auto const tor_name = std::string{ tor->name() };
+    auto const current_dir = std::string{ tor->current_dir() };
+    auto const content_path = current_dir + "/" + tor_name;
+    int64_t const current_seq = tr_torrentBtpkSeq(tor);
+
+    if (!content_path.empty() && current_seq >= 0 && tr_sys_path_exists(content_path))
+    {
+        auto const archive_root = tr_sessionGetBtpkArchiveRoot(this);
+        auto const archive_dir = archive_root + "/" + tor_name
+            + "/seq-" + std::to_string(current_seq);
+
+        tr_error mkdir_err;
+        tr_sys_dir_create(archive_dir, TR_SYS_DIR_CREATE_PARENTS, 0777, &mkdir_err);
+
+        auto const archive_dest = archive_dir + "/" + tor_name;
+        tr_error move_err;
+        if (!tr_sys_path_rename(content_path, archive_dest, &move_err))
+        {
+            tr_logAddWarnTor(tor, fmt::format(
+                "btpk apply: archive move failed: {}", move_err.message()));
+            // Non-fatal — continue with the download
+        }
+        else
+        {
+            tr_logAddDebugTor(tor, fmt::format(
+                "btpk apply: archived old content to {}", archive_dest));
+        }
+    }
+
+    // 4. Build magnet URI from the pending infohash
+    char hex[41] = {};
+    for (int i = 0; i < 20; ++i)
+    {
+        hex[i * 2]     = "0123456789abcdef"[pending_hash[i] >> 4];
+        hex[i * 2 + 1] = "0123456789abcdef"[pending_hash[i] & 0xf];
+    }
+    hex[40] = ' ';
+    auto const magnet = std::string{ "magnet:?xt=urn:btih:" } + hex;
+
+    // 5. Create the staging torrent in the same download directory
+    auto ctor = std::make_unique<tr_ctor>(this);
+    tr_error magnet_err;
+    if (!ctor->set_metainfo_from_magnet_link(magnet, &magnet_err))
+    {
+        tr_logAddWarnTor(tor, fmt::format(
+            "btpk apply: bad magnet URI: {}", magnet_err.message()));
+        return false;
+    }
+    ctor->set_download_dir(TR_FORCE, current_dir);
+    ctor->set_paused(TR_FORCE, false);
+
+    tr_torrent* staging = tr_torrentNew(ctor.get(), nullptr);
+    if (staging == nullptr)
+    {
+        tr_logAddWarnTor(tor, "btpk apply: failed to create staging torrent");
+        return false;
+    }
+
+    // 6. Copy btpk_pub + salt from original into staging so that set_metainfo
+    //    (called by BEP 9 after metadata arrives) can patch them into the .torrent file
+    {
+        uint8_t pub_key[32] = {};
+        char salt_buf[256] = {};
+        if (tr_torrentBtpkGetPublicKey(tor, pub_key))
+        {
+            size_t const salt_len = tr_torrentBtpkGetSalt(tor, salt_buf, sizeof(salt_buf));
+            tr_torrentSetBtpkFromResume(staging, pub_key, salt_buf, salt_len);
+        }
+    }
+
+    // 7. Register staging→original mapping and start
+    btpk_staging_map_[staging->id()] = tor->id();
+    tr_logAddDebugTor(tor, fmt::format(
+        "btpk apply: staging torrent {} started for hash {}", staging->id(), hex));
+    return true;
+}
+
+void tr_session::onTorrentCompletedMaybeBtpkStaging(tr_torrent* completed_tor)
+{
+    TR_ASSERT(is_session_thread());
+
+    auto const it = btpk_staging_map_.find(completed_tor->id());
+    if (it == btpk_staging_map_.end())
+        return; // not a staging torrent
+
+    auto const orig_id = it->second;
+    btpk_staging_map_.erase(it);
+
+    tr_torrent* original_tor = torrents().get(orig_id);
+    if (original_tor == nullptr)
+    {
+        tr_logAddWarn("btpk staging: original torrent gone, discarding staging torrent");
+        tr_torrentRemove(completed_tor, false, nullptr, nullptr);
+        return;
+    }
+
+    // If staging still has no metainfo (0-byte magnet completion), re-register and wait
+    if (!completed_tor->has_metainfo())
+    {
+        btpk_staging_map_[completed_tor->id()] = orig_id;
+        return;
+    }
+
+    // Read the staging torrent's .torrent file written by BEP 9
+    auto staging_benc = std::vector<char>{};
+    auto const staging_file = tr_torrentFilename(completed_tor);
+    {
+        tr_error read_err;
+        if (!tr_file_read(staging_file, staging_benc, &read_err))
+        {
+            tr_logAddWarnTor(original_tor, fmt::format(
+                "btpk swap: cannot read staging torrent file {}: {}",
+                staging_file, read_err.message()));
+            tr_torrentRemove(completed_tor, false, nullptr, nullptr);
+            onBtpkApplyDone(original_tor, false);
+            return;
+        }
+    }
+
+    // Parse new metainfo and verify infohash matches what DHT advertised
+    auto new_metainfo = tr_torrent_metainfo{};
+    if (!new_metainfo.parse_benc({ staging_benc.data(), staging_benc.size() }))
+    {
+        tr_logAddWarnTor(original_tor, "btpk swap: failed to parse staging metainfo");
+        tr_torrentRemove(completed_tor, false, nullptr, nullptr);
+        onBtpkApplyDone(original_tor, false);
+        return;
+    }
+
+    uint8_t pending_hash[20] = {};
+    if (tr_torrentPendingBtpkHash(original_tor, pending_hash))
+    {
+        auto const& new_hash = new_metainfo.info_hash();
+        if (memcmp(new_hash.data(), pending_hash, 20) != 0)
+        {
+            tr_logAddWarnTor(original_tor, "btpk swap: infohash mismatch");
+            tr_torrentRemove(completed_tor, false, nullptr, nullptr);
+            onBtpkApplyDone(original_tor, false);
+            return;
+        }
+    }
+
+    // BEP 9 only transfers the info dict — inject btpk_pub + salt if absent
+    if (!new_metainfo.has_btpk())
+    {
+        uint8_t pub_key[32] = {};
+        char salt_buf[256] = {};
+        if (tr_torrentBtpkGetPublicKey(original_tor, pub_key))
+        {
+            size_t const salt_len = tr_torrentBtpkGetSalt(
+                original_tor, salt_buf, sizeof(salt_buf));
+            tr_magnet_metainfo::BtpkKey key_arr;
+            std::copy(pub_key, pub_key + 32, key_arr.begin());
+            new_metainfo.set_btpk(key_arr, std::string_view{ salt_buf, salt_len });
+        }
+    }
+
+    // Prevent staging cleanup from deleting the .torrent file
+    // (it now belongs to the updated original torrent after the swap)
+    tr_torrentSkipTorrentFileDelete(completed_tor);
+
+    // Perform the metainfo swap
+    bool const success = tr_torrentReplaceBtpkMetainfo(
+        original_tor, std::move(new_metainfo));
+
+    tr_logAddDebugTor(original_tor, fmt::format(
+        "btpk swap: {}", success ? "succeeded" : "failed"));
+
+    // Remove staging torrent silently (no .torrent deletion, no data deletion)
+    tr_torrentRemove(completed_tor, false, nullptr, nullptr);
+
+    onBtpkApplyDone(original_tor, success);
+}
+
 
 void tr_sessionSetCompletenessCallback(tr_session* session, tr_torrent_completeness_func callback, void* user_data)
 {

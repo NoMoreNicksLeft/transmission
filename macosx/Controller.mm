@@ -327,7 +327,6 @@ static void removeKeRangerRansomware()
 @property(nonatomic) NSMutableSet<Torrent*>* fAddingTransfers;
 
 // btpk staging: maps staging torrent hashString → original Torrent*
-@property(nonatomic) NSMutableDictionary<NSString*, Torrent*>* fBtpkStagingTorrents;
 
 @property(nonatomic) NSMutableSet<NSWindowController*>* fAddWindows;
 @property(nonatomic) URLSheetWindowController* fUrlSheetController;
@@ -337,7 +336,6 @@ static void removeKeRangerRansomware()
 @property(nonatomic) BOOL fSoundPlaying;
 
 - (void)removeTorrentsImpl:(NSArray<Torrent*>*)torrents deleteData:(BOOL)deleteData;
-- (void)applyBtpkUpdateForTorrent:(Torrent*)torrent;
 
 @end
 
@@ -435,6 +433,34 @@ void onBtpkUpdateAvailable(tr_session* /*session*/, tr_torrent* tor, int64_t new
         if (torrent)
         {
             [controller btpkUpdateAvailable:torrent newSeq:seq];
+        }
+    });
+}
+
+void onBtpkApplyDone(tr_session* /*session*/, tr_torrent* tor, bool success, void* vself)
+{
+    auto* const controller = (__bridge Controller*)(vself);
+    auto const hashstr = @(tr_torrentView(tor).hash_string);
+    auto const succeeded = success;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [controller fullUpdateUI];
+        if (!succeeded)
+        {
+            NSAlert* alert = [NSAlert new];
+            alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
+            alert.informativeText = NSLocalizedString(
+                @"The downloaded content did not match the expected version. The update was not applied.",
+                "btpk apply error body");
+            [alert runModal];
+        }
+        else
+        {
+            // Refresh the inspector Files tab for the updated torrent
+            auto* const torrent = [controller torrentForHash:hashstr];
+            if (torrent)
+                [NSNotificationCenter.defaultCenter postNotificationName:@"BtpkMetainfoSwapped"
+                                                                  object:torrent];
         }
     });
 }
@@ -594,6 +620,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         tr_sessionSetMetadataCallback(_fLib, onMetadataCompleted, (__bridge void*)(self));
         tr_sessionSetCompletenessCallback(_fLib, onTorrentCompletenessChanged, (__bridge void*)(self));
         tr_sessionSetBtpkUpdateCallback(_fLib, onBtpkUpdateAvailable, (__bridge void*)(self));
+        tr_sessionSetBtpkApplyDoneCallback(_fLib, onBtpkApplyDone, (__bridge void*)(self));
 
         NSApp.delegate = self;
 
@@ -2304,14 +2331,8 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         }
 
     case BtpkUpdateModeVersioned:
-        // Automatically apply the update. The archive step is a no-op until
-        // the archive flow is implemented; for now we apply immediately.
-        [torrent applyPendingBtpkUpdateWithCompletionHandler:^(BOOL success) {
-            if (!success)
-            {
-                tr_logAddInfo(fmt::format("btpk auto-update failed for torrent {}", torrent.hashString.UTF8String).c_str());
-            }
-        }];
+        // Automatically apply the update via libtransmission apply flow.
+        [torrent applyBtpkUpdate];
         break;
     }
 }
@@ -2334,97 +2355,18 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
 - (void)applyBtpkUpdateForTorrent:(Torrent*)torrent
 {
-    NSString* magnetURI = torrent.magnetURIForPendingBtpkUpdate;
-    if (!magnetURI)
+    // Archive, staging torrent creation, BEP 9 fetch, and swap
+    // are all handled by libtransmission. The apply-done callback
+    // (onBtpkApplyDone) handles UI refresh and error alerts.
+    if (![torrent applyBtpkUpdate])
     {
-        NSLog(@"btpk apply: no pending update for torrent %@", torrent.name);
-        return;
-    }
-
-    // Check for existing staging torrent for this update
-    if (self.fBtpkStagingTorrents)
-    {
-        for (NSString* hash in self.fBtpkStagingTorrents)
-        {
-            if (self.fBtpkStagingTorrents[hash] == torrent)
-            {
-                NSLog(@"btpk apply: staging download already in progress for %@", torrent.name);
-                return;
-            }
-        }
-    }
-
-    // Archive old content BEFORE starting the staging download so the
-    // staging torrent downloads into a clean directory.
-    // Archive path: btpkArchiveRoot/<name>/seq-<currentSeq>/<name>/
-    {
-        NSString* contentPath = torrent.dataLocation;
-        NSInteger const currentSeq = torrent.btpkSeq;
-        if (contentPath && currentSeq >= 0)
-        {
-            NSInteger const currentSeq = torrent.btpkSeq;
-            NSString* appSupport = [NSSearchPathForDirectoriesInDomains(
-                NSApplicationSupportDirectory, NSUserDomainMask, YES) firstObject];
-            NSString* archiveRoot = [[NSUserDefaults.standardUserDefaults stringForKey:@"BtpkArchiveRoot"] ?: 
-                [NSHomeDirectory() stringByAppendingPathComponent:@".transmission/archive"]
-                stringByExpandingTildeInPath];
-            NSString* archiveDir = [[archiveRoot
-                stringByAppendingPathComponent:torrent.name]
-                stringByAppendingPathComponent:[NSString stringWithFormat:@"seq-%ld", (long)currentSeq]];
-            NSError* mkdirErr = nil;
-            [NSFileManager.defaultManager createDirectoryAtPath:archiveDir
-                                    withIntermediateDirectories:YES attributes:nil error:&mkdirErr];
-            if (!mkdirErr)
-            {
-                NSError* moveErr = nil;
-                NSString* dest = [archiveDir stringByAppendingPathComponent:torrent.name];
-                [NSFileManager.defaultManager moveItemAtPath:contentPath toPath:dest error:&moveErr];
-                if (moveErr)
-                    NSLog(@"btpk apply: archive move failed: %@", moveErr);
-                else
-                    NSLog(@"btpk apply: archived old content to %@", dest);
-            }
-        }
-    }
-
-    // Create the staging torrent pointing to the same download directory
-    // (now clean after archive move above)
-    NSString* downloadDir = torrent.currentDirectory;
-    Torrent* stagingTorrent = [[Torrent alloc] initWithMagnetAddress:magnetURI
-                                                            location:downloadDir
-                                                                 lib:self.fLib];
-    if (!stagingTorrent)
-    {
-        NSLog(@"btpk apply: failed to create staging torrent from magnet %@", magnetURI);
         NSAlert* alert = [NSAlert new];
         alert.messageText = NSLocalizedString(@"Update could not be started", "btpk apply start error title");
         alert.informativeText = NSLocalizedString(
-            @"Could not create download for the new version. The magnet link may be invalid.",
+            @"No pending update was found for this torrent.",
             "btpk apply start error body");
         [alert runModal];
-        return;
     }
-
-    // Copy btpk_pub from the original torrent into the staging torrent so
-    // set_metainfo (called after BEP 9 completes) can patch it into the .torrent file.
-    [stagingTorrent setBtpkKeyFromTorrent:torrent];
-
-    // Register the staging torrent→original mapping
-    if (!self.fBtpkStagingTorrents)
-        self.fBtpkStagingTorrents = [NSMutableDictionary dictionary];
-    self.fBtpkStagingTorrents[stagingTorrent.hashString] = torrent;
-
-    // Add to torrents list and start
-    stagingTorrent.queuePosition = self.fTorrents.count;
-    [stagingTorrent update];
-    [self.fTorrents addObject:stagingTorrent];
-    if (!self.fAddingTransfers)
-        self.fAddingTransfers = [[NSMutableSet alloc] init];
-    [self.fAddingTransfers addObject:stagingTorrent];
-    [stagingTorrent startTransfer];
-
-    [self fullUpdateUI];
-    NSLog(@"btpk apply: started staging download for %@ hash=%@", torrent.name, stagingTorrent.hashString);
 }
 
 - (void)revealFile:(id)sender
@@ -2832,55 +2774,10 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 {
     Torrent* torrent = notification.object;
 
-    // Check if this is a btpk staging torrent
-    if (self.fBtpkStagingTorrents)
-    {
-        Torrent* originalTorrent = self.fBtpkStagingTorrents[torrent.hashString];
-        if (originalTorrent)
-        {
-            // If staging torrent is still a magnet (no metadata yet), it fires
-            // TorrentFinishedDownloading because it has 0 bytes — ignore and wait.
-            if (torrent.magnet)
-            {
-                NSLog(@"btpk staging: TorrentFinishedDownloading before metadata, ignoring");
-                return;
-            }
-
-            [self.fBtpkStagingTorrents removeObjectForKey:torrent.hashString];
-
-            // Mark as being removed and pull from fTorrents NOW — synchronously —
-            // so the UI timer cannot access the staging torrent's C++ handle.
-            torrent.beingRemoved = YES;
-            [self.fTorrents removeObject:torrent];
-
-            // Perform the metainfo swap synchronously (no UI access inside).
-            [originalTorrent performBtpkSwapFromStagingTorrent:torrent withBencData:nil completionHandler:^(BOOL success, NSData* bencData) {
-                BOOL const swapSucceeded = success;
-                // Defer full cleanup + UI refresh to next run loop so the
-                // notification/completeness call stack fully unwinds first.
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    // Tell the session thread NOT to delete the .torrent file
-                    // when cleaning up the staging torrent — the file now belongs
-                    // to the updated original torrent (same hash after swap).
-                    [torrent skipTorrentFileDeleteOnRemoval];
-                    [torrent closeRemoveTorrent:NO];
-
-                    [self fullUpdateUI];
-                    if (!swapSucceeded)
-                    {
-                        NSAlert* alert = [NSAlert new];
-                        alert.messageText = NSLocalizedString(@"Update could not be applied", "btpk apply error title");
-                        alert.informativeText = NSLocalizedString(
-                            @"The downloaded content did not match the expected version. The update was not applied.",
-                            "btpk apply error body");
-                        [alert runModal];
-                    }
-                });
-            }];
-            return; // skip normal download-complete notification for staging torrents
-        }
-
-    }
+    // btpk staging torrent completion is now handled entirely by libtransmission
+    // (tr_session::onTorrentCompletedMaybeBtpkStaging). The session detects staging
+    // torrents via its btpk_staging_map_ and performs the swap + fires onBtpkApplyDone.
+    // Nothing to do here for staging torrents.
     if ([notification.userInfo[@"WasRunning"] boolValue])
     {
         if (!self.fSoundPlaying && [self.fDefaults boolForKey:@"PlayDownloadSound"])

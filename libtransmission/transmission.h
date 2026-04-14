@@ -1399,6 +1399,26 @@ using tr_btpk_update_func = void (*)(tr_session* session, tr_torrent* torrent, i
 // Register a callback to be invoked when a btpk update is detected.
 void tr_sessionSetBtpkUpdateCallback(tr_session* session, tr_btpk_update_func callback, void* user_data);
 
+// Callback fired (on the main/client thread) when a btpk apply flow completes.
+// `tor` is the original (updated) torrent. `success` is true if the swap was applied.
+// On failure the original torrent is unchanged and old content is still in place.
+using tr_btpk_apply_done_func = void (*)(tr_session* session, tr_torrent* torrent, bool success, void* user_data);
+
+// Register a callback to be invoked when a btpk apply flow completes.
+void tr_sessionSetBtpkApplyDoneCallback(tr_session* session, tr_btpk_apply_done_func callback, void* user_data);
+
+// Begin the btpk apply flow for `tor`:
+//   1. Move existing content to the archive directory.
+//   2. Add a staging torrent to fetch the new content via BEP 9.
+//   3. On completion, swap the metainfo and fire the apply-done callback.
+// Safe to call from any thread. Returns false if no pending update exists.
+bool tr_torrentApplyBtpkUpdate(tr_torrent* tor);
+
+// Archive root directory for btpk old-version storage.
+// Defaults to ~/.config/transmission/btpk-archive (or platform equivalent).
+void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path);
+[[nodiscard]] std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session);
+
 // Returns the pending btpk update seq (-1 if none pending).
 int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
 

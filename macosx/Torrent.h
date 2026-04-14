@@ -135,17 +135,10 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 
 /// Re-hash the current content folder, sign the new infohash with the private
 /// key in keyData, publish via DHT, and call the handler with the new btpk:
-/// magnet URI (or an error). The key bytes are zeroed inside before returning.
-- (void)applyPendingBtpkUpdateWithCompletionHandler:(void (^)(BOOL success))handler;
-- (NSString*)magnetURIForPendingBtpkUpdate;
-- (void)performBtpkSwapFromStagingTorrent:(Torrent*)stagingTorrent
-                              withBencData:(NSData* _Nullable)unusedBencData
-                        completionHandler:(void (^)(BOOL success, NSData* _Nullable bencData))handler;
 - (void)clearPendingBtpkUpdate;
-- (BOOL)saveTorrentFileFromBencData:(NSData*)data;
 - (void)skipTorrentFileDeleteOnRemoval;
-- (void)setBtpkKeyFromTorrent:(Torrent*)sourceTorrent;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
+- (BOOL)applyBtpkUpdate;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;

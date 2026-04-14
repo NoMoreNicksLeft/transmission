@@ -891,6 +891,29 @@ public:
         btpk_update_user_data_ = user_data;
     }
 
+    constexpr void setBtpkApplyDoneCallback(tr_btpk_apply_done_func cb, void* user_data)
+    {
+        btpk_apply_done_cb_ = cb;
+        btpk_apply_done_user_data_ = user_data;
+    }
+
+    void onBtpkApplyDone(tr_torrent* tor, bool success)
+    {
+        if (btpk_apply_done_cb_ != nullptr)
+            btpk_apply_done_cb_(this, tor, success, btpk_apply_done_user_data_);
+    }
+
+    void setBtpkArchiveRoot(std::string_view path) { btpk_archive_root_ = path; }
+    [[nodiscard]] std::string_view btpkArchiveRoot() const noexcept { return btpk_archive_root_; }
+
+    // Apply a pending btpk update for `tor`. Called from tr_torrentApplyBtpkUpdate().
+    // Must be called on the session thread.
+    bool applyBtpkUpdateInSessionThread(tr_torrent* tor);
+
+    // Called when a staging torrent completes (from torrent completeness callback).
+    // Checks whether `completed_tor` is a btpk staging torrent and if so performs the swap.
+    void onTorrentCompletedMaybeBtpkStaging(tr_torrent* completed_tor);
+
     void onBtpkUpdateAvailable(tr_torrent* tor, int64_t new_seq)
     {
         if (btpk_update_cb_ != nullptr)
@@ -907,6 +930,10 @@ public:
 
     void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness completeness, bool was_running)
     {
+        // Check if this is a btpk staging torrent completing its download
+        if (completeness == TR_SEED || completeness == TR_PARTIAL_SEED)
+            onTorrentCompletedMaybeBtpkStaging(tor);
+
         if (completeness_func_ != nullptr)
         {
             completeness_func_(tor, completeness, was_running, completeness_func_user_data_);
@@ -1402,6 +1429,17 @@ private:
 
     tr_btpk_update_func btpk_update_cb_ = nullptr;
     void* btpk_update_user_data_ = nullptr;
+
+    tr_btpk_apply_done_func btpk_apply_done_cb_ = nullptr;
+    void* btpk_apply_done_user_data_ = nullptr;
+
+    // Archive root for old btpk content versions.
+    // Defaults to <config_dir>/btpk-archive when empty.
+    std::string btpk_archive_root_;
+
+    // Maps staging torrent id → original torrent id.
+    // Entries are added when a staging torrent is created and removed after swap.
+    std::map<tr_torrent_id_t, tr_torrent_id_t> btpk_staging_map_;
 
     tr_torrent_completeness_func completeness_func_ = nullptr;
     void* completeness_func_user_data_ = nullptr;
