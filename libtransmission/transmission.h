@@ -1423,6 +1423,9 @@ bool tr_torrentApplyBtpkUpdate(tr_torrent* tor);
 void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path);
 [[nodiscard]] std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session);
 
+/** @brief Get the btpk archive root path for a torrent's session. */
+[[nodiscard]] std::string tr_torrentGetBtpkArchiveRoot(tr_torrent const* tor);
+
 // Returns the pending btpk update seq (-1 if none pending).
 int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
 

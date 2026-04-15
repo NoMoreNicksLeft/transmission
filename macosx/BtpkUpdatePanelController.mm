@@ -8,7 +8,7 @@
 
 #include "libtransmission/btpk-utils.h"
 
-@interface BtpkUpdatePanelController ()<NSControlTextEditingDelegate>
+@interface BtpkUpdatePanelController ()<NSControlTextEditingDelegate, NSWindowDelegate>
 
 // Identity display
 @property(nonatomic, weak) IBOutlet NSTextField* fNameField;
@@ -26,6 +26,7 @@
 @property(nonatomic, weak) IBOutlet NSButton* fCancelButton;
 
 @property(nonatomic) Torrent* fTorrent;
+@property(nonatomic, copy) NSString* fArchivePath; // set when content is archived on panel open
 
 @end
 
@@ -42,6 +43,7 @@
     // Force window load, then configure as floating panel
     NSPanel* panel = (NSPanel*)controller.window;
     panel.floatingPanel = YES;
+    panel.delegate = controller;
     panel.becomesKeyOnlyIfNeeded = YES;
     [panel setLevel:NSFloatingWindowLevel];
 
@@ -59,6 +61,12 @@
         panelFrame.origin.y = NSMaxY(screenRect) - NSHeight(panelFrame) - 20.0;
         [panel setFrame:panelFrame display:NO];
     }
+
+    // Archive current content to ~/.transmission/archive/ BEFORE the user
+    // modifies files. This preserves the original files for seeding the
+    // previous version. The download folder gets symlinks to the archived
+    // copies, so the user sees no difference until they modify files.
+    controller.fArchivePath = [torrent archiveBtpkContentForPublishing];
 
     [panel orderFront:nil];
     return controller;
@@ -146,7 +154,10 @@
                 // Re-add the old version as a separate torrent entry
                 if (continueSeedingOld && oldTorrentData.length > 0)
                 {
-                    [self readdOldTorrentFromData:oldTorrentData downloadDir:downloadDir];
+                    // Use archive path as download dir for the old torrent —
+                    // all original files are there, complete and read-only.
+                    NSString* seedDir = self.fArchivePath ?: downloadDir;
+                    [self readdOldTorrentFromData:oldTorrentData downloadDir:seedDir];
                 }
 
                 if (newMagnetLink)
@@ -154,6 +165,7 @@
                     [NSPasteboard.generalPasteboard clearContents];
                     [NSPasteboard.generalPasteboard setString:newMagnetLink forType:NSPasteboardTypeString];
                 }
+                self.fArchivePath = nil; // publish succeeded — don't undo archive on close
                 NSAlert* alert = [[NSAlert alloc] init];
                 alert.messageText = NSLocalizedString(@"Update published.", "btpk update -> success title");
                 NSString* body = NSLocalizedString(@"The magnet link has been copied to the clipboard.", "btpk update -> success body");
@@ -186,7 +198,25 @@
 
 - (IBAction)cancelUpdate:(id)sender
 {
+    // Undo the archive — move files back from archive to download folder
+    if (self.fArchivePath)
+    {
+        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath];
+        self.fArchivePath = nil;
+    }
     [self.window close];
+}
+
+#pragma mark - NSWindowDelegate
+
+- (void)windowWillClose:(NSNotification*)notification
+{
+    // If the archive hasn't been consumed by a successful publish, undo it
+    if (self.fArchivePath)
+    {
+        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath];
+        self.fArchivePath = nil;
+    }
 }
 
 #pragma mark - NSControlTextEditingDelegate

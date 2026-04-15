@@ -2274,6 +2274,13 @@ std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session)
     return session->configDir() + "/archive";
 }
 
+std::string tr_torrentGetBtpkArchiveRoot(tr_torrent const* tor)
+{
+    if (tor == nullptr || tor->session == nullptr)
+        return {};
+    return tr_sessionGetBtpkArchiveRoot(tor->session);
+}
+
 bool tr_torrentApplyBtpkUpdate(tr_torrent* tor)
 {
     if (!tr_isTorrent(tor))

@@ -886,6 +886,160 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return tr_torrentApplyBtpkUpdate(self.fHandle);
 }
 
+
+// ---------------------------------------------------------------------------
+// Publisher-side archive: move content to archive before user modifies files
+// ---------------------------------------------------------------------------
+- (nullable NSString*)archiveBtpkContentForPublishing
+{
+    if (!self.hasBtpk)
+        return nil;
+
+    NSString* downloadDir = self.currentDirectory;
+    NSString* torrentName = self.name;
+    NSString* contentPath = [downloadDir stringByAppendingPathComponent:torrentName];
+
+    NSFileManager* fm = NSFileManager.defaultManager;
+    if (![fm fileExistsAtPath:contentPath])
+        return nil;
+
+    // Get archive root from session
+    auto archiveRoot = tr_torrentGetBtpkArchiveRoot(self.fHandle);
+    NSInteger seq = self.btpkSeq;
+    if (seq < 0) seq = 0;
+
+    NSString* archiveDir = [NSString stringWithFormat:@"%s/%@/seq-%ld",
+        archiveRoot.c_str(), torrentName, (long)seq];
+
+    NSError* error = nil;
+    if (![fm createDirectoryAtPath:archiveDir withIntermediateDirectories:YES attributes:nil error:&error])
+    {
+        NSLog(@"btpk archive: failed to create archive dir: %@", error);
+        return nil;
+    }
+
+    // Get the flat file list from the torrent metainfo
+    NSArray<FileListNode*>* files = self.flatFileList;
+    NSUInteger moved = 0;
+    NSUInteger symlinked = 0;
+
+    for (FileListNode* node in files)
+    {
+        if (node.isFolder)
+            continue;
+
+        // Build relative path from the torrent root
+        NSString* relPath;
+        if (node.path.length > 0)
+            relPath = [node.path stringByAppendingPathComponent:node.name];
+        else
+            relPath = node.name;
+
+        NSString* srcPath = [downloadDir stringByAppendingPathComponent:relPath];
+        NSString* destPath = [archiveDir stringByAppendingPathComponent:relPath];
+
+        // Create parent dirs in archive
+        NSString* destParent = [destPath stringByDeletingLastPathComponent];
+        [fm createDirectoryAtPath:destParent withIntermediateDirectories:YES attributes:nil error:nil];
+
+        // Resolve symlinks in source
+        NSString* realSrc = srcPath;
+        NSDictionary* srcAttrs = [fm attributesOfItemAtPath:srcPath error:nil];
+        if ([srcAttrs[NSFileType] isEqualToString:NSFileTypeSymbolicLink])
+        {
+            NSString* resolved = [fm destinationOfSymbolicLinkAtPath:srcPath error:nil];
+            if (resolved)
+                realSrc = resolved;
+        }
+
+        // Move real file to archive
+        if (![fm moveItemAtPath:realSrc toPath:destPath error:&error])
+        {
+            NSLog(@"btpk archive: move failed %@ -> %@: %@", realSrc, destPath, error);
+            continue;
+        }
+        ++moved;
+
+        // If source was a symlink (different from real path), remove the stale symlink
+        if (![realSrc isEqualToString:srcPath])
+        {
+            [fm removeItemAtPath:srcPath error:nil];
+        }
+
+        // Mark archived file read-only to prevent write-through-symlink corruption
+        [fm setAttributes:@{NSFilePosixPermissions: @(0444)} ofItemAtPath:destPath error:nil];
+
+        // Create symlink in download folder pointing to archive
+        if ([fm createSymbolicLinkAtPath:srcPath withDestinationPath:destPath error:&error])
+        {
+            ++symlinked;
+        }
+        else
+        {
+            NSLog(@"btpk archive: symlink failed %@ -> %@: %@", srcPath, destPath, error);
+        }
+    }
+
+    NSLog(@"btpk archive: moved %lu files, symlinked %lu, archive=%@",
+        (unsigned long)moved, (unsigned long)symlinked, archiveDir);
+    return archiveDir;
+}
+
+- (void)undoArchiveBtpkContent:(NSString*)archivePath
+{
+    if (!archivePath)
+        return;
+
+    NSFileManager* fm = NSFileManager.defaultManager;
+    NSString* downloadDir = self.currentDirectory;
+    NSArray<FileListNode*>* files = self.flatFileList;
+    NSUInteger restored = 0;
+
+    for (FileListNode* node in files)
+    {
+        if (node.isFolder)
+            continue;
+
+        NSString* relPath;
+        if (node.path.length > 0)
+            relPath = [node.path stringByAppendingPathComponent:node.name];
+        else
+            relPath = node.name;
+
+        NSString* dlPath = [downloadDir stringByAppendingPathComponent:relPath];
+        NSString* archiveFilePath = [archivePath stringByAppendingPathComponent:relPath];
+
+        // Remove symlink from download dir
+        NSDictionary* attrs = [fm attributesOfItemAtPath:dlPath error:nil];
+        if ([attrs[NSFileType] isEqualToString:NSFileTypeSymbolicLink])
+        {
+            [fm removeItemAtPath:dlPath error:nil];
+        }
+
+        // Restore write permission on archived file
+        [fm setAttributes:@{NSFilePosixPermissions: @(0644)} ofItemAtPath:archiveFilePath error:nil];
+
+        // Move file back from archive to download dir
+        NSError* error = nil;
+        if ([fm moveItemAtPath:archiveFilePath toPath:dlPath error:&error])
+        {
+            ++restored;
+        }
+        else
+        {
+            NSLog(@"btpk undo-archive: restore failed %@ -> %@: %@", archiveFilePath, dlPath, error);
+        }
+    }
+
+    // Clean up empty archive directory
+    [fm removeItemAtPath:archivePath error:nil];
+    // Also try removing parent (torrent name dir) if empty
+    NSString* parent = [archivePath stringByDeletingLastPathComponent];
+    [fm removeItemAtPath:parent error:nil]; // fails silently if not empty
+
+    NSLog(@"btpk undo-archive: restored %lu files", (unsigned long)restored);
+}
+
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable, NSError* _Nullable))handler
 {

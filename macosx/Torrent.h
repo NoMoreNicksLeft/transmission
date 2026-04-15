@@ -142,6 +142,14 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 - (void)injectBtpkUpdateForTesting:(int64_t)seq;
 - (BOOL)applyBtpkUpdate;
 
+// Archive current content to ~/.transmission/archive/<name>/seq-<N>/
+// and replace with symlinks. Returns the archive path, or nil on failure.
+// Call before publisher modifies files (i.e. when Publish Update panel opens).
+- (nullable NSString*)archiveBtpkContentForPublishing;
+
+// Undo archiveBtpkContentForPublishing — move files back, remove symlinks.
+- (void)undoArchiveBtpkContent:(NSString*)archivePath;
+
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;
 
