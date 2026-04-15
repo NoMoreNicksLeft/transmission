@@ -10,6 +10,7 @@
 #import "InfoPeersViewController.h"
 #import "InfoFileViewController.h"
 #import "InfoOptionsViewController.h"
+#import "InfoHistoryViewController.h"
 #import "NSImageAdditions.h"
 #import "NSStringAdditions.h"
 #import "Torrent.h"
@@ -22,6 +23,7 @@ static TabIdentifier const TabIdentifierTracker = @"Tracker";
 static TabIdentifier const TabIdentifierPeers = @"Peers";
 static TabIdentifier const TabIdentifierFiles = @"Files";
 static TabIdentifier const TabIdentifierOptions = @"Options";
+static TabIdentifier const TabIdentifierHistory = @"History";
 
 static CGFloat const kTabMinHeight = 250;
 
@@ -33,7 +35,8 @@ typedef NS_ENUM(NSUInteger, TabTag) {
     TabTagTrackers = 2,
     TabTagPeers = 3,
     TabTagFile = 4,
-    TabTagOptions = 5
+    TabTagOptions = 5,
+    TabTagHistory = 6
 };
 
 @interface InfoWindowController ()
@@ -52,6 +55,7 @@ typedef NS_ENUM(NSUInteger, TabTag) {
 @property(nonatomic) InfoPeersViewController* fPeersViewController;
 @property(nonatomic) InfoFileViewController* fFileViewController;
 @property(nonatomic) InfoOptionsViewController* fOptionsViewController;
+@property(nonatomic) InfoHistoryViewController* fHistoryViewController;
 
 @property(nonatomic) IBOutlet NSImageView* fImageView;
 @property(nonatomic) IBOutlet NSTextField* fNameField;
@@ -125,6 +129,10 @@ typedef NS_ENUM(NSUInteger, TabTag) {
         [NSImage imageWithSystemSymbolName:@"gearshape" accessibilityDescription:nil],
         NSLocalizedString(@"Options", "Inspector -> tab"),
         TabTagOptions);
+    setImageAndToolTipForSegment(
+        [NSImage imageWithSystemSymbolName:@"clock.arrow.circlepath" accessibilityDescription:nil],
+        NSLocalizedString(@"History", "Inspector -> tab"),
+        TabTagHistory);
 
     //set selected tab
     self.fCurrentTabTag = kInvalidTag;
@@ -153,6 +161,10 @@ typedef NS_ENUM(NSUInteger, TabTag) {
     else if ([identifier isEqualToString:TabIdentifierOptions])
     {
         tag = TabTagOptions;
+    }
+    else if ([identifier isEqualToString:TabIdentifierHistory])
+    {
+        tag = TabTagHistory;
     }
     else //safety
     {
@@ -331,6 +343,16 @@ typedef NS_ENUM(NSUInteger, TabTag) {
 
         self.fViewController = self.fOptionsViewController;
         identifier = TabIdentifierOptions;
+        break;
+    case TabTagHistory:
+        if (!self.fHistoryViewController)
+        {
+            self.fHistoryViewController = [[InfoHistoryViewController alloc] init];
+            [self.fHistoryViewController setInfoForTorrents:self.fTorrents];
+        }
+
+        self.fViewController = self.fHistoryViewController;
+        identifier = TabIdentifierHistory;
         break;
     default:
         NSAssert1(NO, @"Unknown info tab selected: %ld", self.fCurrentTabTag);
@@ -654,6 +676,7 @@ typedef NS_ENUM(NSUInteger, TabTag) {
     [self.fPeersViewController setInfoForTorrents:self.fTorrents];
     [self.fFileViewController setInfoForTorrents:self.fTorrents];
     [self.fOptionsViewController setInfoForTorrents:self.fTorrents];
+    [self.fHistoryViewController setInfoForTorrents:self.fTorrents];
 
     [self.fViewController updateInfo];
 }

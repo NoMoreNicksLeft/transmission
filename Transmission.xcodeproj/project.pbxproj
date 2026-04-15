@@ -131,6 +131,8 @@
 		A22CFB820FB66EF30009BD3E /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A22CFB810FB66EF30009BD3E /* Carbon.framework */; };
 		BB02000800000008 /* crypto-utils-ed25519.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000700000007 /* crypto-utils-ed25519.cc */; };
 		BB02000300000003 /* btpk-utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000100000001 /* btpk-utils.cc */; };
+		CC01000400000004 /* InfoHistoryViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = CC01000200000002 /* InfoHistoryViewController.mm */; };
+		CC01000500000005 /* InfoHistoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = CC01000300000003 /* InfoHistoryView.xib */; };
 		BB02000600000006 /* tr-dht-mutable.cc in Sources */ = {isa = PBXBuildFile; fileRef = BB02000400000004 /* tr-dht-mutable.cc */; };
 		A22CFCA80FC24ED80009BD3E /* tr-dht.cc in Sources */ = {isa = PBXBuildFile; fileRef = A22CFCA60FC24ED80009BD3E /* tr-dht.cc */; };
 		A22CFCA90FC24ED80009BD3E /* tr-dht.h in Headers */ = {isa = PBXBuildFile; fileRef = A22CFCA70FC24ED80009BD3E /* tr-dht.h */; };
@@ -930,6 +932,9 @@
 		BB02000700000007 /* crypto-utils-ed25519.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "crypto-utils-ed25519.cc"; sourceTree = "<group>"; };
 		BB02000100000001 /* btpk-utils.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "btpk-utils.cc"; sourceTree = "<group>"; };
 		BB02000200000002 /* btpk-utils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = "btpk-utils.h"; sourceTree = "<group>"; };
+		CC01000100000001 /* InfoHistoryViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InfoHistoryViewController.h; sourceTree = "<group>"; };
+		CC01000200000002 /* InfoHistoryViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = InfoHistoryViewController.mm; sourceTree = "<group>"; };
+		CC01000300000003 /* InfoHistoryView.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = InfoHistoryView.xib; sourceTree = "<group>"; };
 		BB02000400000004 /* tr-dht-mutable.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "tr-dht-mutable.cc"; sourceTree = "<group>"; };
 		BB02000500000005 /* tr-dht-mutable.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = "tr-dht-mutable.h"; sourceTree = "<group>"; };
 		A22CFCA60FC24ED80009BD3E /* tr-dht.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "tr-dht.cc"; sourceTree = "<group>"; };
@@ -1898,6 +1903,9 @@
 				A209EC11114301C6002B02D1 /* InfoOptionsView.xib */,
 				A220AF7913D7CC460035C512 /* GlobalOptionsPopover.xib */,
 				BB01000300000003 /* BtpkUpdatePanelController.xib */,
+				CC01000100000001 /* InfoHistoryViewController.h */,
+				CC01000200000002 /* InfoHistoryViewController.mm */,
+				CC01000300000003 /* InfoHistoryView.xib */,
 				A2451E6816ACE4EB00586E0E /* FileRenameSheetController.xib */,
 				F63480621E1D7274005B9E09 /* Images.xcassets */,
 				4D043A7E090AE979009FEDA8 /* TransmissionDocument.icns */,
@@ -3249,6 +3257,7 @@
 				F63480631E1D7274005B9E09 /* Images.xcassets in Resources */,
 				A2795C5928EFC6700002C8D9 /* public_html in Resources */,
 				BB01000500000005 /* BtpkUpdatePanelController.xib in Resources */,
+				CC01000500000005 /* InfoHistoryView.xib in Resources */,
 				A2451E6A16ACE4EB00586E0E /* FileRenameSheetController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3573,6 +3582,7 @@
 				A2AB883E16A399A6008FAD50 /* VDKQueue.mm in Sources */,
 				4534164229B0EA8600F544C9 /* SmallTorrentCell.mm in Sources */,
 				BB01000400000004 /* BtpkUpdatePanelController.mm in Sources */,
+				CC01000400000004 /* InfoHistoryViewController.mm in Sources */,
 				A2451E6916ACE4EB00586E0E /* FileRenameSheetController.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -54,6 +54,8 @@ target_sources(${TR_NAME}-mac
         BlocklistScheduler.mm
         BonjourController.h
         BonjourController.mm
+        BtpkUpdatePanelController.h
+        BtpkUpdatePanelController.mm
         ButtonToolbarItem.h
         ButtonToolbarItem.mm
         CocoaCompatibility.h
@@ -109,6 +111,8 @@ target_sources(${TR_NAME}-mac
         InfoFileViewController.mm
         InfoGeneralViewController.h
         InfoGeneralViewController.mm
+        InfoHistoryViewController.h
+        InfoHistoryViewController.mm
         InfoOptionsViewController.h
         InfoOptionsViewController.mm
         InfoPeersViewController.h
@@ -202,9 +206,11 @@ target_sources(${TR_NAME}-mac
 set(XIB_FILES
     AboutWindow.xib
     BlocklistStatusWindow.xib
+    BtpkUpdatePanelController.xib
     FileRenameSheetController.xib
     FilterBar.xib
     InfoFileView.xib
+    InfoHistoryView.xib
     InfoPeersView.xib
     InfoTrackersView.xib
     InfoWindow.xib

@@ -35,3 +35,5 @@ compile_commands.json
 
 # CMake user presets
 CMakeUserPresets.json
+# Claude Desktop skills and config
+.claude/

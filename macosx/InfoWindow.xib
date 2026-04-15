@@ -73,6 +73,7 @@
                                 <segment tag="3"/>
                                 <segment tag="4"/>
                                 <segment tag="5"/>
+                                <segment tag="6"/>
                             </segments>
                         </segmentedCell>
                         <connections>

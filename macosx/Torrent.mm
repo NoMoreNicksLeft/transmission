@@ -835,6 +835,21 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return result;
 }
 
+
+- (NSArray<NSDictionary*>*)btpkHistory
+{
+    auto const history = tr_torrentBtpkHistory(self.fHandle);
+    NSMutableArray* result = [NSMutableArray arrayWithCapacity:history.size()];
+    for (auto const& entry : history)
+    {
+        NSMutableString* hex = [NSMutableString stringWithCapacity:40];
+        for (size_t i = 0; i < 20; ++i)
+            [hex appendFormat:@"%02x", static_cast<unsigned char>(entry.infohash[i])];
+        [result addObject:@{@"seq": @(entry.seq), @"hash": [hex copy]}];
+    }
+    return result;
+}
+
 - (BOOL)btpkPrivateKeyMatchesData:(NSData*)keyData
 {
     if (!keyData || keyData.length != 96)
@@ -923,12 +938,12 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     // for the version being superseded (current seq → current infohash).
     // Also capture the existing history so the new torrent's history is cumulative.
     auto currentHistory = tr_torrentBtpkHistory(self.fHandle);
-    if (lastSeq >= 0)
+    // Always capture the current version's infohash as a history entry.
+    // If lastSeq is -1 (never published), this is the original torrent — seq 0.
     {
         tr_btpk_history_entry currentEntry;
-        currentEntry.seq = lastSeq;
-        auto const& currentHash = tr_torrentInfoHash(self.fHandle);
-        currentEntry.infohash = currentHash;
+        currentEntry.seq = (lastSeq < 0) ? 0 : lastSeq;
+        currentEntry.infohash = tr_torrentInfoHash(self.fHandle);
         currentHistory.push_back(currentEntry);
         std::sort(currentHistory.begin(), currentHistory.end(),
             [](auto const& a, auto const& b) { return a.seq < b.seq; });

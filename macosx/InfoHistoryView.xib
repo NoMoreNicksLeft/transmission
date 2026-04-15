@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="20037" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="20037"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="InfoHistoryViewController">
+            <connections>
+                <outlet property="fDownloadButton" destination="downloadBtn" id="btn-outlet"/>
+                <outlet property="fHistoryTable" destination="historyTable" id="tbl-outlet"/>
+                <outlet property="fPlaceholderLabel" destination="placeholderLabel" id="ph-outlet"/>
+                <outlet property="view" destination="rootView" id="view-outlet"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="rootView" userLabel="View">
+            <rect key="frame" x="0.0" y="0.0" width="500" height="300"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <scrollView borderType="bezel" autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scrollView">
+                    <rect key="frame" x="20" y="44" width="460" height="236"/>
+                    <clipView key="contentView" drawsBackground="NO" id="clipView">
+                        <rect key="frame" x="1" y="0.0" width="458" height="212"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="none" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" alternatingRowBackgroundColors="YES" rowHeight="14" headerView="hdrView" id="historyTable" userLabel="History Table">
+                                <rect key="frame" x="0.0" y="0.0" width="458" height="212"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="3" height="2"/>
+                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <connections>
+                                    <outlet property="dataSource" destination="-2" id="ds-conn"/>
+                                    <outlet property="delegate" destination="-2" id="del-conn"/>
+                                </connections>
+                            </tableView>
+                        </subviews>
+                    </clipView>
+                    <tableHeaderView key="headerView" wantsLayer="YES" id="hdrView">
+                        <rect key="frame" x="0.0" y="0.0" width="458" height="23"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </tableHeaderView>
+                </scrollView>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="downloadBtn">
+                    <rect key="frame" x="348" y="12" width="132" height="24"/>
+                    <buttonCell key="cell" type="push" title="Download Version" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="downloadBtnCell"/>
+                    <connections>
+                        <action selector="downloadSelectedVersion:" target="-2" id="dl-action"/>
+                    </connections>
+                </button>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="placeholderLabel">
+                    <rect key="frame" x="100" y="140" width="300" height="20"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="center" title="This torrent is not updatable." id="placeholderCell">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="scrollView" firstAttribute="leading" secondItem="rootView" secondAttribute="leading" constant="20" id="sv-lead"/>
+                <constraint firstAttribute="trailing" secondItem="scrollView" secondAttribute="trailing" constant="20" id="sv-trail"/>
+                <constraint firstItem="scrollView" firstAttribute="top" secondItem="rootView" secondAttribute="top" constant="8" id="sv-top"/>
+                <constraint firstItem="downloadBtn" firstAttribute="top" secondItem="scrollView" secondAttribute="bottom" constant="8" id="sv-bot"/>
+                <constraint firstAttribute="trailing" secondItem="downloadBtn" secondAttribute="trailing" constant="20" id="btn-trail"/>
+                <constraint firstAttribute="bottom" secondItem="downloadBtn" secondAttribute="bottom" constant="12" id="btn-bot"/>
+                <constraint firstItem="placeholderLabel" firstAttribute="centerX" secondItem="rootView" secondAttribute="centerX" id="ph-cx"/>
+                <constraint firstItem="placeholderLabel" firstAttribute="centerY" secondItem="rootView" secondAttribute="centerY" id="ph-cy"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>

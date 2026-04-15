@@ -3,6 +3,7 @@
 // License text can be found in the licenses/ folder.
 
 #import "BtpkUpdatePanelController.h"
+#import "Controller.h"
 #import "Torrent.h"
 
 #include "libtransmission/btpk-utils.h"
@@ -16,6 +17,9 @@
 // Key input
 @property(nonatomic, weak) IBOutlet NSTextField* fKeyField;
 @property(nonatomic, weak) IBOutlet NSTextField* fKeyStatusField;
+
+// Options
+@property(nonatomic, weak) IBOutlet NSButton* fContinueSeedingCheck;
 
 // Buttons
 @property(nonatomic, weak) IBOutlet NSButton* fPublishButton;
@@ -70,6 +74,10 @@
     self.fKeyField.placeholderString = NSLocalizedString(@"Paste private key (PEM format)", "btpk update panel -> key field placeholder");
     self.fKeyStatusField.stringValue = @"";
     self.fPublishButton.enabled = NO;
+
+    self.fContinueSeedingCheck.title =
+        NSLocalizedString(@"Continue seeding previous version", "btpk update panel -> checkbox");
+    self.fContinueSeedingCheck.state = NSControlStateValueOff;
 }
 
 #pragma mark - Actions
@@ -112,6 +120,18 @@
     self.fPublishButton.enabled = NO;
     self.fCancelButton.enabled = NO;
 
+    // Capture old .torrent bytes BEFORE publish overwrites the file on disk
+    BOOL const continueSeedingOld = (self.fContinueSeedingCheck.state == NSControlStateValueOn);
+    NSData* oldTorrentData = nil;
+    NSString* downloadDir = nil;
+    if (continueSeedingOld)
+    {
+        NSString* oldPath = self.fTorrent.torrentLocation;
+        if (oldPath)
+            oldTorrentData = [NSData dataWithContentsOfFile:oldPath];
+        downloadDir = self.fTorrent.currentDirectory;
+    }
+
     [self.fTorrent publishBtpkUpdateWithKeyData:keyData completionHandler:^(NSString* _Nullable newMagnetLink, NSError* _Nullable error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error)
@@ -123,6 +143,12 @@
             }
             else
             {
+                // Re-add the old version as a separate torrent entry
+                if (continueSeedingOld && oldTorrentData.length > 0)
+                {
+                    [self readdOldTorrentFromData:oldTorrentData downloadDir:downloadDir];
+                }
+
                 if (newMagnetLink)
                 {
                     [NSPasteboard.generalPasteboard clearContents];
@@ -130,7 +156,10 @@
                 }
                 NSAlert* alert = [[NSAlert alloc] init];
                 alert.messageText = NSLocalizedString(@"Update published.", "btpk update -> success title");
-                alert.informativeText = NSLocalizedString(@"The magnet link has been copied to the clipboard.", "btpk update -> success body");
+                NSString* body = NSLocalizedString(@"The magnet link has been copied to the clipboard.", "btpk update -> success body");
+                if (continueSeedingOld)
+                    body = [body stringByAppendingString:@" The previous version continues seeding."];
+                alert.informativeText = body;
                 [alert addButtonWithTitle:NSLocalizedString(@"OK", "button")];
                 [alert beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse __unused r) {
                     [self.window close];
@@ -138,6 +167,21 @@
             }
         });
     }];
+}
+
+- (void)readdOldTorrentFromData:(NSData*)torrentData downloadDir:(NSString*)downloadDir
+{
+    // Write the old torrent data to a temp file, then open it via Controller
+    NSString* tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:
+        [NSString stringWithFormat:@"btpk-old-%@.torrent", [[NSUUID UUID] UUIDString]]];
+    if (![torrentData writeToFile:tempPath atomically:YES])
+    {
+        NSLog(@"btpk publish: failed to write old .torrent to temp file");
+        return;
+    }
+
+    Controller* controller = (Controller*)NSApp.delegate;
+    [controller openFiles:@[tempPath] addType:AddTypeURL forcePath:downloadDir];
 }
 
 - (IBAction)cancelUpdate:(id)sender

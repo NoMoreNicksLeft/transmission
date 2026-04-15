@@ -13,6 +13,7 @@
                 <outlet property="fKeyField" destination="103" id="203"/>
                 <outlet property="fKeyStatusField" destination="104" id="204"/>
                 <outlet property="fNameField" destination="101" id="205"/>
+                <outlet property="fContinueSeedingCheck" destination="108" id="211"/>
                 <outlet property="fPublishButton" destination="105" id="206"/>
                 <outlet property="window" destination="1" id="3"/>
             </connections>
@@ -22,12 +23,12 @@
         <window title="Publish Update" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="YES" restorable="NO" visibleAtLaunch="NO" animationBehavior="default" tabbingMode="disallowed" hasShadow="YES" id="1" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utilityWindow="YES" nonactivatingPanel="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
-            <rect key="contentRect" x="100" y="100" width="320" height="244"/>
+            <rect key="contentRect" x="100" y="100" width="320" height="274"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1418"/>
-            <value key="minSize" type="size" width="320" height="244"/>
-            <value key="maxSize" type="size" width="320" height="244"/>
+            <value key="minSize" type="size" width="320" height="274"/>
+            <value key="maxSize" type="size" width="320" height="274"/>
             <view key="contentView" id="2">
-                <rect key="frame" x="0.0" y="0.0" width="320" height="244"/>
+                <rect key="frame" x="0.0" y="0.0" width="320" height="274"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <!-- Torrent name -->
@@ -82,6 +83,14 @@
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
+                    <!-- Continue seeding checkbox -->
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="108">
+                        <rect key="frame" x="16" y="40" width="260" height="18"/>
+                        <buttonCell key="cell" type="check" title="Continue seeding previous version" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="off" inset="2" id="108c">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                    </button>
                     <!-- Cancel button -->
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="100">
                         <rect key="frame" x="126" y="13" width="82" height="32"/>
