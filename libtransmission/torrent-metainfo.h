@@ -16,6 +16,7 @@
 #include "libtransmission/block-info.h"
 #include "libtransmission/magnet-metainfo.h"
 #include "libtransmission/torrent-files.h"
+#include "libtransmission/btpk-types.h"
 #include "libtransmission/tr-macros.h"
 
 struct tr_error;
@@ -165,6 +166,11 @@ public:
         return is_v2_;
     }
 
+    [[nodiscard]] TR_CONSTEXPR20 auto const& btpk_history() const noexcept
+    {
+        return btpk_history_;
+    }
+
     [[nodiscard]] constexpr auto const& date_created() const noexcept
     {
         return date_created_;
@@ -234,6 +240,11 @@ private:
     tr_torrent_files files_;
 
     std::vector<tr_sha1_digest_t> pieces_;
+
+    // BEP 46 version history: list of (seq, infohash) pairs for prior versions.
+    // Embedded in the info dict so it survives BEP 9 metadata exchange.
+    // Sorted ascending by seq. Publisher populates this automatically.
+    std::vector<tr_btpk_history_entry> btpk_history_;
 
     std::string comment_;
     std::string creator_;

@@ -919,6 +919,21 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
 
     int64_t const lastSeq = tr_torrentBtpkSeq(self.fHandle);
 
+    // Capture the current torrent's infohash — this becomes the history entry
+    // for the version being superseded (current seq → current infohash).
+    // Also capture the existing history so the new torrent's history is cumulative.
+    auto currentHistory = tr_torrentBtpkHistory(self.fHandle);
+    if (lastSeq >= 0)
+    {
+        tr_btpk_history_entry currentEntry;
+        currentEntry.seq = lastSeq;
+        auto const& currentHash = tr_torrentInfoHash(self.fHandle);
+        currentEntry.infohash = currentHash;
+        currentHistory.push_back(currentEntry);
+        std::sort(currentHistory.begin(), currentHistory.end(),
+            [](auto const& a, auto const& b) { return a.seq < b.seq; });
+    }
+
     // Copy the 96 private-key bytes into NSData for block capture and zeroing
     uint8_t privKeyBytes[96];
     memcpy(privKeyBytes, keyData.bytes, 96);
@@ -952,6 +967,9 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
         }
         if (saltLen > 0)
             builder.set_btpk_salt(std::string_view{ static_cast<char const*>(saltData.bytes), static_cast<size_t>(saltLen) });
+        // History is mandatory for btpk torrents — not publisher's choice
+        if (!currentHistory.empty())
+            builder.set_btpk_history(currentHistory);
 
         // ----------------------------------------------------------------
         // Step 2: hash all the pieces (this is the slow part)

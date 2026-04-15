@@ -691,6 +691,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_btpk_max_storage_gb:
     case TR_KEY_btpk_pending_seq:
     case TR_KEY_btpk_apply_in_progress:
+    case TR_KEY_btpk_history:
     case TR_KEY_comment:
     case TR_KEY_corrupt_ever:
     case TR_KEY_creator:
@@ -861,6 +862,26 @@ namespace make_torrent_field_helpers
         return tr_torrentPendingBtpkSeq(&tor);
     case TR_KEY_btpk_apply_in_progress:
         return tr_torrentBtpkApplyInProgress(&tor);
+    case TR_KEY_btpk_history:
+        {
+            auto const history = tr_torrentBtpkHistory(&tor);
+            auto vec = tr_variant::Vector{};
+            vec.reserve(history.size());
+            for (auto const& entry : history)
+            {
+                // Encode infohash as lowercase hex string
+                auto hex = std::string{};
+                hex.reserve(40);
+                for (auto const b : entry.infohash)
+                    fmt::format_to(std::back_inserter(hex), "{:02x}",
+                                   static_cast<unsigned>(b));
+                auto pair = tr_variant::Map{};
+                pair.try_emplace(TR_KEY_btpk_seq, entry.seq);
+                pair.try_emplace(TR_KEY_hash_string, hex);
+                vec.emplace_back(tr_variant{ std::move(pair) });
+            }
+            return vec;
+        }
     case TR_KEY_is_stalled:
         return st.isStalled;
     case TR_KEY_labels:

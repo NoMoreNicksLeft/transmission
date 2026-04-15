@@ -3008,6 +3008,18 @@ size_t tr_torrentBtpkGetSalt(tr_torrent const* tor, char* buf, size_t buf_len)
     return salt.size();
 }
 
+std::vector<tr_btpk_history_entry> tr_torrentBtpkHistory(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), {});
+    return tor->metainfo().btpk_history();
+}
+
+tr_sha1_digest_t tr_torrentInfoHash(tr_torrent const* tor)
+{
+    tr_return_val_if_fail(tr_isTorrent(tor), {});
+    return tor->metainfo().info_hash();
+}
+
 char* tr_torrentBtpkFingerprint(tr_torrent const* tor)
 {
     tr_return_val_if_fail(tr_isTorrent(tor), strdup(""));

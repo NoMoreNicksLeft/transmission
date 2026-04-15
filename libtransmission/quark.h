@@ -102,6 +102,7 @@ enum // NOLINT(performance-enum-size)
     TR_KEY_btpk_allow_overwrites,
     TR_KEY_btpk_allow_renaming,
     TR_KEY_btpk_apply_in_progress,
+    TR_KEY_btpk_history,
     TR_KEY_btpk_max_storage_gb,
     TR_KEY_btpk_pending_seq,
     TR_KEY_btpk_pub,

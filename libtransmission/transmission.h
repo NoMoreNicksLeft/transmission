@@ -24,6 +24,7 @@
 #endif
 
 #include "libtransmission/tr-macros.h"
+#include "libtransmission/btpk-types.h"
 
 using tr_file_index_t = size_t;
 using tr_piece_index_t = uint32_t;
@@ -1425,6 +1426,13 @@ int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
 // Returns true if a btpk apply flow is in progress for this torrent
 // (i.e. a staging torrent is actively fetching the new version).
 bool tr_torrentBtpkApplyInProgress(tr_torrent const* tor);
+
+// Returns the btpk version history embedded in this torrent's metainfo.
+// Each entry is a (seq, infohash) pair. Returns empty vector if no history.
+std::vector<tr_btpk_history_entry> tr_torrentBtpkHistory(tr_torrent const* tor);
+
+// Returns the torrent's SHA-1 info hash.
+tr_sha1_digest_t tr_torrentInfoHash(tr_torrent const* tor);
 
 // Copies the pending btpk update infohash into buf (20 bytes). Returns false if none pending.
 bool tr_torrentPendingBtpkHash(tr_torrent const* tor, uint8_t* buf);

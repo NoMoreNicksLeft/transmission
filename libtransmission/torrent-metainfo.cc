@@ -80,8 +80,14 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
         Files,
         FilesIgnored,
         PieceLayers,
+        BtpkHistory,  // inside info/btpk_history list of [seq, infohash] pairs
     };
     State state_ = State::UsePath;
+
+    // Accumulator for one btpk_history entry while parsing
+    int64_t history_seq_ = -1;
+    tr_sha1_digest_t history_hash_ = {}; // std::array<std::byte, 20>
+    int history_elem_ = 0; // 0=seq, 1=infohash, within a [seq, hash] pair
 
     explicit MetainfoHandler(tr_torrent_metainfo& tm)
         : tm_{ tm }
@@ -179,6 +185,13 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             file_attr_.clear();
             symlink_path_.clear();
         }
+        else if (pathIs(InfoKey, BtpkHistoryKey))
+        {
+            state_ = State::BtpkHistory;
+            history_seq_ = -1;
+            history_hash_ = {};
+            history_elem_ = 0;
+        }
         else if (pathStartsWith(InfoKey, FilesKey, ArrayKey, PathUtf8Key))
         {
             // torrent has a utf8 path, drop the other one due to probable non-utf8 encoding
@@ -198,6 +211,30 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
             return true;
         }
 
+        if (state_ == State::BtpkHistory)
+        {
+            if (currentKey() == BtpkHistoryKey)
+            {
+                // Outer list closed — leave BtpkHistory state
+                state_ = State::UsePath;
+            }
+            else
+            {
+                // Inner [seq, hash] pair closed — commit entry if valid
+                if (history_seq_ >= 0)
+                {
+                    tr_btpk_history_entry entry;
+                    entry.seq = history_seq_;
+                    entry.infohash = history_hash_;
+                    tm_.btpk_history_.push_back(entry);
+                }
+                history_seq_ = -1;
+                history_hash_ = {};
+                history_elem_ = 0;
+            }
+            return true;
+        }
+
         if (depth() == 2 && key(1) == AnnounceListKey)
         {
             ++tier_;
@@ -210,7 +247,16 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
     {
         auto unhandled = false;
 
-        if (state_ == State::FilesIgnored)
+        if (state_ == State::BtpkHistory)
+        {
+            if (history_elem_ == 0)
+            {
+                history_seq_ = value;
+                ++history_elem_;
+            }
+            return true;
+        }
+        else if (state_ == State::FilesIgnored)
         {
             // no-op
         }
@@ -287,7 +333,19 @@ struct MetainfoHandler final : public transmission::benc::BasicHandler<MaxBencDe
         auto const current_key = currentKey();
         auto unhandled = false;
 
-        if (state_ == State::FilesIgnored)
+        if (state_ == State::BtpkHistory)
+        {
+            // Element 1 of [seq, infohash] pair — the 20-byte raw infohash
+            if (history_elem_ == 1 && value.size() == 20)
+            {
+                for (size_t i = 0; i < 20; ++i)
+                    history_hash_[i] = static_cast<std::byte>(
+                        static_cast<unsigned char>(value[i]));
+                ++history_elem_;
+            }
+            return true;
+        }
+        else if (state_ == State::FilesIgnored)
         {
             // no-op
         }
@@ -634,6 +692,7 @@ private:
     static constexpr std::string_view AttrKey = "attr"sv;
     static constexpr std::string_view BtpkPubKey = "btpk_pub"sv;
     static constexpr std::string_view BtpkSaltKey = "btpk_salt"sv;
+    static constexpr std::string_view BtpkHistoryKey = "btpk_history"sv;
     static constexpr std::string_view AzureusPrivatePropertiesKey = "azureus_private_properties"sv;
     static constexpr std::string_view AzureusPropertiesKey = "azureus_properties"sv;
     static constexpr std::string_view ChecksumKey = "checksum"sv;

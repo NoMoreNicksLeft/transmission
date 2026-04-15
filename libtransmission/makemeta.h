@@ -21,6 +21,7 @@
 #include "libtransmission/error.h"
 #include "libtransmission/file.h"
 #include "libtransmission/torrent-files.h"
+#include "libtransmission/btpk-types.h" // tr_btpk_history_entry
 #include "libtransmission/tr-macros.h" // TR_CONSTEXPR20
 
 class tr_metainfo_builder
@@ -118,10 +119,21 @@ public:
         btpk_salt_ = salt;
     }
 
+    void set_btpk_history(std::vector<tr_btpk_history_entry> history)
+    {
+        btpk_history_ = std::move(history);
+    }
+
+    [[nodiscard]] auto const& btpk_history() const noexcept
+    {
+        return btpk_history_;
+    }
+
     void clear_btpk()
     {
         btpk_public_key_.reset();
         btpk_salt_.clear();
+        btpk_history_.clear();
     }
 
     [[nodiscard]] constexpr bool has_btpk() const noexcept
@@ -246,6 +258,7 @@ private:
     // BEP 46: optional btpk public key and salt
     std::optional<std::array<uint8_t, 32>> btpk_public_key_; // ed25519 public key for BEP 46
     std::string btpk_salt_;
+    std::vector<tr_btpk_history_entry> btpk_history_; // prior version (seq, infohash) pairs
 
     tr_piece_index_t checksum_piece_ = 0;
 

@@ -367,6 +367,26 @@ std::string tr_metainfo_builder::benc(tr_error* error) const
         info_dict.try_emplace(TR_KEY_source, source_);
     }
 
+    // BEP 46 version history: embed prior (seq, infohash) pairs in the info dict
+    // so history survives BEP 9 metadata exchange and is always present for
+    // subscribers. Publisher populates this automatically — not optional.
+    if (!std::empty(btpk_history_))
+    {
+        auto history_vec = tr_variant::Vector{};
+        history_vec.reserve(btpk_history_.size());
+        for (auto const& entry : btpk_history_)
+        {
+            auto pair = tr_variant::Vector{};
+            pair.reserve(2);
+            pair.emplace_back(tr_variant{ entry.seq });
+            pair.emplace_back(tr_variant::make_raw(
+                reinterpret_cast<char const*>(entry.infohash.data()),
+                entry.infohash.size()));
+            history_vec.emplace_back(tr_variant{ std::move(pair) });
+        }
+        info_dict.try_emplace(TR_KEY_btpk_history, std::move(history_vec));
+    }
+
     top.try_emplace(TR_KEY_info, std::move(info_dict));
 
     // BEP 46: store the public key as a top-level field so it survives
