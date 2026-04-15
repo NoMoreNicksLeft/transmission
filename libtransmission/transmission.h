@@ -113,6 +113,9 @@ enum : int8_t
  * -# `"${HOME}/.config/${appname}"` is used as a last resort.
  */
 #ifdef __cplusplus
+/** @brief Returns the user home directory using platform-specific methods. */
+[[nodiscard]] std::string tr_getHomeDir();
+
 [[nodiscard]] std::string tr_getDefaultConfigDir(std::string_view appname);
 #endif
 

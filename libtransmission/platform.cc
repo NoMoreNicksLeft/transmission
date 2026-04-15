@@ -155,6 +155,11 @@ std::string getXdgEntryFromUserDirs(std::string_view key)
 
 // ---
 
+std::string tr_getHomeDir()
+{
+    return getHomeDir();
+}
+
 std::string tr_getDefaultConfigDir(std::string_view appname)
 {
     if (std::empty(appname))

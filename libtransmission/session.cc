@@ -15,6 +15,7 @@
 #include <limits> // std::numeric_limits
 #include <memory>
 #include <optional>
+#include <map>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -2266,7 +2267,11 @@ std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session)
     auto const sv = session->btpkArchiveRoot();
     if (!sv.empty())
         return std::string{ sv };
-    return session->configDir() + "/btpk-archive";
+    // Default: ~/.transmission/archive/ using platform-specific home dir resolution
+    auto const home = tr_getHomeDir();
+    if (!home.empty())
+        return home + "/.transmission/archive";
+    return session->configDir() + "/archive";
 }
 
 bool tr_torrentApplyBtpkUpdate(tr_torrent* tor)
@@ -2391,6 +2396,143 @@ bool tr_session::applyBtpkUpdateInSessionThread(tr_torrent* tor)
     return true;
 }
 
+
+// ---------------------------------------------------------------------------
+// Smart archive: move old files to archive, create symlinks for unchanged files
+// ---------------------------------------------------------------------------
+void tr_session::archiveBtpkContent(
+    tr_torrent const* tor,
+    tr_torrent_metainfo const& new_metainfo)
+{
+    auto const tor_name = std::string{ tor->name() };
+    auto const current_dir = std::string{ tor->current_dir() };
+    int64_t const current_seq = tr_torrentBtpkSeq(tor);
+
+    // seq < 0 means never published — treat as seq 0
+    int64_t const archive_seq = (current_seq < 0) ? 0 : current_seq;
+
+    auto const archive_root = tr_sessionGetBtpkArchiveRoot(this);
+    auto const archive_dir = archive_root + "/" + tor_name
+        + "/seq-" + std::to_string(archive_seq);
+
+    // Build file maps: path → size (skip padding files)
+    auto const& old_files = tor->metainfo().files();
+    auto const& new_files = new_metainfo.files();
+
+    std::map<std::string, uint64_t> old_map;
+    for (tr_file_index_t i = 0, n = old_files.file_count(); i < n; ++i)
+        if (!old_files.file_is_padding(i))
+            old_map.emplace(old_files.path(i), old_files.file_size(i));
+
+    std::map<std::string, uint64_t> new_map;
+    for (tr_file_index_t i = 0, n = new_files.file_count(); i < n; ++i)
+        if (!new_files.file_is_padding(i))
+            new_map.emplace(new_files.path(i), new_files.file_size(i));
+
+    // Create the archive seq directory
+    tr_error mkdir_err;
+    tr_sys_dir_create(archive_dir, TR_SYS_DIR_CREATE_PARENTS, 0777, &mkdir_err);
+
+    // Process each old file
+    for (auto const& [old_path, old_size] : old_map)
+    {
+        auto const src = current_dir + "/" + old_path;
+        auto const dest = archive_dir + "/" + old_path;
+
+        // Create parent directories in archive
+        auto const dest_parent = dest.substr(0, dest.rfind('/'));
+        if (dest_parent != archive_dir)
+        {
+            tr_error parent_err;
+            tr_sys_dir_create(dest_parent, TR_SYS_DIR_CREATE_PARENTS, 0777, &parent_err);
+        }
+
+        // Resolve symlinks — if src is a symlink, get the real path
+        auto real_src = src;
+        {
+            tr_error resolve_err;
+            auto resolved = tr_sys_path_resolve(src, &resolve_err);
+            if (!resolved.empty())
+                real_src = std::move(resolved);
+        }
+
+        // Move the real file to the archive
+        tr_error move_err;
+        if (!tr_sys_path_rename(real_src, dest, &move_err))
+        {
+            tr_logAddWarnTor(tor, fmt::format(
+                "btpk archive: move failed '{}' -> '{}': {}",
+                real_src, dest, move_err.message()));
+            continue;
+        }
+
+        // If src was a symlink (different from real_src), remove the stale symlink
+        if (real_src != src && tr_sys_path_exists(src))
+        {
+            tr_error rm_err;
+            tr_sys_path_remove(src, &rm_err);
+        }
+
+        tr_logAddDebugTor(tor, fmt::format(
+            "btpk archive: moved '{}' -> '{}'", old_path, dest));
+
+        // If this file exists unchanged in the new version (same path, same size),
+        // create a symlink in the download folder pointing to the archived copy
+        auto const new_it = new_map.find(old_path);
+        if (new_it != new_map.end() && new_it->second == old_size)
+        {
+            tr_error link_err;
+            if (!tr_sys_path_create_symlink(src.c_str(), dest.c_str(), &link_err))
+            {
+                tr_logAddWarnTor(tor, fmt::format(
+                    "btpk archive: symlink failed '{}' -> '{}': {}",
+                    src, dest, link_err.message()));
+            }
+            else
+            {
+                tr_logAddDebugTor(tor, fmt::format(
+                    "btpk archive: symlinked '{}' -> '{}'", old_path, dest));
+            }
+        }
+
+        // Handle renames: if old path is gone in new but a new path has the same
+        // size, create a symlink at the new path pointing to the archived copy
+        if (new_it == new_map.end())
+        {
+            for (auto const& [new_path, new_size] : new_map)
+            {
+                if (new_size == old_size && old_map.find(new_path) == old_map.end())
+                {
+                    auto const renamed_link = current_dir + "/" + new_path;
+                    // Only create if nothing exists at the new path yet
+                    if (!tr_sys_path_exists(renamed_link))
+                    {
+                        // Create parent dirs for the new path
+                        auto const renamed_parent = renamed_link.substr(0, renamed_link.rfind('/'));
+                        if (!renamed_parent.empty())
+                        {
+                            tr_error rp_err;
+                            tr_sys_dir_create(renamed_parent, TR_SYS_DIR_CREATE_PARENTS, 0777, &rp_err);
+                        }
+                        tr_error rlink_err;
+                        if (tr_sys_path_create_symlink(renamed_link.c_str(), dest.c_str(), &rlink_err))
+                        {
+                            tr_logAddDebugTor(tor, fmt::format(
+                                "btpk archive: rename-symlinked '{}' -> '{}'",
+                                new_path, dest));
+                        }
+                    }
+                    break; // only match one rename per old file
+                }
+            }
+        }
+    }
+
+    tr_logAddDebugTor(tor, fmt::format(
+        "btpk archive: completed for seq-{}, {} old files processed",
+        archive_seq, old_map.size()));
+}
+
 void tr_session::onTorrentCompletedMaybeBtpkStaging(tr_torrent* completed_tor)
 {
     TR_ASSERT(is_session_thread());
@@ -2470,6 +2612,9 @@ void tr_session::onTorrentCompletedMaybeBtpkStaging(tr_torrent* completed_tor)
             new_metainfo.set_btpk(key_arr, std::string_view{ salt_buf, salt_len });
         }
     }
+
+    // Archive old content and create symlinks for unchanged files
+    archiveBtpkContent(original_tor, new_metainfo);
 
     // Prevent staging cleanup from deleting the .torrent file
     // (it now belongs to the updated original torrent after the swap)

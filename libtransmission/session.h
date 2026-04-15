@@ -920,6 +920,7 @@ public:
 
     // Called when a staging torrent completes (from torrent completeness callback).
     // Checks whether `completed_tor` is a btpk staging torrent and if so performs the swap.
+    void archiveBtpkContent(tr_torrent const* tor, tr_torrent_metainfo const& new_metainfo);
     void onTorrentCompletedMaybeBtpkStaging(tr_torrent* completed_tor);
 
     void onBtpkUpdateAvailable(tr_torrent* tor, int64_t new_seq)
