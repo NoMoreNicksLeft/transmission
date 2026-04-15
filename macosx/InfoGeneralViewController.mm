@@ -81,11 +81,27 @@
 
     self.fRevealDataButton.hidden = location ? NO : YES;
 
-    // Refresh btpk seq live (it updates as DHT resolves)
+    // Refresh btpk fields live (seq updates as DHT resolves, feed mode changes in Options)
     if (torrent.hasBtpk && self.fBtpkSeqField)
     {
         NSInteger const seq = torrent.btpkSeq;
-        self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"\u2014";
+        self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"0";
+
+        NSString* modeName;
+        switch (torrent.btpkUpdateMode)
+        {
+        case BtpkUpdateModeWhenOffered:
+            modeName = NSLocalizedString(@"When offered", "Inspector -> btpk update mode");
+            break;
+        case BtpkUpdateModeVersioned:
+            modeName = NSLocalizedString(@"Always versioned", "Inspector -> btpk update mode");
+            break;
+        case BtpkUpdateModeNever:
+        default:
+            modeName = NSLocalizedString(@"Never", "Inspector -> btpk update mode");
+            break;
+        }
+        self.fBtpkUpdateFeedField.stringValue = modeName;
     }
 }
 
@@ -148,7 +164,7 @@
             self.fBtpkFingerprintField.toolTip = fingerprint;
 
             NSInteger const seq = torrent.btpkSeq;
-            self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"\u2014";
+            self.fBtpkSeqField.stringValue = seq >= 0 ? [NSString stringWithFormat:@"%ld", seq] : @"0";
 
             NSString* modeName;
             switch (torrent.btpkUpdateMode)

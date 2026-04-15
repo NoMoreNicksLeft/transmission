@@ -85,7 +85,7 @@
                     </textField>
                     <!-- Continue seeding checkbox -->
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="108">
-                        <rect key="frame" x="16" y="40" width="260" height="18"/>
+                        <rect key="frame" x="16" y="48" width="260" height="18"/>
                         <buttonCell key="cell" type="check" title="Continue seeding previous version" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="off" inset="2" id="108c">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="smallSystem"/>

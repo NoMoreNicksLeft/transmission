@@ -45,7 +45,7 @@
                 </scrollView>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="downloadBtn">
                     <rect key="frame" x="348" y="12" width="132" height="24"/>
-                    <buttonCell key="cell" type="push" title="Download Version" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="downloadBtnCell"/>
+                    <buttonCell key="cell" type="push" title="Start Torrent" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="downloadBtnCell"/>
                     <connections>
                         <action selector="downloadSelectedVersion:" target="-2" id="dl-action"/>
                     </connections>
