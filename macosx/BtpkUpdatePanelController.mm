@@ -165,7 +165,16 @@
                     [NSPasteboard.generalPasteboard clearContents];
                     [NSPasteboard.generalPasteboard setString:newMagnetLink forType:NSPasteboardTypeString];
                 }
-                self.fArchivePath = nil; // publish succeeded — don't undo archive on close
+                if (!continueSeedingOld && self.fArchivePath)
+                {
+                    // Publisher chose not to continue seeding — delete the archive
+                    // (don't undo/move-back, since files in download dir are now the new version)
+                    NSFileManager* fm = NSFileManager.defaultManager;
+                    [fm removeItemAtPath:self.fArchivePath error:nil];
+                    // Also remove parent dir (torrent name) if empty
+                    [fm removeItemAtPath:[self.fArchivePath stringByDeletingLastPathComponent] error:nil];
+                }
+                self.fArchivePath = nil; // don't undo archive on window close
                 NSAlert* alert = [[NSAlert alloc] init];
                 alert.messageText = NSLocalizedString(@"Update published.", "btpk update -> success title");
                 NSString* body = NSLocalizedString(@"The magnet link has been copied to the clipboard.", "btpk update -> success body");
