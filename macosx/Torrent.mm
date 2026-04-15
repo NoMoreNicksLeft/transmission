@@ -890,7 +890,7 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
 // ---------------------------------------------------------------------------
 // Publisher-side archive: move content to archive before user modifies files
 // ---------------------------------------------------------------------------
-- (nullable NSString*)archiveBtpkContentForPublishing
+- (nullable NSString*)archiveBtpkContentForPublishingWithArchivedPaths:(NSMutableArray<NSString*>*)archivedRelPaths
 {
     if (!self.hasBtpk)
         return nil;
@@ -934,6 +934,8 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
             relPath = [node.path stringByAppendingPathComponent:node.name];
         else
             relPath = node.name;
+
+        [archivedRelPaths addObject:relPath];
 
         NSString* srcPath = [downloadDir stringByAppendingPathComponent:relPath];
         NSString* destPath = [archiveDir stringByAppendingPathComponent:relPath];
@@ -985,27 +987,17 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return archiveDir;
 }
 
-- (void)undoArchiveBtpkContent:(NSString*)archivePath
+- (void)undoArchiveBtpkContent:(NSString*)archivePath relPaths:(NSArray<NSString*>*)relPaths
 {
     if (!archivePath)
         return;
 
     NSFileManager* fm = NSFileManager.defaultManager;
     NSString* downloadDir = self.currentDirectory;
-    NSArray<FileListNode*>* files = self.flatFileList;
     NSUInteger restored = 0;
 
-    for (FileListNode* node in files)
+    for (NSString* relPath in relPaths)
     {
-        if (node.isFolder)
-            continue;
-
-        NSString* relPath;
-        if (node.path.length > 0)
-            relPath = [node.path stringByAppendingPathComponent:node.name];
-        else
-            relPath = node.name;
-
         NSString* dlPath = [downloadDir stringByAppendingPathComponent:relPath];
         NSString* archiveFilePath = [archivePath stringByAppendingPathComponent:relPath];
 

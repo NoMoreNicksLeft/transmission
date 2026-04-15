@@ -145,10 +145,10 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 // Archive current content to ~/.transmission/archive/<name>/seq-<N>/
 // and replace with symlinks. Returns the archive path, or nil on failure.
 // Call before publisher modifies files (i.e. when Publish Update panel opens).
-- (nullable NSString*)archiveBtpkContentForPublishing;
+- (nullable NSString*)archiveBtpkContentForPublishingWithArchivedPaths:(NSMutableArray<NSString*>*)archivedRelPaths;
 
 // Undo archiveBtpkContentForPublishing — move files back, remove symlinks.
-- (void)undoArchiveBtpkContent:(NSString*)archivePath;
+- (void)undoArchiveBtpkContent:(NSString*)archivePath relPaths:(NSArray<NSString*>*)relPaths;
 
 - (void)publishBtpkUpdateWithKeyData:(NSData*)keyData
                    completionHandler:(void (^)(NSString* _Nullable magnetLink, NSError* _Nullable error))handler;

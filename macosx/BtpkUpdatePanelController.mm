@@ -27,6 +27,7 @@
 
 @property(nonatomic) Torrent* fTorrent;
 @property(nonatomic, copy) NSString* fArchivePath; // set when content is archived on panel open
+@property(nonatomic, copy) NSArray<NSString*>* fArchivedRelPaths; // relative paths of files moved to archive
 
 @end
 
@@ -66,7 +67,9 @@
     // modifies files. This preserves the original files for seeding the
     // previous version. The download folder gets symlinks to the archived
     // copies, so the user sees no difference until they modify files.
-    controller.fArchivePath = [torrent archiveBtpkContentForPublishing];
+    NSMutableArray<NSString*>* archivedPaths = [NSMutableArray array];
+    controller.fArchivePath = [torrent archiveBtpkContentForPublishingWithArchivedPaths:archivedPaths];
+    controller.fArchivedRelPaths = archivedPaths;
 
     [panel orderFront:nil];
     return controller;
@@ -167,14 +170,11 @@
                 }
                 if (!continueSeedingOld && self.fArchivePath)
                 {
-                    // Publisher chose not to continue seeding — delete the archive
-                    // (don't undo/move-back, since files in download dir are now the new version)
-                    NSFileManager* fm = NSFileManager.defaultManager;
-                    [fm removeItemAtPath:self.fArchivePath error:nil];
-                    // Also remove parent dir (torrent name) if empty
-                    [fm removeItemAtPath:[self.fArchivePath stringByDeletingLastPathComponent] error:nil];
+                    // Publisher chose not to continue seeding — undo the archive
+                    // (move real files back from archive, remove symlinks in download dir)
+                    [self.fTorrent undoArchiveBtpkContent:self.fArchivePath relPaths:self.fArchivedRelPaths];
                 }
-                self.fArchivePath = nil; // don't undo archive on window close
+                self.fArchivePath = nil; // don't undo archive again on window close
                 NSAlert* alert = [[NSAlert alloc] init];
                 alert.messageText = NSLocalizedString(@"Update published.", "btpk update -> success title");
                 NSString* body = NSLocalizedString(@"The magnet link has been copied to the clipboard.", "btpk update -> success body");
@@ -210,7 +210,7 @@
     // Undo the archive — move files back from archive to download folder
     if (self.fArchivePath)
     {
-        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath];
+        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath relPaths:self.fArchivedRelPaths];
         self.fArchivePath = nil;
     }
     [self.window close];
@@ -223,7 +223,7 @@
     // If the archive hasn't been consumed by a successful publish, undo it
     if (self.fArchivePath)
     {
-        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath];
+        [self.fTorrent undoArchiveBtpkContent:self.fArchivePath relPaths:self.fArchivedRelPaths];
         self.fArchivePath = nil;
     }
 }
