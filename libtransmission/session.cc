@@ -2466,11 +2466,15 @@ void tr_session::archiveBtpkContent(
             continue;
         }
 
-        // If src was a symlink (different from real_src), remove the stale symlink
-        if (real_src != src && tr_sys_path_exists(src))
+        // Remove stale entry at src (may be a dangling symlink after moving the
+        // real file). tr_sys_path_remove handles both regular files and symlinks.
+        // We unconditionally remove because tr_sys_path_exists follows symlinks
+        // and returns false for dangling ones, which would skip the removal.
+        if (real_src != src)
         {
             tr_error rm_err;
             tr_sys_path_remove(src, &rm_err);
+            // Ignore errors — src might already be gone
         }
 
         tr_logAddDebugTor(tor, fmt::format(
