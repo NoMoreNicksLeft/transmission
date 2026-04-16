@@ -6,7 +6,7 @@
 #import "Torrent.h"
 #import "Controller.h"
 
-// Column identifiers — Seq is in the XIB, Hash is added programmatically
+// Column identifiers
 static NSString* const kSeqColumnId = @"Seq";
 static NSString* const kHashColumnId = @"Hash";
 
@@ -19,7 +19,7 @@ static NSString* const kHashColumnId = @"Hash";
 @property(nonatomic, weak) IBOutlet NSButton* fDownloadButton;
 @property(nonatomic, weak) IBOutlet NSTextField* fPlaceholderLabel;
 
-// Data — each entry is @{@"seq": NSNumber, @"hash": NSString (40-char hex)}
+// Data — each entry is @{@"seq": NSNumber, @"hash": NSString (40-char hex), @"active": NSNumber (BOOL)}
 @property(nonatomic) NSMutableArray<NSDictionary*>* fHistoryEntries;
 
 @end
@@ -77,7 +77,7 @@ static NSString* const kHashColumnId = @"Hash";
         [self.fHistoryTable addTableColumn:hashCol];
     }
 
-    self.fHistoryTable.doubleAction = @selector(downloadSelectedVersion:);
+    self.fHistoryTable.doubleAction = @selector(startSelectedVersion:);
     self.fHistoryTable.target = self;
 }
 
@@ -99,7 +99,18 @@ static NSString* const kHashColumnId = @"Hash";
     {
         Torrent* torrent = self.fTorrents.firstObject;
         NSArray<NSDictionary*>* history = torrent.btpkHistory;
-        [self.fHistoryEntries addObjectsFromArray:history];
+        Controller* controller = (Controller*)NSApp.delegate;
+
+        for (NSDictionary* entry in history)
+        {
+            NSString* hash = entry[@"hash"];
+            // Check if this version's infohash is already loaded as a torrent
+            Torrent* existing = [controller torrentForHash:hash];
+            BOOL active = (existing != nil);
+            NSMutableDictionary* enriched = [entry mutableCopy];
+            enriched[@"active"] = @(active);
+            [self.fHistoryEntries addObject:enriched];
+        }
 
         // Sort descending by seq — newest first
         [self.fHistoryEntries sortUsingComparator:^NSComparisonResult(NSDictionary* a, NSDictionary* b) {
@@ -127,7 +138,7 @@ static NSString* const kHashColumnId = @"Hash";
     }
 
     [self.fHistoryTable reloadData];
-    [self updateDownloadButton];
+    [self updateStartButton];
 }
 
 - (void)saveViewSize
@@ -137,15 +148,19 @@ static NSString* const kHashColumnId = @"Hash";
 
 #pragma mark - Actions
 
-- (IBAction)downloadSelectedVersion:(id)sender
+- (IBAction)startSelectedVersion:(id)sender
 {
     NSInteger row = self.fHistoryTable.selectedRow;
     if (row < 0 || (NSUInteger)row >= self.fHistoryEntries.count)
         return;
 
     NSDictionary* entry = self.fHistoryEntries[row];
-    NSString* hashString = entry[@"hash"];
 
+    // Don't start if already active
+    if ([entry[@"active"] boolValue])
+        return;
+
+    NSString* hashString = entry[@"hash"];
     NSString* magnetURI = [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hashString];
     Controller* controller = (Controller*)NSApp.delegate;
     [controller openURL:magnetURI];
@@ -165,10 +180,14 @@ static NSString* const kHashColumnId = @"Hash";
 
     NSDictionary* entry = self.fHistoryEntries[row];
     NSString* identifier = tableColumn.identifier;
+    BOOL const active = [entry[@"active"] boolValue];
 
     if ([identifier isEqualToString:kSeqColumnId])
     {
-        return [NSString stringWithFormat:@"%@", entry[@"seq"]];
+        NSString* seqStr = [NSString stringWithFormat:@"%@", entry[@"seq"]];
+        if (active)
+            return [seqStr stringByAppendingString:@" \u2713"]; // checkmark for active
+        return seqStr;
     }
     else if ([identifier isEqualToString:kHashColumnId])
     {
@@ -181,14 +200,54 @@ static NSString* const kHashColumnId = @"Hash";
 
 - (void)tableViewSelectionDidChange:(NSNotification*)notification
 {
-    [self updateDownloadButton];
+    [self updateStartButton];
+}
+
+- (void)tableView:(NSTableView*)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row
+{
+    if ((NSUInteger)row >= self.fHistoryEntries.count)
+        return;
+
+    NSDictionary* entry = self.fHistoryEntries[row];
+    BOOL const active = [entry[@"active"] boolValue];
+    NSTextFieldCell* textCell = (NSTextFieldCell*)cell;
+
+    if (active)
+    {
+        // Active versions: green tint to indicate they're loaded
+        textCell.textColor = [NSColor colorWithCalibratedRed:0.3 green:0.7 blue:0.3 alpha:1.0];
+    }
+    else
+    {
+        textCell.textColor = NSColor.controlTextColor;
+    }
 }
 
 #pragma mark - Private
 
-- (void)updateDownloadButton
+- (void)updateStartButton
 {
-    self.fDownloadButton.enabled = (self.fHistoryTable.selectedRow >= 0);
+    NSInteger row = self.fHistoryTable.selectedRow;
+    if (row < 0 || (NSUInteger)row >= self.fHistoryEntries.count)
+    {
+        self.fDownloadButton.enabled = NO;
+        self.fDownloadButton.title = NSLocalizedString(@"Start Torrent", "inspector -> history tab -> button");
+        return;
+    }
+
+    NSDictionary* entry = self.fHistoryEntries[row];
+    BOOL const active = [entry[@"active"] boolValue];
+
+    if (active)
+    {
+        self.fDownloadButton.enabled = NO;
+        self.fDownloadButton.title = NSLocalizedString(@"Already Active", "inspector -> history tab -> button active");
+    }
+    else
+    {
+        self.fDownloadButton.enabled = YES;
+        self.fDownloadButton.title = NSLocalizedString(@"Start Torrent", "inspector -> history tab -> button");
+    }
 }
 
 @end
