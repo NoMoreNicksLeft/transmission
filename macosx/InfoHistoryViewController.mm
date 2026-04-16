@@ -6,6 +6,8 @@
 #import "Torrent.h"
 #import "Controller.h"
 
+#include <libtransmission/btpk-publish.h>
+
 // Column identifiers
 static NSString* const kSeqColumnId = @"Seq";
 static NSString* const kHashColumnId = @"Hash";
@@ -152,38 +154,29 @@ static NSString* const kHashColumnId = @"Hash";
 {
     NSInteger row = self.fHistoryTable.selectedRow;
     if (row < 0 || (NSUInteger)row >= self.fHistoryEntries.count)
-    {
-        NSLog(@"btpk history: startSelectedVersion — no valid row selected (row=%ld)", (long)row);
         return;
-    }
 
     NSDictionary* entry = self.fHistoryEntries[row];
 
     // Don't start if already active
     if ([entry[@"active"] boolValue])
+        return;
+
+    Torrent* torrent = self.fTorrents.firstObject;
+    int64_t seq = [entry[@"seq"] longLongValue];
+
+    // Use the libtransmission shared function — handles magnet creation,
+    // archive path, directory creation, btpk field copying.
+    auto result = tr_torrentStartBtpkVersion(torrent.torrentStruct, seq);
+    if (!result.success)
     {
-        NSLog(@"btpk history: startSelectedVersion — version is already active");
+        NSLog(@"btpk history: startSelectedVersion failed — %s", result.error_message.c_str());
         return;
     }
 
-    NSString* hashString = entry[@"hash"];
-    NSString* magnetURI = [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hashString];
-
-    // Build the archive path for this version: archive_root/<torrent_name>/seq-<N>/
-    Torrent* torrent = self.fTorrents.firstObject;
-    NSString* archiveRoot = torrent.btpkArchiveRoot;
-    NSNumber* seq = entry[@"seq"];
-    NSString* archivePath = [NSString stringWithFormat:@"%@/%@/seq-%@",
-        archiveRoot, torrent.name, seq];
-
-    // Create the archive directory if needed
-    [NSFileManager.defaultManager createDirectoryAtPath:archivePath
-                            withIntermediateDirectories:YES
-                                             attributes:nil
-                                                  error:nil];
-
+    // Notify the UI that a torrent was added
     Controller* controller = (Controller*)NSApp.delegate;
-    [controller openMagnet:magnetURI toPath:archivePath btpkSourceTorrent:torrent];
+    [controller fullUpdateUI];
 }
 
 #pragma mark - NSTableViewDataSource (cell-based)

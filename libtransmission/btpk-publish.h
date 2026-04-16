@@ -46,3 +46,26 @@ void tr_torrentPublishBtpkUpdate(
     uint8_t* private_key_96,
     std::string content_path,
     tr_btpk_publish_done_func callback);
+
+// Result of starting a historical btpk version
+struct tr_btpk_start_version_result
+{
+    bool success = false;
+    tr_torrent* new_torrent = nullptr; // the newly added torrent (nullptr on failure)
+    std::string error_message;
+};
+
+// Start downloading a historical btpk version from the torrent's history.
+//
+// Looks up the infohash for the given sequence number in the torrent's
+// btpk_history, creates a magnet-link torrent at the archive path
+// (archive_root/name/seq-N/), and copies btpk fields from the source
+// torrent for immediate family grouping.
+//
+// This function is synchronous and must be called on the session thread
+// (or from code that holds the session lock).
+//
+// Returns: result with new_torrent set on success, or error_message on failure.
+tr_btpk_start_version_result tr_torrentStartBtpkVersion(
+    tr_torrent* source_tor,
+    int64_t target_seq);

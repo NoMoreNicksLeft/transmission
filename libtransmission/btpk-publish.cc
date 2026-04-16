@@ -24,6 +24,7 @@
 #include "libtransmission/log.h"
 #include "libtransmission/makemeta.h"
 #include "libtransmission/torrent.h"
+#include "libtransmission/torrent-ctor.h"
 #include "libtransmission/torrent-metainfo.h"
 #include "libtransmission/utils.h"
 
@@ -257,4 +258,91 @@ void tr_torrentPublishBtpkUpdate(
             work->cb({ true, work->magnet, {} });
         });
     }).detach();
+}
+
+tr_btpk_start_version_result tr_torrentStartBtpkVersion(
+    tr_torrent* source_tor,
+    int64_t target_seq)
+{
+    tr_btpk_start_version_result result;
+
+    if (source_tor == nullptr)
+    {
+        result.error_message = "Invalid torrent";
+        return result;
+    }
+
+    // Look up the infohash for this seq in the torrent's history
+    auto const history = tr_torrentBtpkHistory(source_tor);
+    std::string target_hash;
+    for (auto const& entry : history)
+    {
+        if (entry.seq == target_seq)
+        {
+            target_hash.reserve(40);
+            for (auto const byte : entry.infohash)
+            {
+                target_hash += fmt::format("{:02x}", byte);
+            }
+            break;
+        }
+    }
+
+    if (target_hash.empty())
+    {
+        result.error_message = fmt::format("No history entry found for seq {}", target_seq);
+        return result;
+    }
+
+    auto* session = source_tor->session;
+
+    // Check if this infohash is already loaded
+    auto const magnet = fmt::format("magnet:?xt=urn:btih:{}", target_hash);
+    if (tr_torrentFindFromMagnetLink(session, magnet.c_str()) != nullptr)
+    {
+        result.error_message = "Version is already active";
+        return result;
+    }
+
+    // Build the archive path: archive_root/name/seq-N/
+    auto const archive_root = tr_torrentGetBtpkArchiveRoot(source_tor);
+    auto const name = std::string{ source_tor->name() };
+    auto const archive_path = fmt::format("{}/{}/seq-{}", archive_root, name, target_seq);
+
+    // Create directory
+    tr_sys_dir_create(archive_path, TR_SYS_DIR_CREATE_PARENTS, 0755);
+
+    // Add the torrent via tr_ctor
+    auto ctor = tr_ctor{ session };
+    if (!ctor.set_metainfo_from_magnet_link(magnet))
+    {
+        result.error_message = "Failed to parse magnet link";
+        return result;
+    }
+    ctor.set_download_dir(TR_FORCE, archive_path);
+    ctor.set_paused(TR_FORCE, false);
+
+    tr_torrent* duplicate_of = nullptr;
+    tr_torrent* new_tor = tr_torrentNew(&ctor, &duplicate_of);
+
+    if (new_tor == nullptr)
+    {
+        result.error_message = duplicate_of != nullptr
+            ? "Version is already active"
+            : "Failed to create torrent";
+        return result;
+    }
+
+    // Copy btpk fields from source torrent for immediate family grouping
+    uint8_t pub_key[32] = {};
+    if (tr_torrentBtpkGetPublicKey(source_tor, pub_key))
+    {
+        char salt_buf[256] = {};
+        size_t const salt_len = tr_torrentBtpkGetSalt(source_tor, salt_buf, sizeof(salt_buf));
+        tr_torrentSetBtpkFromResume(new_tor, pub_key, salt_buf, salt_len);
+    }
+
+    result.success = true;
+    result.new_torrent = new_tor;
+    return result;
 }

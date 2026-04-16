@@ -36,7 +36,6 @@ typedef NS_ENUM(NSUInteger, AddType) { //
 - (IBAction)openShowSheet:(id)sender;
 
 - (void)openMagnet:(NSString*)address;
-- (void)openMagnet:(NSString*)address toPath:(NSString*)path btpkSourceTorrent:(Torrent*)sourceTorrent;
 - (void)askOpenMagnetConfirmed:(AddMagnetWindowController*)addController add:(BOOL)add;
 
 - (void)invalidOpenAlert:(NSString*)filename;
