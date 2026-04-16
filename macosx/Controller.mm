@@ -1938,6 +1938,24 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
 - (void)removeTorrents:(NSArray<Torrent*>*)torrents deleteData:(BOOL)deleteData
 {
+    // When removing a family head, also remove all its children.
+    // The head "owns" the version family — removing it removes the whole group.
+    NSMutableArray<Torrent*>* expanded = [NSMutableArray arrayWithArray:torrents];
+    for (Torrent* torrent in torrents)
+    {
+        NSMutableArray<Torrent*>* children = self.fBtpkFamilyChildren[@(torrent.torrentID)];
+        if (children.count > 0)
+        {
+            for (Torrent* child in children)
+            {
+                if (![expanded containsObject:child])
+                    [expanded addObject:child];
+            }
+        }
+    }
+    if (expanded.count != torrents.count)
+        torrents = expanded;
+
     if ([self.fDefaults boolForKey:@"CheckRemove"])
     {
         NSUInteger active = 0, downloading = 0;
@@ -5124,6 +5142,19 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         if (self.fFilterBar.isFocused == YES)
         {
             return NO;
+        }
+
+        // Disable "Remove and Trash Data" for non-head family members.
+        // Deleting their files could break symlinks that other versions depend on.
+        if (action == @selector(removeDeleteData:))
+        {
+            for (Torrent* torrent in self.fTableView.selectedTorrents)
+            {
+                if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
+                {
+                    return NO;
+                }
+            }
         }
 
         for (Torrent* torrent in self.fTableView.selectedTorrents)
