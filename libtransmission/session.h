@@ -465,6 +465,15 @@ public:
         bool tcp_enabled = true;
         bool torrent_complete_verify_enabled = false;
         bool utp_enabled = true;
+
+        // btpk / mutable torrent session defaults for newly added torrents
+        size_t btpk_default_update_mode = 1U; // 0=never, 1=when_offered, 2=always_versioned
+        bool btpk_default_allow_additional = true;
+        bool btpk_default_allow_renaming = true;
+        bool btpk_default_allow_overwrites = false;
+        bool btpk_default_allow_deletions = true;
+        size_t btpk_default_versions_to_keep = 5U;
+        size_t btpk_default_max_storage_gb = 10U;
         double ratio_limit = 2.0;
         size_t cache_size_mbytes = 4U;
         size_t download_queue_size = 5U;
@@ -568,6 +577,13 @@ public:
             Field<&Settings::torrent_complete_verify_enabled>{ TR_KEY_torrent_complete_verify_enabled },
             Field<&Settings::should_delete_source_torrents>{ TR_KEY_trash_original_torrent_files },
             Field<&Settings::umask>{ TR_KEY_umask },
+            Field<&Settings::btpk_default_update_mode>{ TR_KEY_btpk_default_update_mode },
+            Field<&Settings::btpk_default_allow_additional>{ TR_KEY_btpk_default_allow_additional },
+            Field<&Settings::btpk_default_allow_renaming>{ TR_KEY_btpk_default_allow_renaming },
+            Field<&Settings::btpk_default_allow_overwrites>{ TR_KEY_btpk_default_allow_overwrites },
+            Field<&Settings::btpk_default_allow_deletions>{ TR_KEY_btpk_default_allow_deletions },
+            Field<&Settings::btpk_default_versions_to_keep>{ TR_KEY_btpk_default_versions_to_keep },
+            Field<&Settings::btpk_default_max_storage_gb>{ TR_KEY_btpk_default_max_storage_gb },
             Field<&Settings::upload_slots_per_torrent>{ TR_KEY_upload_slots_per_torrent },
             Field<&Settings::utp_enabled>{ TR_KEY_utp_enabled },
         };
@@ -633,6 +649,12 @@ public:
     }
 
     [[nodiscard]] constexpr auto const& settings() const noexcept
+    {
+        return settings_;
+    }
+
+    // Mutable reference for session-set RPC handlers
+    [[nodiscard]] constexpr auto& mutableSettings() noexcept
     {
         return settings_;
     }

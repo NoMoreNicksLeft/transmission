@@ -2971,6 +2971,66 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
             }
         });
 
+    // btpk session defaults for newly added mutable torrents
+    map.try_emplace(
+        TR_KEY_btpk_default_update_mode,
+        [](tr_session const& src) -> tr_variant { return static_cast<int64_t>(src.settings().btpk_default_update_mode); },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<int64_t>(); val && *val >= 0 && *val <= 2)
+            {
+                tgt.mutableSettings().btpk_default_update_mode = static_cast<size_t>(*val);
+            }
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_allow_additional,
+        [](tr_session const& src) -> tr_variant { return src.settings().btpk_default_allow_additional; },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<bool>())
+                tgt.mutableSettings().btpk_default_allow_additional = *val;
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_allow_renaming,
+        [](tr_session const& src) -> tr_variant { return src.settings().btpk_default_allow_renaming; },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<bool>())
+                tgt.mutableSettings().btpk_default_allow_renaming = *val;
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_allow_overwrites,
+        [](tr_session const& src) -> tr_variant { return src.settings().btpk_default_allow_overwrites; },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<bool>())
+                tgt.mutableSettings().btpk_default_allow_overwrites = *val;
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_allow_deletions,
+        [](tr_session const& src) -> tr_variant { return src.settings().btpk_default_allow_deletions; },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<bool>())
+                tgt.mutableSettings().btpk_default_allow_deletions = *val;
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_versions_to_keep,
+        [](tr_session const& src) -> tr_variant { return static_cast<int64_t>(src.settings().btpk_default_versions_to_keep); },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<int64_t>(); val && *val >= 0)
+                tgt.mutableSettings().btpk_default_versions_to_keep = static_cast<size_t>(*val);
+        });
+    map.try_emplace(
+        TR_KEY_btpk_default_max_storage_gb,
+        [](tr_session const& src) -> tr_variant { return static_cast<int64_t>(src.settings().btpk_default_max_storage_gb); },
+        [](tr_session& tgt, tr_variant const& src, ErrorInfo& /*err*/)
+        {
+            if (auto const val = src.value_if<int64_t>(); val && *val >= 0)
+                tgt.mutableSettings().btpk_default_max_storage_gb = static_cast<size_t>(*val);
+        });
+
     map.try_emplace(
         TR_KEY_version,
         [](tr_session const& /*src*/) -> tr_variant { return tr_variant::unmanaged_string(LONG_VERSION_STRING); },

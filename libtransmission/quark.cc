@@ -90,6 +90,13 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "btpk_allow_renaming"sv, // .resume, rpc
     "btpk_apply"sv, // rpc method: apply pending btpk update
     "btpk_apply_in_progress"sv, // rpc torrent-get: true while staging torrent is fetching update
+    "btpk_default_allow_additional"sv,
+    "btpk_default_allow_deletions"sv,
+    "btpk_default_allow_overwrites"sv,
+    "btpk_default_allow_renaming"sv,
+    "btpk_default_max_storage_gb"sv,
+    "btpk_default_update_mode"sv,
+    "btpk_default_versions_to_keep"sv,
     "btpk_history"sv, // info dict: list of [seq, infohash] pairs for prior versions
     "btpk_max_storage_gb"sv, // .resume, rpc
     "btpk_pending_seq"sv, // rpc torrent-get: pending update seq (-1 if none)
