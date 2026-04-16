@@ -7,6 +7,7 @@
 #include <array>
 #include <cerrno>
 #include <cstdint>
+#include <cstring>
 #include <ctime>
 #include <functional>
 #include <iterator>
@@ -38,6 +39,8 @@
 #include "libtransmission/rpcimpl.h"
 #include "libtransmission/session.h"
 #include "libtransmission/torrent-ctor.h"
+#include "libtransmission/btpk-publish.h"
+#include "libtransmission/btpk-utils.h"
 #include "libtransmission/torrent.h"
 #include "libtransmission/tr-assert.h"
 #include "libtransmission/tr-strbuf.h"
@@ -1803,6 +1806,82 @@ bool isCurlURL(std::string_view url)
     return files;
 }
 
+
+// --- btpk-publish RPC method ---
+// Parameters:
+//   "ids": [torrent-id]  — exactly one torrent
+//   "private_key": string — PEM-encoded ed25519 private key
+//   "content_path": string (optional) — override content path
+void btpkPublish(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idle_data* idle_data)
+{
+    using namespace JsonRpc;
+
+    // Get the torrent
+    auto const ids = getTorrents(session, args_in);
+    if (ids.size() != 1)
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "btpk-publish requires exactly one torrent"sv);
+        return;
+    }
+
+    auto* tor = ids.front();
+
+    // Get the private key PEM
+    auto const pem = args_in.value_if<std::string_view>(TR_KEY_private_key);
+    if (!pem || pem->empty())
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "btpk-publish requires 'private_key' parameter"sv);
+        return;
+    }
+
+    // Parse PEM to raw 96-byte key
+    auto key_opt = libtransmission::tr_btpk_private_key_from_pem(std::string{ *pem }.c_str());
+    if (!key_opt)
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "Invalid private key PEM"sv);
+        return;
+    }
+
+    auto& priv_key = *key_opt;
+
+    // Verify the key matches
+    uint8_t pub_key[32] = {};
+    if (!tr_torrentBtpkGetPublicKey(tor, pub_key))
+    {
+        libtransmission::tr_btpk_zero_key(priv_key);
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "Torrent has no btpk public key"sv);
+        return;
+    }
+
+    // Check that the private key's embedded public key matches
+    if (std::memcmp(priv_key.data() + 64, pub_key, 32) != 0)
+    {
+        libtransmission::tr_btpk_zero_key(priv_key);
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "Private key does not match torrent public key"sv);
+        return;
+    }
+
+    // Optional content path override
+    auto content_path = std::string{};
+    if (auto const cp = args_in.value_if<std::string_view>(TR_KEY_content_path); cp)
+        content_path = std::string{ *cp };
+
+    // Call the publish function — it runs asynchronously
+    tr_torrentPublishBtpkUpdate(tor, priv_key.data(), std::move(content_path),
+        [idle_data](tr_btpk_publish_result const& result)
+    {
+        if (result.success)
+        {
+            idle_data->args_out.try_emplace(TR_KEY_magnet_link, result.magnet_link);
+            tr_rpc_idle_done(idle_data, Error::SUCCESS, {});
+        }
+        else
+        {
+            tr_rpc_idle_done(idle_data, Error::SYSTEM_ERROR, result.error_message);
+        }
+    });
+}
+
 void torrentAdd(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idle_data* idle_data)
 {
     using namespace JsonRpc;
@@ -2871,9 +2950,10 @@ auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, 
 
 using AsyncHandler = void (*)(tr_session*, tr_variant::Map const&, tr_rpc_idle_data*);
 
-auto const async_handlers = small::max_size_map<tr_quark, std::pair<AsyncHandler, bool /*has_side_effects*/>, 4U>{ {
+auto const async_handlers = small::max_size_map<tr_quark, std::pair<AsyncHandler, bool /*has_side_effects*/>, 6U>{ {
     { TR_KEY_blocklist_update, { blocklistUpdate, true } },
     { TR_KEY_port_test, { portTest, false } },
+    { TR_KEY_btpk_publish, { btpkPublish, true } },
     { TR_KEY_torrent_add, { torrentAdd, true } },
     { TR_KEY_torrent_rename_path, { torrentRenamePath, true } },
 } };

@@ -93,8 +93,10 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "btpk_max_storage_gb"sv, // .resume, rpc
     "btpk_pending_seq"sv, // rpc torrent-get: pending update seq (-1 if none)
     "btpk_pub"sv, // .torrent top-level
+    "btpk_publish"sv, // rpc method: publish a btpk update
     "btpk_salt"sv, // .resume
-    "btpk_seq"sv, // .resume
+    "btpk_seq"sv,
+    "btpk_start_version"sv, // rpc method: start a historical version // .resume
     "btpk_update_mode"sv, // rpc torrent-get/set
     "btpk_versions_to_keep"sv, // .resume, rpc
     "bytesCompleted"sv, // rpc
@@ -116,6 +118,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "complete"sv, // BEP0048; BT protocol
     "config-dir"sv, // rpc
     "config_dir"sv, // rpc
+    "content_path"sv,
     "cookies"sv, // rpc
     "corrupt"sv, // .resume
     "corruptEver"sv, // rpc
@@ -438,7 +441,8 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "priority_high"sv, // rpc
     "priority_low"sv, // rpc
     "priority_normal"sv, // rpc
-    "private"sv, // .torrent
+    "private"sv,
+    "private_key"sv, // .torrent
     "progress"sv, // .resume, rpc
     "prompt-before-exit"sv, // qt app
     "prompt_before_exit"sv, // qt app
