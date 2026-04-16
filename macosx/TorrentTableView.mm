@@ -372,7 +372,7 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
                         CGFloat badgeX = iconFrame.origin.x - 7 + (iconFrame.size.width - badgeWidth) / 2.0 + 7;
                         seqBadge.frame = NSMakeRect(
                             badgeX,
-                            iconFrame.origin.y - 2,
+                            iconFrame.origin.y - 5,
                             badgeWidth,
                             11);
                         [torrentCell addSubview:seqBadge];
