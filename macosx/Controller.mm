@@ -2088,6 +2088,53 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             doTableRemoval(self.fDisplayedTorrents, nil);
         }
 
+        // Also remove from btpk family children (outline view children of head torrents)
+        for (NSNumber* headId in self.fBtpkFamilyChildren.allKeys)
+        {
+            NSMutableArray<Torrent*>* children = self.fBtpkFamilyChildren[headId];
+            if (!children || children.count == 0)
+                continue;
+
+            // Find the head torrent object for this family
+            Torrent* headTorrent = nil;
+            for (id item in self.fDisplayedTorrents)
+            {
+                if ([item isKindOfClass:[TorrentGroup class]])
+                {
+                    for (Torrent* t in ((TorrentGroup*)item).torrents)
+                    {
+                        if (t.torrentID == headId.integerValue)
+                        {
+                            headTorrent = t;
+                            break;
+                        }
+                    }
+                    if (headTorrent) break;
+                }
+                else if ([item isKindOfClass:[Torrent class]] && ((Torrent*)item).torrentID == headId.integerValue)
+                {
+                    headTorrent = (Torrent*)item;
+                    break;
+                }
+            }
+
+            if (headTorrent)
+            {
+                doTableRemoval(children, headTorrent);
+            }
+            else
+            {
+                // Head itself was removed — just clear the children array
+                [children removeAllObjects];
+            }
+
+            // Clean up empty family entry
+            if (children.count == 0)
+            {
+                [self.fBtpkFamilyChildren removeObjectForKey:headId];
+            }
+        }
+
         if (beganUpdate)
         {
             [self.fTableView endUpdates];
