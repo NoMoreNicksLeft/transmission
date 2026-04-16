@@ -168,9 +168,22 @@ static NSString* const kHashColumnId = @"Hash";
 
     NSString* hashString = entry[@"hash"];
     NSString* magnetURI = [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hashString];
-    NSLog(@"btpk history: opening magnet URI: %@", magnetURI);
+
+    // Build the archive path for this version: archive_root/<torrent_name>/seq-<N>/
+    Torrent* torrent = self.fTorrents.firstObject;
+    NSString* archiveRoot = torrent.btpkArchiveRoot;
+    NSNumber* seq = entry[@"seq"];
+    NSString* archivePath = [NSString stringWithFormat:@"%@/%@/seq-%@",
+        archiveRoot, torrent.name, seq];
+
+    // Create the archive directory if needed
+    [NSFileManager.defaultManager createDirectoryAtPath:archivePath
+                            withIntermediateDirectories:YES
+                                             attributes:nil
+                                                  error:nil];
+
     Controller* controller = (Controller*)NSApp.delegate;
-    [controller openURL:magnetURI];
+    [controller openMagnet:magnetURI toPath:archivePath];
 }
 
 #pragma mark - NSTableViewDataSource (cell-based)

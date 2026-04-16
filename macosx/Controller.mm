@@ -1498,6 +1498,42 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     [self fullUpdateUI];
 }
 
+- (void)openMagnet:(NSString*)address toPath:(NSString*)path
+{
+    tr_torrent* duplicateTorrent;
+    if ((duplicateTorrent = tr_torrentFindFromMagnetLink(self.fLib, address.UTF8String)))
+    {
+        // Already loaded — silently ignore (the History tab shows it as active)
+        return;
+    }
+
+    Torrent* torrent;
+    if (!(torrent = [[Torrent alloc] initWithMagnetAddress:address location:path lib:self.fLib]))
+    {
+        [self invalidOpenMagnetAlert:address];
+        return;
+    }
+
+    // Force the download location to the specified path, no dialog
+    [torrent changeDownloadFolderBeforeUsing:path determinationType:TorrentDeterminationAutomatic];
+
+    if ([self.fDefaults boolForKey:@"AutoStartDownload"])
+    {
+        [torrent startTransfer];
+    }
+
+    [torrent update];
+    [self.fTorrents addObject:torrent];
+
+    if (!self.fAddingTransfers)
+    {
+        self.fAddingTransfers = [[NSMutableSet alloc] init];
+    }
+    [self.fAddingTransfers addObject:torrent];
+
+    [self fullUpdateUI];
+}
+
 - (void)askOpenMagnetConfirmed:(AddMagnetWindowController*)addController add:(BOOL)add
 {
     Torrent* torrent = addController.torrent;

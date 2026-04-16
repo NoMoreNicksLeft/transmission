@@ -877,6 +877,12 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return tr_torrentIsBtpkFamilyHead(self.fHandle);
 }
 
+- (NSString*)btpkArchiveRoot
+{
+    auto root = tr_torrentGetBtpkArchiveRoot(self.fHandle);
+    return root.empty() ? nil : @(root.c_str());
+}
+
 - (BOOL)btpkPrivateKeyMatchesData:(NSData*)keyData
 {
     if (!keyData || keyData.length != 96)
