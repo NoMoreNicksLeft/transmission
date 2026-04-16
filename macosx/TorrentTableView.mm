@@ -333,44 +333,69 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
 
         torrentCell.fTorrentTitleField.stringValue = torrent.name;
 
-        // Btpk family child versions: dim the row + add "seq N" badge below icon
-        if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
+        // Btpk version badge below the icon: "current" for head, "seq N" for children
         {
-            torrentCell.alphaValue = 0.55;
-
-            // Draw a "seq N" label below the file icon
-            NSInteger seq = torrent.btpkSeq;
-            if (seq < 0) seq = 0;
-            NSString* seqLabel = [NSString stringWithFormat:@"seq%ld", (long)seq];
-
-            // Find or create the seq badge label
             NSTextField* seqBadge = [torrentCell viewWithTag:9999];
-            if (!seqBadge)
+            if (torrent.hasBtpk)
             {
-                NSRect iconFrame = torrentCell.fIconView.frame;
-                seqBadge = [NSTextField labelWithString:seqLabel];
-                seqBadge.tag = 9999;
-                seqBadge.font = [NSFont systemFontOfSize:8.0 weight:NSFontWeightMedium];
-                seqBadge.textColor = NSColor.secondaryLabelColor;
-                seqBadge.alignment = NSTextAlignmentCenter;
-                seqBadge.frame = NSMakeRect(
-                    iconFrame.origin.x - 4,
-                    iconFrame.origin.y - 12,
-                    iconFrame.size.width + 8,
-                    12);
-                [torrentCell addSubview:seqBadge];
-            }
-            seqBadge.stringValue = seqLabel;
-            seqBadge.hidden = NO;
-        }
-        else
-        {
-            torrentCell.alphaValue = 1.0;
+                BOOL const isHead = torrent.isBtpkFamilyHead;
+                NSString* badgeText;
+                if (isHead)
+                {
+                    // Only show "current" if there are family siblings
+                    NSArray* children = torrent.btpkFamilyMemberIds;
+                    if (children.count > 1)
+                        badgeText = @"current";
+                    else
+                        badgeText = nil; // solo btpk torrent, no badge needed
+                }
+                else
+                {
+                    NSInteger seq = torrent.btpkSeq;
+                    if (seq < 0) seq = 0;
+                    badgeText = [NSString stringWithFormat:@"seq %ld", (long)seq];
+                }
 
-            // Hide seq badge if present (cell may be reused)
-            NSTextField* seqBadge = [torrentCell viewWithTag:9999];
-            if (seqBadge)
-                seqBadge.hidden = YES;
+                if (badgeText)
+                {
+                    if (!seqBadge)
+                    {
+                        NSRect iconFrame = torrentCell.fIconView.frame;
+                        seqBadge = [NSTextField labelWithString:badgeText];
+                        seqBadge.tag = 9999;
+                        seqBadge.font = [NSFont systemFontOfSize:7.5 weight:NSFontWeightMedium];
+                        seqBadge.alignment = NSTextAlignmentCenter;
+                        seqBadge.backgroundColor = NSColor.clearColor;
+                        seqBadge.drawsBackground = NO;
+                        // Position below the icon
+                        CGFloat badgeWidth = iconFrame.size.width + 14;
+                        CGFloat badgeX = iconFrame.origin.x - 7 + (iconFrame.size.width - badgeWidth) / 2.0 + 7;
+                        seqBadge.frame = NSMakeRect(
+                            badgeX,
+                            iconFrame.origin.y - 2,
+                            badgeWidth,
+                            11);
+                        [torrentCell addSubview:seqBadge];
+                    }
+                    seqBadge.stringValue = badgeText;
+                    seqBadge.textColor = isHead ?
+                        [NSColor colorWithCalibratedRed:0.3 green:0.7 blue:0.3 alpha:0.9] :
+                        NSColor.secondaryLabelColor;
+                    seqBadge.hidden = NO;
+                }
+                else if (seqBadge)
+                {
+                    seqBadge.hidden = YES;
+                }
+
+                torrentCell.alphaValue = isHead ? 1.0 : 0.55;
+            }
+            else
+            {
+                torrentCell.alphaValue = 1.0;
+                if (seqBadge)
+                    seqBadge.hidden = YES;
+            }
         }
 
         torrentCell.fActionButton.action = @selector(displayTorrentActionPopover:);
