@@ -5,7 +5,8 @@
 
 #include <array>
 #include <cstdio>
-#include <cstdlib> // for strtoul()
+#include <cstdlib>
+#include <cstring> // for strtoul()
 #include <chrono>
 #include <cstdint> // for uint32_t
 #include <future>
@@ -23,6 +24,7 @@
 #include <libtransmission/error.h>
 #include <libtransmission/file.h>
 #include <libtransmission/log.h>
+#include <libtransmission/btpk-utils.h>
 #include <libtransmission/makemeta.h>
 #include <libtransmission/torrent-files.h>
 #include <libtransmission/tr-getopt.h>
@@ -43,7 +45,7 @@ char constexpr Usage[] = "Usage: transmission-create [options] <file|directory>"
 uint32_t constexpr KiB = 1024;
 
 using Arg = tr_option::Arg;
-auto constexpr Options = std::array<tr_option, 10>{ {
+auto constexpr Options = std::array<tr_option, 14>{ {
     { 'p', "private", "Allow this torrent to only be used with the specified tracker(s)", "p", Arg::None, nullptr },
     { 'r', "source", "Set the source for private trackers", "r", Arg::Required, "<source>" },
     { 'o', "outfile", "Save the generated .torrent to this filename", "o", Arg::Required, "<file>" },
@@ -53,6 +55,10 @@ auto constexpr Options = std::array<tr_option, 10>{ {
     { 'w', "webseed", "Add a webseed URL", "w", Arg::Required, "<url>" },
     { 'x', "anonymize", R"(Omit "Creation date" and "Created by" info)", nullptr, Arg::None, nullptr },
     { 'V', "version", "Show version number and exit", "V", Arg::None, nullptr },
+    { 1001, "btpk-key", "Create a mutable torrent using ed25519 private key PEM file", nullptr, Arg::Required, "<keyfile>" },
+    { 1002, "btpk-generate-key", "Generate a new ed25519 keypair and save private key to file", nullptr, Arg::Required, "<outfile>" },
+    { 1003, "btpk-salt", "Set the btpk salt (optional, random if omitted)", nullptr, Arg::Required, "<salt>" },
+    { 1004, "btpk-show-key", "Print the public key fingerprint from a PEM key file", nullptr, Arg::Required, "<keyfile>" },
     { 0, nullptr, nullptr, nullptr, Arg::None, nullptr },
 } };
 static_assert(Options[std::size(Options) - 2].val != 0);
@@ -72,6 +78,10 @@ struct app_options
     bool anonymize = false;
     bool is_private = false;
     bool show_version = false;
+    std::string btpk_keyfile;
+    std::string btpk_generate_keyfile;
+    std::string btpk_salt;
+    std::string btpk_show_keyfile;
 };
 
 int parseCommandLine(app_options& options, int argc, char const* const* argv)
@@ -127,6 +137,22 @@ int parseCommandLine(app_options& options, int argc, char const* const* argv)
             options.anonymize = true;
             break;
 
+        case 1001:
+            options.btpk_keyfile = optarg;
+            break;
+
+        case 1002:
+            options.btpk_generate_keyfile = optarg;
+            break;
+
+        case 1003:
+            options.btpk_salt = optarg;
+            break;
+
+        case 1004:
+            options.btpk_show_keyfile = optarg;
+            break;
+
         case TR_OPT_UNK:
             options.infile = optarg;
             break;
@@ -155,6 +181,63 @@ int tr_main(int argc, char* argv[])
     if (options.show_version)
     {
         fprintf(stderr, "%s %s\n", MyName, LONG_VERSION_STRING);
+        return EXIT_SUCCESS;
+    }
+
+    // Handle standalone btpk key operations
+    if (!options.btpk_generate_keyfile.empty())
+    {
+        using namespace libtransmission;
+        BtpkPublicKey pub;
+        BtpkPrivateKey priv;
+        tr_btpk_key_generate(pub, priv);
+
+        auto const pem = tr_btpk_private_key_to_pem(priv);
+        auto error = tr_error{};
+        tr_file_save(options.btpk_generate_keyfile, pem, &error);
+        if (error)
+        {
+            fmt::print(stderr, "Error saving key to '{}': {}\n",
+                       options.btpk_generate_keyfile, error.message());
+            tr_btpk_zero_key(priv);
+            return EXIT_FAILURE;
+        }
+
+        fmt::print("Generated ed25519 keypair.\n");
+        fmt::print("  Private key saved to: {}\n", options.btpk_generate_keyfile);
+        fmt::print("  Public key:  {}\n", tr_btpk_public_key_to_hex(pub));
+        fmt::print("  Fingerprint: {}\n", tr_btpk_fingerprint(pub));
+        tr_btpk_zero_key(priv);
+
+        if (std::empty(options.infile))
+        {
+            return EXIT_SUCCESS; // standalone key generation
+        }
+    }
+
+    if (!options.btpk_show_keyfile.empty())
+    {
+        using namespace libtransmission;
+        auto key_contents = std::vector<char>{};
+        auto error = tr_error{};
+        if (!tr_file_read(options.btpk_show_keyfile, key_contents, &error))
+        {
+            fmt::print(stderr, "Error reading key file '{}': {}\n",
+                       options.btpk_show_keyfile, error ? error.message() : "empty file");
+            return EXIT_FAILURE;
+        }
+        auto const pem_sv = std::string_view{ key_contents.data(), key_contents.size() };
+        auto const priv_opt = tr_btpk_private_key_from_pem(pem_sv);
+        if (!priv_opt)
+        {
+            fmt::print(stderr, "Error: invalid PEM key file\n");
+            return EXIT_FAILURE;
+        }
+        // Extract public key from last 32 bytes of the 96-byte private key
+        BtpkPublicKey pub;
+        std::memcpy(pub.data(), priv_opt->data() + 64, 32);
+        fmt::print("Public key:  {}\n", tr_btpk_public_key_to_hex(pub));
+        fmt::print("Fingerprint: {}\n", tr_btpk_fingerprint(pub));
         return EXIT_SUCCESS;
     }
 
@@ -264,6 +347,39 @@ int tr_main(int argc, char* argv[])
     builder.set_anonymize(options.anonymize);
     builder.set_webseeds(std::move(options.webseeds));
     builder.set_announce_list(std::move(options.trackers));
+
+    // Apply btpk key if specified
+    if (!options.btpk_keyfile.empty())
+    {
+        using namespace libtransmission;
+        auto key_contents = std::vector<char>{};
+        auto error = tr_error{};
+        if (!tr_file_read(options.btpk_keyfile, key_contents, &error))
+        {
+            fmt::print(stderr, "Error reading key file '{}': {}\n",
+                       options.btpk_keyfile, error ? error.message() : "empty file");
+            return EXIT_FAILURE;
+        }
+        auto const pem_sv = std::string_view{ key_contents.data(), key_contents.size() };
+        auto const priv_opt = tr_btpk_private_key_from_pem(pem_sv);
+        if (!priv_opt)
+        {
+            fmt::print(stderr, "Error: invalid PEM key file\n");
+            return EXIT_FAILURE;
+        }
+        // Extract public key from last 32 bytes
+        BtpkPublicKey pub;
+        std::memcpy(pub.data(), priv_opt->data() + 64, 32);
+        builder.set_btpk_public_key(pub);
+        fmt::print("  Mutable torrent (BEP 46): yes\n");
+        fmt::print("  Public key fingerprint:   {}\n", tr_btpk_fingerprint(pub));
+
+        if (!options.btpk_salt.empty())
+        {
+            builder.set_btpk_salt(options.btpk_salt);
+            fmt::print("  Salt: {}\n", options.btpk_salt);
+        }
+    }
 
     auto future = builder.make_checksums();
     auto last = std::optional<tr_piece_index_t>{};
