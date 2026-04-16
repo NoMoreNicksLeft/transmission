@@ -441,6 +441,27 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     return { JsonRpc::Error::SUCCESS, {} };
 }
 
+// --- btpk-apply: apply a pending btpk update ---
+[[nodiscard]] std::pair<JsonRpc::Error::Code, std::string> btpkApply(tr_session* session,
+                                                                     tr_variant::Map const& args_in,
+                                                                     tr_variant::Map& /*args_out*/)
+{
+    auto const ids = getTorrents(session, args_in);
+    if (ids.size() != 1)
+    {
+        return { JsonRpc::Error::INVALID_PARAMS, "btpk-apply requires exactly one torrent" };
+    }
+
+    auto* tor = ids.front();
+    if (!tr_torrentApplyBtpkUpdate(tor))
+    {
+        return { JsonRpc::Error::INVALID_PARAMS, "No pending btpk update to apply" };
+    }
+
+    session->rpcNotify(TR_RPC_TORRENT_CHANGED, tor);
+    return { JsonRpc::Error::SUCCESS, {} };
+}
+
 // ---
 
 namespace make_torrent_field_helpers
@@ -1866,13 +1887,33 @@ void btpkPublish(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idl
     if (auto const cp = args_in.value_if<std::string_view>(TR_KEY_content_path); cp)
         content_path = std::string{ *cp };
 
+    // Continue seeding: after publishing, re-add the old version at the archive path
+    bool const continue_seeding = args_in.value_if<bool>(TR_KEY_continue_seeding).value_or(false);
+    int64_t const old_seq = (tr_torrentBtpkSeq(tor) < 0) ? 0 : tr_torrentBtpkSeq(tor);
+    auto const tor_id = tor->id();
+
     // Call the publish function — it runs asynchronously
     tr_torrentPublishBtpkUpdate(tor, priv_key.data(), std::move(content_path),
-        [idle_data](tr_btpk_publish_result const& result)
+        [idle_data, continue_seeding, old_seq, tor_id](tr_btpk_publish_result const& result)
     {
         if (result.success)
         {
             idle_data->args_out.try_emplace(TR_KEY_magnet_link, result.magnet_link);
+
+            // Re-add the old version for continued seeding
+            if (continue_seeding)
+            {
+                auto* tor_now = idle_data->session->torrents().get(tor_id);
+                if (tor_now != nullptr)
+                {
+                    auto start_result = tr_torrentStartBtpkVersion(tor_now, old_seq);
+                    if (start_result.success)
+                    {
+                        idle_data->session->rpcNotify(TR_RPC_TORRENT_ADDED, start_result.new_torrent);
+                    }
+                }
+            }
+
             tr_rpc_idle_done(idle_data, Error::SUCCESS, {});
         }
         else
@@ -3039,7 +3080,8 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
 
 using SyncHandler = std::pair<JsonRpc::Error::Code, std::string> (*)(tr_session*, tr_variant::Map const&, tr_variant::Map&);
 
-auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, bool /*has_side_effects*/>, 26U>{ {
+auto const sync_handlers = small::max_size_map<tr_quark, std::pair<SyncHandler, bool /*has_side_effects*/>, 27U>{ {
+    { TR_KEY_btpk_apply, { btpkApply, true } },
     { TR_KEY_free_space, { freeSpace, false } },
     { TR_KEY_group_get, { groupGet, false } },
     { TR_KEY_group_set, { groupSet, true } },

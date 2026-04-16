@@ -217,7 +217,7 @@ enum
 // --- Command-Line Arguments
 
 using Arg = tr_option::Arg;
-auto constexpr Options = std::array<tr_option, 110>{ {
+auto constexpr Options = std::array<tr_option, 112>{ {
     { 'a', "add", "Add torrent files by filename or URL", "a", Arg::None, nullptr },
     { 970, "alt-speed", "Use the alternate Limits", "as", Arg::None, nullptr },
     { 971, "no-alt-speed", "Don't use the alternate Limits", "AS", Arg::None, nullptr },
@@ -388,6 +388,8 @@ auto constexpr Options = std::array<tr_option, 110>{ {
     { 1002, "btpk-info", "Show btpk/mutable torrent info for current torrent(s)", "bi", Arg::None, nullptr },
     { 1003, "btpk-history", "Show btpk version history for current torrent(s)", "bh", Arg::None, nullptr },
     { 1004, "btpk-start-version", "Start downloading a historical btpk version", nullptr, Arg::Required, "<seq>" },
+    { 1005, "btpk-apply", "Apply a pending btpk update", "ba", Arg::None, nullptr },
+    { 1006, "btpk-continue-seeding", "Continue seeding old version after btpk-publish", nullptr, Arg::None, nullptr },
     { 0, nullptr, nullptr, nullptr, Arg::None, nullptr },
 } };
 static_assert(Options[std::size(Options) - 2].val != 0);
@@ -445,6 +447,8 @@ enum
     case 944: /* print selected torrents' ids */
     case 1001: /* btpk-publish */
     case 1004: /* btpk-start-version */
+    case 1005: /* btpk-apply */
+    case 1006: /* btpk-continue-seeding */
         return MODE_META_COMMAND;
 
     case 'c': /* incomplete-dir */
@@ -2644,6 +2648,7 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
     auto tset = tr_variant{};
     auto tadd = tr_variant{};
     auto rename_from = std::string{};
+    auto btpk_continue_seeding = false;
 
     for (;;)
     {
@@ -3597,8 +3602,12 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
                         break;
                     }
 
-                    auto params = tr_variant::Map{ 2U };
+                    auto params = tr_variant::Map{ 3U };
                     params.try_emplace(TR_KEY_private_key, std::string_view{ pem_contents.data(), pem_contents.size() });
+                    if (btpk_continue_seeding)
+                    {
+                        params.try_emplace(TR_KEY_continue_seeding, true);
+                    }
                     add_id_arg(params, config);
 
                     auto map = tr_variant::Map{ 4U };
@@ -3610,6 +3619,27 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
                     auto top = tr_variant{ std::move(map) };
                     status |= flush(rpcurl, &top, config);
                 }
+                break;
+
+
+            case 1005: /* btpk-apply */
+                {
+                    auto params = tr_variant::Map{ 1U };
+                    add_id_arg(params, config);
+
+                    auto map = tr_variant::Map{ 4U };
+                    map.try_emplace(TR_KEY_jsonrpc, tr_variant::unmanaged_string(JsonRpc::Version));
+                    map.try_emplace(TR_KEY_method, tr_variant::unmanaged_string(TR_KEY_btpk_apply));
+                    map.try_emplace(TR_KEY_params, std::move(params));
+                    map.try_emplace(TR_KEY_id, ID_NOOP);
+
+                    auto top = tr_variant{ std::move(map) };
+                    status |= flush(rpcurl, &top, config);
+                }
+                break;
+
+            case 1006: /* btpk-continue-seeding */
+                btpk_continue_seeding = true;
                 break;
 
             case 1004: /* btpk-start-version */
