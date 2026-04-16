@@ -3267,10 +3267,13 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
     NSArray<Torrent*>* allTorrentsUnfiltered = [self.fTorrents objectsAtIndexes:indexesOfNonFilteredTorrents];
 
-    // --- btpk version family grouping ---
-    // Group torrents by btpk family ID. The head (highest seq) appears in the main list;
-    // non-head members become children of the head (shown when expanded).
-    [self.fBtpkFamilyChildren removeAllObjects];
+    // --- btpk version family grouping (stable objects for outline view) ---
+    // Group torrents by btpk family ID. The head (highest seq) appears in the main
+    // list; non-head members are children of the head in the outline view.
+    // CRITICAL: fBtpkFamilyChildren arrays are updated IN PLACE to preserve
+    // outline view expansion state and avoid stale-reference crashes.
+
+    // Step 1: Build family buckets from the current torrent set
     NSMutableDictionary<NSString*, NSMutableArray<Torrent*>*>* familyBuckets = [NSMutableDictionary dictionary];
     for (Torrent* torrent in allTorrentsUnfiltered)
     {
@@ -3287,13 +3290,15 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         }
     }
 
-    // For each family, identify the head and assign children
+    // Step 2: For each family, identify the head and update children arrays in place
     NSMutableSet<Torrent*>* familyChildSet = [NSMutableSet set];
+    NSMutableSet<NSNumber*>* activeHeadIds = [NSMutableSet set];
+
     for (NSString* familyId in familyBuckets)
     {
         NSMutableArray<Torrent*>* bucket = familyBuckets[familyId];
         if (bucket.count <= 1)
-            continue; // single-member family, no children to group
+            continue; // single-member family, no grouping needed
 
         // Sort by seq descending — head is first
         [bucket sortUsingComparator:^NSComparisonResult(Torrent* a, Torrent* b) {
@@ -3304,33 +3309,61 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         }];
 
         Torrent* head = bucket.firstObject;
-        NSMutableArray<Torrent*>* children = [NSMutableArray arrayWithArray:[bucket subarrayWithRange:NSMakeRange(1, bucket.count - 1)]];
-        self.fBtpkFamilyChildren[@(head.torrentID)] = children;
-        [familyChildSet addObjectsFromArray:children];
+        NSNumber* headKey = @(head.torrentID);
+        [activeHeadIds addObject:headKey];
+
+        NSArray<Torrent*>* newChildren = [bucket subarrayWithRange:NSMakeRange(1, bucket.count - 1)];
+        [familyChildSet addObjectsFromArray:newChildren];
+
+        NSMutableArray<Torrent*>* existingChildren = self.fBtpkFamilyChildren[headKey];
+        if (existingChildren)
+        {
+            // Update in place — keep the same NSMutableArray instance so the
+            // outline view's internal references remain valid.
+            // Remove children no longer in the family.
+            for (NSInteger i = (NSInteger)existingChildren.count - 1; i >= 0; --i)
+            {
+                if (![newChildren containsObject:existingChildren[i]])
+                    [existingChildren removeObjectAtIndex:i];
+            }
+            // Add new children not already present.
+            for (Torrent* child in newChildren)
+            {
+                if (![existingChildren containsObject:child])
+                    [existingChildren addObject:child];
+            }
+        }
+        else
+        {
+            // New family head — create the stable array and register it.
+            existingChildren = [NSMutableArray arrayWithArray:newChildren];
+            self.fBtpkFamilyChildren[headKey] = existingChildren;
+        }
     }
 
-    // Build the display list with family children placed directly after their head.
-    // Children are NOT outline view children — they appear as flat rows, but with
-    // visual differentiation (version prefix, dimmed appearance).
+    // Step 3: Remove family entries for heads that no longer have families
+    NSMutableArray<NSNumber*>* staleHeadIds = [NSMutableArray array];
+    for (NSNumber* headId in self.fBtpkFamilyChildren)
+    {
+        if (![activeHeadIds containsObject:headId])
+            [staleHeadIds addObject:headId];
+    }
+    for (NSNumber* headId in staleHeadIds)
+    {
+        [self.fBtpkFamilyChildren removeObjectForKey:headId];
+    }
+
+    // Step 4: Filter children out of allTorrents (they appear as outline children)
     NSArray<Torrent*>* allTorrents;
     if (familyChildSet.count > 0)
     {
-        NSMutableArray* ordered = [NSMutableArray arrayWithCapacity:allTorrentsUnfiltered.count];
+        NSMutableArray* filtered = [NSMutableArray arrayWithCapacity:allTorrentsUnfiltered.count];
         for (Torrent* t in allTorrentsUnfiltered)
         {
-            if ([familyChildSet containsObject:t])
-                continue; // skip — will be inserted after head
-
-            [ordered addObject:t];
-
-            // If this torrent is a family head, insert its children right after
-            NSArray<Torrent*>* children = self.fBtpkFamilyChildren[@(t.torrentID)];
-            if (children)
-            {
-                [ordered addObjectsFromArray:children];
-            }
+            if (![familyChildSet containsObject:t])
+                [filtered addObject:t];
         }
-        allTorrents = ordered;
+        allTorrents = filtered;
     }
     else
     {
@@ -3656,6 +3689,36 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     //reloaddata, otherwise the tableview has a bunch of empty cells
     [self.fTableView reloadData];
 
+    // Auto-expand btpk family heads so version children are visible.
+    // Use expandItem — if already expanded, this is a no-op.
+    for (NSNumber* headId in self.fBtpkFamilyChildren)
+    {
+        NSMutableArray* children = self.fBtpkFamilyChildren[headId];
+        if (children.count == 0)
+            continue;
+        NSInteger const tid = headId.integerValue;
+        // Search flat list and group lists for the head torrent
+        for (id item in self.fDisplayedTorrents)
+        {
+            if ([item isKindOfClass:[TorrentGroup class]])
+            {
+                for (Torrent* t in ((TorrentGroup*)item).torrents)
+                {
+                    if (t.torrentID == tid)
+                    {
+                        [self.fTableView expandItem:t];
+                        break;
+                    }
+                }
+            }
+            else if ([item isKindOfClass:[Torrent class]] && ((Torrent*)item).torrentID == tid)
+            {
+                [self.fTableView expandItem:item];
+                break;
+            }
+        }
+    }
+
     [self resetInfo]; //if group is already selected, but the torrents in it change
 
     [self setBottomCountText:groupRows || filterStatus || filterGroup || searchStrings];
@@ -3929,7 +3992,14 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 {
     if (item)
     {
-        return ((TorrentGroup*)item).torrents.count;
+        if ([item isKindOfClass:[TorrentGroup class]])
+            return ((TorrentGroup*)item).torrents.count;
+        if ([item isKindOfClass:[Torrent class]])
+        {
+            NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+            return children ? (NSInteger)children.count : 0;
+        }
+        return 0;
     }
     else
     {
@@ -3941,7 +4011,16 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 {
     if (item)
     {
-        return ((TorrentGroup*)item).torrents[index];
+        if ([item isKindOfClass:[TorrentGroup class]])
+            return ((TorrentGroup*)item).torrents[index];
+        if ([item isKindOfClass:[Torrent class]])
+        {
+            NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+            if (children && index >= 0 && (NSUInteger)index < children.count)
+                return children[index];
+            return nil;
+        }
+        return nil;
     }
     else
     {
@@ -3951,7 +4030,14 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
 - (BOOL)outlineView:(NSOutlineView*)outlineView isItemExpandable:(id)item
 {
-    return ![item isKindOfClass:[Torrent class]];
+    if ([item isKindOfClass:[TorrentGroup class]])
+        return YES;
+    if ([item isKindOfClass:[Torrent class]])
+    {
+        NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+        return children != nil && children.count > 0;
+    }
+    return NO;
 }
 
 - (BOOL)outlineView:(NSOutlineView*)outlineView writeItems:(NSArray*)items toPasteboard:(NSPasteboard*)pasteboard
