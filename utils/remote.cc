@@ -3614,8 +3614,18 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
 
             case 1004: /* btpk-start-version */
                 {
-                    // TODO: implement btpk-start-version RPC method
-                    fmt::print(stderr, "btpk-start-version is not yet implemented\n");
+                    auto params = tr_variant::Map{ 2U };
+                    params.try_emplace(TR_KEY_btpk_seq, atoi(optarg));
+                    add_id_arg(params, config);
+
+                    auto map = tr_variant::Map{ 4U };
+                    map.try_emplace(TR_KEY_jsonrpc, tr_variant::unmanaged_string(JsonRpc::Version));
+                    map.try_emplace(TR_KEY_method, tr_variant::unmanaged_string(TR_KEY_btpk_start_version));
+                    map.try_emplace(TR_KEY_params, std::move(params));
+                    map.try_emplace(TR_KEY_id, ID_NOOP);
+
+                    auto top = tr_variant{ std::move(map) };
+                    status |= flush(rpcurl, &top, config);
                 }
                 break;
 

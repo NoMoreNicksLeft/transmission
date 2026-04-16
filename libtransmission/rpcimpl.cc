@@ -1882,6 +1882,121 @@ void btpkPublish(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idl
     });
 }
 
+
+// --- btpk-start-version RPC method ---
+// Parameters:
+//   "ids": [torrent-id]  — exactly one torrent (the source with history)
+//   "seq": integer        — the sequence number from btpk_history to start
+void btpkStartVersion(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idle_data* idle_data)
+{
+    using namespace JsonRpc;
+
+    auto const ids = getTorrents(session, args_in);
+    if (ids.size() != 1)
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "btpk-start-version requires exactly one torrent"sv);
+        return;
+    }
+
+    auto* tor = ids.front();
+
+    auto const seq_opt = args_in.value_if<int64_t>(TR_KEY_btpk_seq);
+    if (!seq_opt)
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "btpk-start-version requires 'btpk_seq' parameter"sv);
+        return;
+    }
+    auto const target_seq = *seq_opt;
+
+    // Look up the infohash for this seq in the torrent's history
+    auto const history = tr_torrentBtpkHistory(tor);
+    std::string target_hash;
+    for (auto const& entry : history)
+    {
+        if (entry.seq == target_seq)
+        {
+            // Convert infohash bytes to hex string
+            target_hash.reserve(40);
+            for (auto const byte : entry.infohash)
+            {
+                target_hash += fmt::format("{:02x}", byte);
+            }
+            break;
+        }
+    }
+
+    if (target_hash.empty())
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS,
+            fmt::format("No history entry found for seq {}", target_seq));
+        return;
+    }
+
+    // Check if this infohash is already loaded
+    if (tr_torrentFindFromMagnetLink(session, 
+            fmt::format("magnet:?xt=urn:btih:{}", target_hash).c_str()) != nullptr)
+    {
+        tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "Version is already active"sv);
+        return;
+    }
+
+    // Build the archive path: archive_root/name/seq-N/
+    auto const archive_root = tr_torrentGetBtpkArchiveRoot(tor);
+    auto const name = std::string{ tor->name() };
+    auto const archive_path = fmt::format("{}/{}/seq-{}", archive_root, name, target_seq);
+
+    // Create directory
+    tr_sys_dir_create(archive_path, TR_SYS_DIR_CREATE_PARENTS, 0755);
+
+    // Build magnet URI and add the torrent
+    auto const magnet = fmt::format("magnet:?xt=urn:btih:{}", target_hash);
+
+    auto ctor = tr_ctor{ session };
+    if (!ctor.set_metainfo_from_magnet_link(magnet))
+    {
+        tr_rpc_idle_done(idle_data, Error::UNRECOGNIZED_INFO, "Failed to parse magnet link"sv);
+        return;
+    }
+    ctor.set_download_dir(TR_FORCE, archive_path);
+    ctor.set_paused(TR_FORCE, false);
+
+    tr_torrent* duplicate_of = nullptr;
+    tr_torrent* new_tor = tr_torrentNew(&ctor, &duplicate_of);
+
+    if (new_tor == nullptr)
+    {
+        if (duplicate_of != nullptr)
+        {
+            tr_rpc_idle_done(idle_data, Error::INVALID_PARAMS, "Version is already active"sv);
+        }
+        else
+        {
+            tr_rpc_idle_done(idle_data, Error::CORRUPT_TORRENT, "Failed to create torrent"sv);
+        }
+        return;
+    }
+
+    // Copy btpk fields from source torrent for immediate family grouping
+    uint8_t pub_key[32] = {};
+    if (tr_torrentBtpkGetPublicKey(tor, pub_key))
+    {
+        char salt_buf[256] = {};
+        size_t const salt_len = tr_torrentBtpkGetSalt(tor, salt_buf, sizeof(salt_buf));
+        tr_torrentSetBtpkFromResume(new_tor, pub_key, salt_buf, salt_len);
+    }
+
+    session->rpcNotify(TR_RPC_TORRENT_ADDED, new_tor);
+
+    static auto constexpr Fields = std::array<tr_quark, 3U>{
+        TR_KEY_id,
+        TR_KEY_name,
+        TR_KEY_hash_string,
+    };
+    idle_data->args_out.try_emplace(TR_KEY_torrent_added,
+        make_torrent_info(new_tor, TrFormat::Object, std::data(Fields), std::size(Fields)));
+    tr_rpc_idle_done(idle_data, Error::SUCCESS, {});
+}
+
 void torrentAdd(tr_session* session, tr_variant::Map const& args_in, tr_rpc_idle_data* idle_data)
 {
     using namespace JsonRpc;
@@ -2954,6 +3069,7 @@ auto const async_handlers = small::max_size_map<tr_quark, std::pair<AsyncHandler
     { TR_KEY_blocklist_update, { blocklistUpdate, true } },
     { TR_KEY_port_test, { portTest, false } },
     { TR_KEY_btpk_publish, { btpkPublish, true } },
+    { TR_KEY_btpk_start_version, { btpkStartVersion, true } },
     { TR_KEY_torrent_add, { torrentAdd, true } },
     { TR_KEY_torrent_rename_path, { torrentRenamePath, true } },
 } };
