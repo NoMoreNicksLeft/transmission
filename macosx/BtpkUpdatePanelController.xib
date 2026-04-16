@@ -23,17 +23,17 @@
         <window title="Publish Update" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="YES" restorable="NO" visibleAtLaunch="NO" animationBehavior="default" tabbingMode="disallowed" hasShadow="YES" id="1" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utilityWindow="YES" nonactivatingPanel="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
-            <rect key="contentRect" x="100" y="100" width="320" height="274"/>
+            <rect key="contentRect" x="100" y="100" width="320" height="240"/>
             <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1418"/>
-            <value key="minSize" type="size" width="320" height="274"/>
-            <value key="maxSize" type="size" width="320" height="274"/>
+            <value key="minSize" type="size" width="320" height="240"/>
+            <value key="maxSize" type="size" width="320" height="240"/>
             <view key="contentView" id="2">
-                <rect key="frame" x="0.0" y="0.0" width="320" height="274"/>
+                <rect key="frame" x="0.0" y="0.0" width="320" height="240"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <!-- Torrent name -->
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="101">
-                        <rect key="frame" x="16" y="214" width="288" height="17"/>
+                        <rect key="frame" x="16" y="198" width="288" height="17"/>
                         <textFieldCell key="cell" lineBreakMode="truncatingMiddle" title="Torrent Name" id="101c">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -42,7 +42,7 @@
                     </textField>
                     <!-- Fingerprint -->
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="102">
-                        <rect key="frame" x="16" y="194" width="288" height="14"/>
+                        <rect key="frame" x="16" y="180" width="288" height="14"/>
                         <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingMiddle" title="Fingerprint: XX:XX:XX:XX:XX:XX:XX:XX" id="102c">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
@@ -51,11 +51,11 @@
                     </textField>
                     <!-- Separator -->
                     <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="106">
-                        <rect key="frame" x="16" y="180" width="288" height="5"/>
+                        <rect key="frame" x="16" y="170" width="288" height="5"/>
                     </box>
                     <!-- Key field label -->
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="107">
-                        <rect key="frame" x="16" y="158" width="288" height="14"/>
+                        <rect key="frame" x="16" y="152" width="288" height="14"/>
                         <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" title="Private key:" id="107c">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -64,7 +64,7 @@
                     </textField>
                     <!-- Key input field -->
                     <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="103">
-                        <rect key="frame" x="16" y="88" width="288" height="68"/>
+                        <rect key="frame" x="16" y="82" width="288" height="68"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="wordWrapping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="103c">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
@@ -74,10 +74,10 @@
                             <outlet property="delegate" destination="-2" id="208"/>
                         </connections>
                     </textField>
-                    <!-- Status / error field -->
+                    <!-- Status / error field (single line, compact) -->
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="104">
-                        <rect key="frame" x="16" y="58" width="288" height="26"/>
-                        <textFieldCell key="cell" controlSize="small" lineBreakMode="wordWrapping" title="" id="104c">
+                        <rect key="frame" x="16" y="66" width="288" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" title="" id="104c">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -85,7 +85,7 @@
                     </textField>
                     <!-- Continue seeding checkbox -->
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="108">
-                        <rect key="frame" x="16" y="48" width="260" height="18"/>
+                        <rect key="frame" x="16" y="46" width="260" height="18"/>
                         <buttonCell key="cell" type="check" title="Continue seeding previous version" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="off" inset="2" id="108c">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="smallSystem"/>
