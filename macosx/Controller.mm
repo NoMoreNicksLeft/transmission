@@ -295,6 +295,7 @@ static void removeKeRangerRansomware()
 
 @property(nonatomic, readonly) NSMutableArray<Torrent*>* fTorrents;
 @property(nonatomic, readonly) NSMutableArray* fDisplayedTorrents;
+@property(nonatomic) NSMutableDictionary<NSNumber*, NSMutableArray<Torrent*>*>* fBtpkFamilyChildren; // headId → [child torrents]
 @property(nonatomic, readonly) NSMutableDictionary<NSString*, Torrent*>* fTorrentHashes;
 
 @property(nonatomic, readonly) InfoWindowController* fInfoController;
@@ -632,6 +633,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
         _fTorrents = [[NSMutableArray alloc] init];
         _fDisplayedTorrents = [[NSMutableArray alloc] init];
+        _fBtpkFamilyChildren = [[NSMutableDictionary alloc] init];
         _fTorrentHashes = [[NSMutableDictionary alloc] init];
 
         NSURLSessionConfiguration* configuration = NSURLSessionConfiguration.defaultSessionConfiguration;
@@ -3263,7 +3265,77 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
             return YES;
         }];
 
-    NSArray<Torrent*>* allTorrents = [self.fTorrents objectsAtIndexes:indexesOfNonFilteredTorrents];
+    NSArray<Torrent*>* allTorrentsUnfiltered = [self.fTorrents objectsAtIndexes:indexesOfNonFilteredTorrents];
+
+    // --- btpk version family grouping ---
+    // Group torrents by btpk family ID. The head (highest seq) appears in the main list;
+    // non-head members become children of the head (shown when expanded).
+    [self.fBtpkFamilyChildren removeAllObjects];
+    NSMutableDictionary<NSString*, NSMutableArray<Torrent*>*>* familyBuckets = [NSMutableDictionary dictionary];
+    for (Torrent* torrent in allTorrentsUnfiltered)
+    {
+        NSString* familyId = torrent.btpkFamilyId;
+        if (familyId)
+        {
+            NSMutableArray* bucket = familyBuckets[familyId];
+            if (!bucket)
+            {
+                bucket = [NSMutableArray array];
+                familyBuckets[familyId] = bucket;
+            }
+            [bucket addObject:torrent];
+        }
+    }
+
+    // For each family, identify the head and assign children
+    NSMutableSet<Torrent*>* familyChildSet = [NSMutableSet set];
+    for (NSString* familyId in familyBuckets)
+    {
+        NSMutableArray<Torrent*>* bucket = familyBuckets[familyId];
+        if (bucket.count <= 1)
+            continue; // single-member family, no children to group
+
+        // Sort by seq descending — head is first
+        [bucket sortUsingComparator:^NSComparisonResult(Torrent* a, Torrent* b) {
+            NSInteger seqA = a.btpkSeq < 0 ? 0 : a.btpkSeq;
+            NSInteger seqB = b.btpkSeq < 0 ? 0 : b.btpkSeq;
+            if (seqB != seqA) return seqB > seqA ? NSOrderedDescending : NSOrderedAscending;
+            return NSOrderedSame;
+        }];
+
+        Torrent* head = bucket.firstObject;
+        NSMutableArray<Torrent*>* children = [NSMutableArray arrayWithArray:[bucket subarrayWithRange:NSMakeRange(1, bucket.count - 1)]];
+        self.fBtpkFamilyChildren[@(head.torrentID)] = children;
+        [familyChildSet addObjectsFromArray:children];
+    }
+
+    // Build the display list with family children placed directly after their head.
+    // Children are NOT outline view children — they appear as flat rows, but with
+    // visual differentiation (version prefix, dimmed appearance).
+    NSArray<Torrent*>* allTorrents;
+    if (familyChildSet.count > 0)
+    {
+        NSMutableArray* ordered = [NSMutableArray arrayWithCapacity:allTorrentsUnfiltered.count];
+        for (Torrent* t in allTorrentsUnfiltered)
+        {
+            if ([familyChildSet containsObject:t])
+                continue; // skip — will be inserted after head
+
+            [ordered addObject:t];
+
+            // If this torrent is a family head, insert its children right after
+            NSArray<Torrent*>* children = self.fBtpkFamilyChildren[@(t.torrentID)];
+            if (children)
+            {
+                [ordered addObjectsFromArray:children];
+            }
+        }
+        allTorrents = ordered;
+    }
+    else
+    {
+        allTorrents = allTorrentsUnfiltered;
+    }
 
     //set button tooltips
     if (self.fFilterBar)

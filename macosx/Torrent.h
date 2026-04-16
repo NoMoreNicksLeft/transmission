@@ -145,6 +145,12 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 // Archive current content to ~/.transmission/archive/<name>/seq-<N>/
 // and replace with symlinks. Returns the archive path, or nil on failure.
 // Call before publisher modifies files (i.e. when Publish Update panel opens).
+// btpk version family — groups torrents sharing the same btpk public key
+@property(nonatomic, readonly) NSInteger torrentID;
+@property(nonatomic, readonly) NSString* btpkFamilyId;  // 64-char hex, or nil if not btpk
+@property(nonatomic, readonly) NSArray<NSNumber*>* btpkFamilyMemberIds; // torrent IDs, highest seq first
+@property(nonatomic, readonly) BOOL isBtpkFamilyHead; // true = current/highest-seq version
+
 - (nullable NSString*)archiveBtpkContentForPublishingWithArchivedPaths:(NSMutableArray<NSString*>*)archivedRelPaths;
 
 // Undo archiveBtpkContentForPublishing — move files back, remove symlinks.

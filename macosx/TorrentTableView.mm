@@ -331,7 +331,20 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
         // set this so that we can draw bar in torrentCell drawRect
         torrentCell.objectValue = torrent;
 
-        torrentCell.fTorrentTitleField.stringValue = torrent.name;
+        // Show seq number prefix for btpk family child versions
+        if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
+        {
+            NSInteger seq = torrent.btpkSeq;
+            if (seq < 0) seq = 0;
+            torrentCell.fTorrentTitleField.stringValue =
+                [NSString stringWithFormat:@"v%ld — %@", (long)seq, torrent.name];
+            torrentCell.alphaValue = 0.6;
+        }
+        else
+        {
+            torrentCell.fTorrentTitleField.stringValue = torrent.name;
+            torrentCell.alphaValue = 1.0;
+        }
 
         torrentCell.fActionButton.action = @selector(displayTorrentActionPopover:);
 

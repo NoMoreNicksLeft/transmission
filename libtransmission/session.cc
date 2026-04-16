@@ -2281,6 +2281,72 @@ std::string tr_torrentGetBtpkArchiveRoot(tr_torrent const* tor)
     return tr_sessionGetBtpkArchiveRoot(tor->session);
 }
 
+// --- btpk version family API ---
+
+std::string tr_torrentBtpkFamilyId(tr_torrent const* tor)
+{
+    if (tor == nullptr)
+        return {};
+    auto const& key = tor->metainfo().btpk_key();
+    if (!key)
+        return {};
+    // Convert 32-byte key to 64-char hex string
+    static constexpr char hex_chars[] = "0123456789abcdef";
+    std::string result;
+    result.reserve(64);
+    for (auto const byte : *key)
+    {
+        result += hex_chars[static_cast<uint8_t>(byte) >> 4];
+        result += hex_chars[static_cast<uint8_t>(byte) & 0x0f];
+    }
+    return result;
+}
+
+std::vector<tr_torrent_id_t> tr_torrentBtpkFamilyMembers(tr_torrent const* tor)
+{
+    if (tor == nullptr || tor->session == nullptr)
+        return {};
+    auto const& key = tor->metainfo().btpk_key();
+    if (!key)
+        return {};
+
+    // Find all torrents with the same btpk public key
+    auto const& torrents = tor->session->torrents();
+    auto family = std::vector<std::pair<int64_t, tr_torrent_id_t>>{};
+    for (auto const* t : torrents)
+    {
+        if (t == nullptr)
+            continue;
+        auto const& t_key = t->metainfo().btpk_key();
+        if (t_key && *t_key == *key)
+        {
+            int64_t seq = t->btpk_seq();
+            // btpk_seq of -1 means "original, never published" = effectively 0
+            if (seq < 0) seq = 0;
+            family.emplace_back(seq, t->id());
+        }
+    }
+
+    // Sort by seq descending — highest seq (current version) first
+    std::sort(family.begin(), family.end(),
+        [](auto const& a, auto const& b) { return a.first > b.first; });
+
+    auto result = std::vector<tr_torrent_id_t>{};
+    result.reserve(family.size());
+    for (auto const& [seq, id] : family)
+        result.push_back(id);
+    return result;
+}
+
+bool tr_torrentIsBtpkFamilyHead(tr_torrent const* tor)
+{
+    if (tor == nullptr)
+        return false;
+    auto const family = tr_torrentBtpkFamilyMembers(tor);
+    // Head = first in the list (highest seq). If family is empty, not btpk.
+    return !family.empty() && family.front() == tor->id();
+}
+
 bool tr_torrentApplyBtpkUpdate(tr_torrent* tor)
 {
     if (!tr_isTorrent(tor))

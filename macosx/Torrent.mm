@@ -850,6 +850,33 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return result;
 }
 
+- (NSInteger)torrentID
+{
+    return (NSInteger)tr_torrentId(self.fHandle);
+}
+
+- (NSString*)btpkFamilyId
+{
+    auto const fid = tr_torrentBtpkFamilyId(self.fHandle);
+    if (fid.empty())
+        return nil;
+    return @(fid.c_str());
+}
+
+- (NSArray<NSNumber*>*)btpkFamilyMemberIds
+{
+    auto const members = tr_torrentBtpkFamilyMembers(self.fHandle);
+    NSMutableArray* result = [NSMutableArray arrayWithCapacity:members.size()];
+    for (auto const id : members)
+        [result addObject:@(id)];
+    return result;
+}
+
+- (BOOL)isBtpkFamilyHead
+{
+    return tr_torrentIsBtpkFamilyHead(self.fHandle);
+}
+
 - (BOOL)btpkPrivateKeyMatchesData:(NSData*)keyData
 {
     if (!keyData || keyData.length != 96)

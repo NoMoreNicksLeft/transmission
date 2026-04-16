@@ -1426,6 +1426,20 @@ void tr_sessionSetBtpkArchiveRoot(tr_session* session, std::string_view path);
 /** @brief Get the btpk archive root path for a torrent's session. */
 [[nodiscard]] std::string tr_torrentGetBtpkArchiveRoot(tr_torrent const* tor);
 
+// --- btpk version family API (reusable across all platforms) ---
+
+// Returns the btpk public key as a 64-char hex string, or empty if not btpk.
+// Torrents sharing the same family ID are different versions of the same content.
+[[nodiscard]] std::string tr_torrentBtpkFamilyId(tr_torrent const* tor);
+
+// Returns torrent IDs of all family members (same btpk key), sorted by
+// seq descending (highest seq = current version first). Includes the queried torrent.
+[[nodiscard]] std::vector<tr_torrent_id_t> tr_torrentBtpkFamilyMembers(tr_torrent const* tor);
+
+// True if this torrent has the highest seq among its btpk family members,
+// or if it is the only member. The "head" is the current/authoritative version.
+[[nodiscard]] bool tr_torrentIsBtpkFamilyHead(tr_torrent const* tor);
+
 // Returns the pending btpk update seq (-1 if none pending).
 int64_t tr_torrentPendingBtpkSeq(tr_torrent const* tor);
 
