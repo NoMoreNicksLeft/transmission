@@ -3308,21 +3308,18 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
         [familyChildSet addObjectsFromArray:children];
     }
 
-    // Build display list: children placed directly after their head (flat rows)
+    // Filter children out of the main display list — they appear as outline
+    // view children of the head torrent, not as top-level items.
     NSArray<Torrent*>* allTorrents;
     if (familyChildSet.count > 0)
     {
-        NSMutableArray* ordered = [NSMutableArray arrayWithCapacity:allTorrentsUnfiltered.count];
+        NSMutableArray* filtered = [NSMutableArray arrayWithCapacity:allTorrentsUnfiltered.count];
         for (Torrent* t in allTorrentsUnfiltered)
         {
-            if ([familyChildSet containsObject:t])
-                continue;
-            [ordered addObject:t];
-            NSArray<Torrent*>* children = self.fBtpkFamilyChildren[@(t.torrentID)];
-            if (children)
-                [ordered addObjectsFromArray:children];
+            if (![familyChildSet containsObject:t])
+                [filtered addObject:t];
         }
-        allTorrents = ordered;
+        allTorrents = filtered;
     }
     else
     {
