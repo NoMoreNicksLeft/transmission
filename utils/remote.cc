@@ -217,7 +217,7 @@ enum
 // --- Command-Line Arguments
 
 using Arg = tr_option::Arg;
-auto constexpr Options = std::array<tr_option, 106>{ {
+auto constexpr Options = std::array<tr_option, 110>{ {
     { 'a', "add", "Add torrent files by filename or URL", "a", Arg::None, nullptr },
     { 970, "alt-speed", "Use the alternate Limits", "as", Arg::None, nullptr },
     { 971, "no-alt-speed", "Don't use the alternate Limits", "AS", Arg::None, nullptr },
@@ -384,6 +384,10 @@ auto constexpr Options = std::array<tr_option, 106>{ {
     { 'y', "lpd", "Enable local peer discovery (LPD)", "y", Arg::None, nullptr },
     { 'Y', "no-lpd", "Disable local peer discovery (LPD)", "Y", Arg::None, nullptr },
     { 941, "peer-info", "List the current torrent(s)' peers", "pi", Arg::None, nullptr },
+    { 1001, "btpk-publish", "Publish a btpk update using private key file", nullptr, Arg::Required, "<keyfile>" },
+    { 1002, "btpk-info", "Show btpk/mutable torrent info for current torrent(s)", "bi", Arg::None, nullptr },
+    { 1003, "btpk-history", "Show btpk version history for current torrent(s)", "bh", Arg::None, nullptr },
+    { 1004, "btpk-start-version", "Start downloading a historical btpk version", nullptr, Arg::Required, "<seq>" },
     { 0, nullptr, nullptr, nullptr, Arg::None, nullptr },
 } };
 static_assert(Options[std::size(Options) - 2].val != 0);
@@ -439,6 +443,8 @@ enum
     case 't': /* set current torrent */
     case 'V': /* show version number */
     case 944: /* print selected torrents' ids */
+    case 1001: /* btpk-publish */
+    case 1004: /* btpk-start-version */
         return MODE_META_COMMAND;
 
     case 'c': /* incomplete-dir */
@@ -515,6 +521,8 @@ enum
     case 942: /* info-pieces */
     case 943: /* info-tracker */
     case 'F': /* filter torrents */
+    case 1002: /* btpk-info */
+    case 1003: /* btpk-history */
         return MODE_TORRENT_GET;
 
     case 'd': /* download speed limit */
@@ -757,7 +765,7 @@ auto constexpr FilesKeys = std::array<tr_quark, 4>{
 };
 static_assert(FilesKeys[std::size(FilesKeys) - 1] != tr_quark{});
 
-auto constexpr DetailsKeys = std::array<tr_quark, 57>{
+auto constexpr DetailsKeys = std::array<tr_quark, 63>{
     TR_KEY_activity_date,
     TR_KEY_added_date,
     TR_KEY_bandwidth_priority,
@@ -815,6 +823,12 @@ auto constexpr DetailsKeys = std::array<tr_quark, 57>{
     TR_KEY_upload_ratio,
     TR_KEY_webseeds,
     TR_KEY_webseeds_sending_to_us,
+    TR_KEY_btpk_pub,
+    TR_KEY_btpk_salt,
+    TR_KEY_btpk_seq,
+    TR_KEY_btpk_update_mode,
+    TR_KEY_btpk_pending_seq,
+    TR_KEY_btpk_history,
 };
 static_assert(DetailsKeys[std::size(DetailsKeys) - 1] != tr_quark{});
 
@@ -1245,6 +1259,59 @@ void print_details(tr_variant::Map const& result)
         }
 
         fmt::print("\n");
+
+        // BTPK / Mutable torrent info — only shown if the torrent has btpk_pub
+        if (auto const pub_sv = t->value_if<std::string_view>(TR_KEY_btpk_pub); pub_sv && !pub_sv->empty())
+        {
+            fmt::print("MUTABLE TORRENT (BEP 46)\n");
+
+            // Public key fingerprint (first 8 hex chars)
+            fmt::print("  Public Key: {:s}\n", *pub_sv);
+
+            if (auto const salt = t->value_if<std::string_view>(TR_KEY_btpk_salt); salt && !salt->empty())
+            {
+                fmt::print("  Salt:       {:s}\n", *salt);
+            }
+
+            if (auto const seq = t->value_if<int64_t>(TR_KEY_btpk_seq))
+            {
+                fmt::print("  Sequence:   {:d}\n", *seq);
+            }
+
+            if (auto const mode = t->value_if<int64_t>(TR_KEY_btpk_update_mode))
+            {
+                char const* mode_str = "unknown";
+                switch (*mode)
+                {
+                case 0: mode_str = "Never"; break;
+                case 1: mode_str = "Offered"; break;
+                case 2: mode_str = "Versioned"; break;
+                }
+                fmt::print("  Update Mode: {:s}\n", mode_str);
+            }
+
+            if (auto const pending = t->value_if<int64_t>(TR_KEY_btpk_pending_seq); pending && *pending >= 0)
+            {
+                fmt::print("  Pending Update: seq {:d}\n", *pending);
+            }
+
+            if (auto const* history = t->find_if<tr_variant::Vector>(TR_KEY_btpk_history); history && !history->empty())
+            {
+                fmt::print("  Version History:\n");
+                fmt::print("    {:>6s}  {:s}\n", "Seq", "Info Hash");
+                for (auto const& entry : *history)
+                {
+                    if (auto const* entry_map = entry.get_if<tr_variant::Map>(); entry_map)
+                    {
+                        auto const seq = entry_map->value_if<int64_t>(TR_KEY_btpk_seq).value_or(-1);
+                        auto const hash = entry_map->value_if<std::string_view>(TR_KEY_hash_string).value_or(""sv);
+                        fmt::print("    {:>6d}  {:s}\n", seq, hash);
+                    }
+                }
+            }
+
+            fmt::print("\n");
+        }
 
         fmt::print("LIMITS & BANDWIDTH\n");
 
@@ -2750,6 +2817,8 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
                 add_id_arg(params, config, "all");
                 break;
             case 'i':
+            case 1002: /* btpk-info */
+            case 1003: /* btpk-history */
                 map.insert_or_assign(TR_KEY_id, ID_DETAILS);
 
                 for (auto const& key : DetailsKeys)
@@ -3510,6 +3579,43 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
 
                     auto top = tr_variant{ std::move(map) };
                     status |= flush(rpcurl, &top, config);
+                }
+                break;
+
+
+            case 1001: /* btpk-publish */
+                {
+                    // Read the PEM key file
+                    auto const keyfile_path = std::string{ optarg_sv };
+                    auto pem_contents = std::vector<char>{};
+                    auto key_error = tr_error{};
+                    if (!tr_file_read(keyfile_path, pem_contents, &key_error) || pem_contents.empty())
+                    {
+                        fmt::print(stderr, "Error reading key file '{}': {}\n",
+                                   keyfile_path,
+                                   key_error ? key_error.message() : "empty file");
+                        break;
+                    }
+
+                    auto params = tr_variant::Map{ 2U };
+                    params.try_emplace(TR_KEY_private_key, std::string_view{ pem_contents.data(), pem_contents.size() });
+                    add_id_arg(params, config);
+
+                    auto map = tr_variant::Map{ 4U };
+                    map.try_emplace(TR_KEY_jsonrpc, tr_variant::unmanaged_string(JsonRpc::Version));
+                    map.try_emplace(TR_KEY_method, tr_variant::unmanaged_string(TR_KEY_btpk_publish));
+                    map.try_emplace(TR_KEY_params, std::move(params));
+                    map.try_emplace(TR_KEY_id, ID_NOOP);
+
+                    auto top = tr_variant{ std::move(map) };
+                    status |= flush(rpcurl, &top, config);
+                }
+                break;
+
+            case 1004: /* btpk-start-version */
+                {
+                    // TODO: implement btpk-start-version RPC method
+                    fmt::print(stderr, "btpk-start-version is not yet implemented\n");
                 }
                 break;
 

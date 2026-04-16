@@ -223,6 +223,46 @@ void showInfo(app_opts const& opts, tr_torrent_metainfo const& metainfo)
         fmt::print("  Piece Size: {:s}\n", Memory{ metainfo.piece_size(), Memory::Units::Bytes }.to_string());
         fmt::print("  Total Size: {:s}\n", Storage{ metainfo.total_size(), Storage::Units::Bytes }.to_string());
         fmt::print("  Privacy: {:s}\n", metainfo.is_private() ? "Private torrent" : "Public torrent");
+
+        // btpk / Mutable torrent fields
+        if (metainfo.has_btpk())
+        {
+            fmt::print("\n");
+            fmt::print("MUTABLE TORRENT (BEP 46)\n\n");
+
+            if (auto const& key = metainfo.btpk_key(); key.has_value())
+            {
+                // Print full hex of public key
+                auto hex = std::string{};
+                hex.reserve(64);
+                for (auto const byte : *key)
+                {
+                    hex += fmt::format("{:02x}", byte);
+                }
+                fmt::print("  Public Key: {:s}\n", hex);
+            }
+
+            if (auto const& salt = metainfo.btpk_salt(); !salt.empty())
+            {
+                fmt::print("  Salt:       {:s}\n", salt);
+            }
+
+            if (auto const& history = metainfo.btpk_history(); !history.empty())
+            {
+                fmt::print("  Version History:\n");
+                fmt::print("    {:>6s}  {:s}\n", "Seq", "Info Hash");
+                for (auto const& entry : history)
+                {
+                    auto hash_hex = std::string{};
+                    hash_hex.reserve(40);
+                    for (auto const byte : entry.infohash)
+                    {
+                        hash_hex += fmt::format("{:02x}", byte);
+                    }
+                    fmt::print("    {:>6d}  {:s}\n", entry.seq, hash_hex);
+                }
+            }
+        }
     }
 
     /**
