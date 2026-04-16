@@ -367,12 +367,12 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
                         seqBadge.alignment = NSTextAlignmentCenter;
                         seqBadge.backgroundColor = NSColor.clearColor;
                         seqBadge.drawsBackground = NO;
-                        // Position below the icon
+                        // Position below the icon (flipped coords: +y = down)
                         CGFloat badgeWidth = iconFrame.size.width + 14;
-                        CGFloat badgeX = iconFrame.origin.x - 7 + (iconFrame.size.width - badgeWidth) / 2.0 + 7;
+                        CGFloat badgeX = iconFrame.origin.x + (iconFrame.size.width - badgeWidth) / 2.0;
                         seqBadge.frame = NSMakeRect(
                             badgeX,
-                            iconFrame.origin.y - 5,
+                            NSMaxY(iconFrame) + 1,
                             badgeWidth,
                             11);
                         [torrentCell addSubview:seqBadge];
