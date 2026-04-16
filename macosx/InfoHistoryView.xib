@@ -47,7 +47,7 @@
                     <rect key="frame" x="348" y="12" width="132" height="24"/>
                     <buttonCell key="cell" type="push" title="Start Torrent" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="downloadBtnCell"/>
                     <connections>
-                        <action selector="downloadSelectedVersion:" target="-2" id="dl-action"/>
+                        <action selector="startSelectedVersion:" target="-2" id="dl-action"/>
                     </connections>
                 </button>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="placeholderLabel">

@@ -152,16 +152,23 @@ static NSString* const kHashColumnId = @"Hash";
 {
     NSInteger row = self.fHistoryTable.selectedRow;
     if (row < 0 || (NSUInteger)row >= self.fHistoryEntries.count)
+    {
+        NSLog(@"btpk history: startSelectedVersion — no valid row selected (row=%ld)", (long)row);
         return;
+    }
 
     NSDictionary* entry = self.fHistoryEntries[row];
 
     // Don't start if already active
     if ([entry[@"active"] boolValue])
+    {
+        NSLog(@"btpk history: startSelectedVersion — version is already active");
         return;
+    }
 
     NSString* hashString = entry[@"hash"];
     NSString* magnetURI = [NSString stringWithFormat:@"magnet:?xt=urn:btih:%@", hashString];
+    NSLog(@"btpk history: opening magnet URI: %@", magnetURI);
     Controller* controller = (Controller*)NSApp.delegate;
     [controller openURL:magnetURI];
 }
