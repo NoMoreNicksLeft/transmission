@@ -58,6 +58,7 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
 @property(nonatomic, readonly) NSUserDefaults* fDefaults;
 
 @property(nonatomic, readonly) NSMutableIndexSet* fCollapsedGroups;
+@property(nonatomic, readonly) NSMutableSet<NSNumber*>* fCollapsedFamilyHeads;
 
 @property(nonatomic) IBOutlet NSMenu* fContextRow;
 @property(nonatomic) IBOutlet NSMenu* fContextNoRow;
@@ -99,6 +100,8 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
         {
             _fCollapsedGroups = [[NSMutableIndexSet alloc] init];
         }
+
+        _fCollapsedFamilyHeads = [[NSMutableSet alloc] init];
 
         _fActionPopoverShown = NO;
 
@@ -552,7 +555,16 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
 
 - (void)outlineViewItemDidExpand:(NSNotification*)notification
 {
-    TorrentGroup* group = notification.userInfo[@"NSObject"];
+    id item = notification.userInfo[@"NSObject"];
+
+    if ([item isKindOfClass:[Torrent class]])
+    {
+        [self.fCollapsedFamilyHeads removeObject:@(((Torrent*)item).torrentID)];
+        [NSNotificationCenter.defaultCenter postNotificationName:@"OutlineExpandCollapse" object:self];
+        return;
+    }
+
+    TorrentGroup* group = (TorrentGroup*)item;
     NSInteger value = group.groupIndex;
     if (value < 0)
     {
@@ -568,7 +580,16 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
 
 - (void)outlineViewItemDidCollapse:(NSNotification*)notification
 {
-    TorrentGroup* group = notification.userInfo[@"NSObject"];
+    id item = notification.userInfo[@"NSObject"];
+
+    if ([item isKindOfClass:[Torrent class]])
+    {
+        [self.fCollapsedFamilyHeads addObject:@(((Torrent*)item).torrentID)];
+        [NSNotificationCenter.defaultCenter postNotificationName:@"OutlineExpandCollapse" object:self];
+        return;
+    }
+
+    TorrentGroup* group = (TorrentGroup*)item;
     NSInteger value = group.groupIndex;
     if (value < 0)
     {

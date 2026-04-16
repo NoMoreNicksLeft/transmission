@@ -13,6 +13,7 @@ extern CGFloat const kGroupSeparatorHeight;
 - (void)reloadVisibleRows;
 
 - (BOOL)isGroupCollapsed:(NSInteger)value;
+- (BOOL)isFamilyHeadCollapsed:(NSInteger)torrentID;
 - (void)removeCollapsedGroup:(NSInteger)value;
 - (void)removeAllCollapsedGroups;
 - (void)saveCollapsedGroups;
