@@ -401,7 +401,48 @@ void notifyBatchQueueChange(tr_session* session, std::vector<tr_torrent*> const&
     auto const delete_flag = args_in.value_if<bool>(TR_KEY_delete_local_data).value_or(false);
     auto const type = delete_flag ? TR_RPC_TORRENT_TRASHING : TR_RPC_TORRENT_REMOVING;
 
-    for (auto* tor : getTorrents(session, args_in))
+    auto torrents = getTorrents(session, args_in);
+
+    // btpk family-aware removal:
+    // 1. Block "remove and trash" for non-head family children (protects symlinks)
+    // 2. When removing a head, cascade to all family children
+    if (delete_flag)
+    {
+        for (auto* tor : torrents)
+        {
+            if (tr_torrentHasBtpk(tor) && !tr_torrentIsBtpkFamilyHead(tor))
+            {
+                return { JsonRpc::Error::INVALID_PARAMS,
+                    "Cannot trash data for a btpk family child (would break symlinks). "
+                    "Use remove without delete, or remove the family head instead." };
+            }
+        }
+    }
+
+    // Expand heads to include their family children
+    auto expanded = std::vector<tr_torrent*>{};
+    for (auto* tor : torrents)
+    {
+        expanded.push_back(tor);
+        if (tr_torrentIsBtpkFamilyHead(tor))
+        {
+            auto const members = tr_torrentBtpkFamilyMembers(tor);
+            for (auto const member_id : members)
+            {
+                if (member_id != tor->id())
+                {
+                    if (auto* child = session->torrents().get(member_id); child != nullptr)
+                    {
+                        // Avoid duplicates
+                        if (std::find(expanded.begin(), expanded.end(), child) == expanded.end())
+                            expanded.push_back(child);
+                    }
+                }
+            }
+        }
+    }
+
+    for (auto* tor : expanded)
     {
         if (auto const status = session->rpcNotify(type, tor); (status & TR_RPC_NOREMOVE) == 0)
         {
@@ -899,9 +940,12 @@ namespace make_torrent_field_helpers
                 for (auto const b : entry.infohash)
                     fmt::format_to(std::back_inserter(hex), "{:02x}",
                                    static_cast<unsigned>(b));
+                // Check if this version is currently loaded
+                bool const active = (tor.session->torrents().get(entry.infohash) != nullptr);
                 auto pair = tr_variant::Map{};
                 pair.try_emplace(TR_KEY_btpk_seq, entry.seq);
                 pair.try_emplace(TR_KEY_hash_string, hex);
+                pair.try_emplace(TR_KEY_status, active);
                 vec.emplace_back(tr_variant{ std::move(pair) });
             }
             return vec;

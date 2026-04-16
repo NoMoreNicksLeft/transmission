@@ -217,7 +217,7 @@ enum
 // --- Command-Line Arguments
 
 using Arg = tr_option::Arg;
-auto constexpr Options = std::array<tr_option, 112>{ {
+auto constexpr Options = std::array<tr_option, 113>{ {
     { 'a', "add", "Add torrent files by filename or URL", "a", Arg::None, nullptr },
     { 970, "alt-speed", "Use the alternate Limits", "as", Arg::None, nullptr },
     { 971, "no-alt-speed", "Don't use the alternate Limits", "AS", Arg::None, nullptr },
@@ -390,6 +390,7 @@ auto constexpr Options = std::array<tr_option, 112>{ {
     { 1004, "btpk-start-version", "Start downloading a historical btpk version", nullptr, Arg::Required, "<seq>" },
     { 1005, "btpk-apply", "Apply a pending btpk update", "ba", Arg::None, nullptr },
     { 1006, "btpk-continue-seeding", "Continue seeding old version after btpk-publish", nullptr, Arg::None, nullptr },
+    { 1007, "btpk-update-mode", "Set btpk update mode (0=never, 1=offered, 2=versioned)", nullptr, Arg::Required, "<mode>" },
     { 0, nullptr, nullptr, nullptr, Arg::None, nullptr },
 } };
 static_assert(Options[std::size(Options) - 2].val != 0);
@@ -1302,14 +1303,15 @@ void print_details(tr_variant::Map const& result)
             if (auto const* history = t->find_if<tr_variant::Vector>(TR_KEY_btpk_history); history && !history->empty())
             {
                 fmt::print("  Version History:\n");
-                fmt::print("    {:>6s}  {:s}\n", "Seq", "Info Hash");
+                fmt::print("    {:>6s}  {:s}  {:s}\n", "Seq", "Active", "Info Hash");
                 for (auto const& entry : *history)
                 {
                     if (auto const* entry_map = entry.get_if<tr_variant::Map>(); entry_map)
                     {
                         auto const seq = entry_map->value_if<int64_t>(TR_KEY_btpk_seq).value_or(-1);
                         auto const hash = entry_map->value_if<std::string_view>(TR_KEY_hash_string).value_or(""sv);
-                        fmt::print("    {:>6d}  {:s}\n", seq, hash);
+                        auto const active = entry_map->value_if<bool>(TR_KEY_status).value_or(false);
+                        fmt::print("    {:>6d}  {:>6s}  {:s}\n", seq, active ? "yes" : "no", hash);
                     }
                 }
             }
@@ -3249,6 +3251,10 @@ int process_args(char const* rpcurl, int argc, char const* const* argv, RemoteCo
 
             case 985:
                 args.insert_or_assign(TR_KEY_honors_session_limits, false);
+                break;
+
+            case 1007: /* btpk-update-mode */
+                args.insert_or_assign(TR_KEY_btpk_update_mode, atoi(optarg));
                 break;
 
             default:
