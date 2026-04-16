@@ -600,35 +600,34 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
     [NSNotificationCenter.defaultCenter postNotificationName:@"OutlineExpandCollapse" object:self];
 }
 
-// Show disclosure triangle only for btpk family heads, not for TorrentGroup items
+// Show disclosure triangle only for btpk family heads that have children.
+// We check isExpandable directly instead of querying the data source,
+// which can crash if called during outline view internal updates.
 - (NSRect)frameOfOutlineCellAtRow:(NSInteger)row
 {
-    id item = [self itemAtRow:row];
-    if ([item isKindOfClass:[Torrent class]])
-    {
-        Torrent* torrent = (Torrent*)item;
-        if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
-            return NSZeroRect; // child versions don't get disclosure triangles
+    if (row < 0 || row >= self.numberOfRows)
+        return NSZeroRect;
 
-        // Check if this torrent has family children
-        id dataSource = self.dataSource;
-        if ([dataSource respondsToSelector:@selector(outlineView:numberOfChildrenOfItem:)])
-        {
-            NSInteger childCount = [dataSource outlineView:self numberOfChildrenOfItem:item];
-            if (childCount > 0)
-            {
-                // Position the disclosure triangle to the left of the icon
-                NSRect iconFrame = [self frameOfCellAtColumn:0 row:row];
-                CGFloat triangleSize = 12.0;
-                return NSMakeRect(
-                    iconFrame.origin.x + 2,
-                    iconFrame.origin.y + (iconFrame.size.height - triangleSize) / 2.0,
-                    triangleSize,
-                    triangleSize);
-            }
-        }
-    }
-    return NSZeroRect; // groups and non-expandable items — no disclosure triangle
+    id item = [self itemAtRow:row];
+    if (![item isKindOfClass:[Torrent class]])
+        return NSZeroRect; // TorrentGroup items use custom group cells, no triangle
+
+    Torrent* torrent = (Torrent*)item;
+    if (!torrent.hasBtpk || !torrent.isBtpkFamilyHead)
+        return NSZeroRect;
+
+    // Only show triangle if this item is expandable (has children)
+    if (![self isExpandable:item])
+        return NSZeroRect;
+
+    // Position the disclosure triangle to the left of the icon
+    NSRect rowRect = [self rectOfRow:row];
+    CGFloat triangleSize = 13.0;
+    return NSMakeRect(
+        4,
+        rowRect.origin.y + (rowRect.size.height - triangleSize) / 2.0,
+        triangleSize,
+        triangleSize);
 }
 
 - (void)mouseDown:(NSEvent*)event

@@ -3921,7 +3921,14 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 {
     if (item)
     {
-        return ((TorrentGroup*)item).torrents.count;
+        if ([item isKindOfClass:[TorrentGroup class]])
+            return ((TorrentGroup*)item).torrents.count;
+        if ([item isKindOfClass:[Torrent class]])
+        {
+            NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+            return children ? (NSInteger)children.count : 0;
+        }
+        return 0;
     }
     else
     {
@@ -3933,7 +3940,16 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 {
     if (item)
     {
-        return ((TorrentGroup*)item).torrents[index];
+        if ([item isKindOfClass:[TorrentGroup class]])
+            return ((TorrentGroup*)item).torrents[index];
+        if ([item isKindOfClass:[Torrent class]])
+        {
+            NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+            if (children && index >= 0 && (NSUInteger)index < children.count)
+                return children[index];
+            return nil;
+        }
+        return nil;
     }
     else
     {
@@ -3943,7 +3959,14 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
 - (BOOL)outlineView:(NSOutlineView*)outlineView isItemExpandable:(id)item
 {
-    return ![item isKindOfClass:[Torrent class]];
+    if ([item isKindOfClass:[TorrentGroup class]])
+        return YES;
+    if ([item isKindOfClass:[Torrent class]])
+    {
+        NSMutableArray* children = self.fBtpkFamilyChildren[@(((Torrent*)item).torrentID)];
+        return children != nil && children.count > 0;
+    }
+    return NO;
 }
 
 - (BOOL)outlineView:(NSOutlineView*)outlineView writeItems:(NSArray*)items toPasteboard:(NSPasteboard*)pasteboard
