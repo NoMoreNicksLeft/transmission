@@ -747,6 +747,9 @@ namespace make_torrent_field_helpers
     case TR_KEY_availability:
     case TR_KEY_bandwidth_priority:
     case TR_KEY_bytes_completed:
+    case TR_KEY_btpk_pub:
+    case TR_KEY_btpk_salt:
+    case TR_KEY_btpk_seq:
     case TR_KEY_btpk_update_mode:
     case TR_KEY_btpk_allow_additional:
     case TR_KEY_btpk_allow_renaming:
@@ -909,6 +912,27 @@ namespace make_torrent_field_helpers
         return st.finished;
     case TR_KEY_is_private:
         return tor.is_private();
+    case TR_KEY_btpk_pub:
+        {
+            uint8_t pk[32] = {};
+            if (tr_torrentBtpkGetPublicKey(&tor, pk))
+            {
+                auto hex = std::string{};
+                hex.reserve(64);
+                for (auto const b : pk)
+                    fmt::format_to(std::back_inserter(hex), "{:02x}", static_cast<unsigned>(b));
+                return hex;
+            }
+            return std::string{};
+        }
+    case TR_KEY_btpk_salt:
+        {
+            char salt_buf[256] = {};
+            size_t const salt_len = tr_torrentBtpkGetSalt(&tor, salt_buf, sizeof(salt_buf));
+            return std::string{ salt_buf, salt_len };
+        }
+    case TR_KEY_btpk_seq:
+        return tr_torrentBtpkSeq(&tor);
     case TR_KEY_btpk_update_mode:
         return tr_torrentBtpkUpdateMode(&tor);
     case TR_KEY_btpk_allow_additional:
