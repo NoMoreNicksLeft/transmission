@@ -883,6 +883,20 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return root.empty() ? nil : @(root.c_str());
 }
 
+- (void)copyBtpkFieldsToTorrent:(Torrent*)target
+{
+    if (!self.hasBtpk || !target)
+        return;
+
+    uint8_t pub_key[32] = {};
+    char salt_buf[256] = {};
+    if (tr_torrentBtpkGetPublicKey(self.fHandle, pub_key))
+    {
+        size_t const salt_len = tr_torrentBtpkGetSalt(self.fHandle, salt_buf, sizeof(salt_buf));
+        tr_torrentSetBtpkFromResume(target.fHandle, pub_key, salt_buf, salt_len);
+    }
+}
+
 - (BOOL)btpkPrivateKeyMatchesData:(NSData*)keyData
 {
     if (!keyData || keyData.length != 96)

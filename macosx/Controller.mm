@@ -1498,7 +1498,7 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
     [self fullUpdateUI];
 }
 
-- (void)openMagnet:(NSString*)address toPath:(NSString*)path
+- (void)openMagnet:(NSString*)address toPath:(NSString*)path btpkSourceTorrent:(Torrent*)sourceTorrent
 {
     tr_torrent* duplicateTorrent;
     if ((duplicateTorrent = tr_torrentFindFromMagnetLink(self.fLib, address.UTF8String)))
@@ -1516,6 +1516,13 @@ void onTorrentCompletenessChanged(tr_torrent* tor, tr_completeness status, bool 
 
     // Force the download location to the specified path, no dialog
     [torrent changeDownloadFolderBeforeUsing:path determinationType:TorrentDeterminationAutomatic];
+
+    // Copy btpk_pub + salt from the source torrent so this magnet-link torrent
+    // is immediately recognized as a family member (before BEP 9 metadata arrives).
+    if (sourceTorrent)
+    {
+        [sourceTorrent copyBtpkFieldsToTorrent:torrent];
+    }
 
     if ([self.fDefaults boolForKey:@"AutoStartDownload"])
     {

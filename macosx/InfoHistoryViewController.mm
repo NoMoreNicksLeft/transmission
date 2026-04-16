@@ -183,7 +183,7 @@ static NSString* const kHashColumnId = @"Hash";
                                                   error:nil];
 
     Controller* controller = (Controller*)NSApp.delegate;
-    [controller openMagnet:magnetURI toPath:archivePath];
+    [controller openMagnet:magnetURI toPath:archivePath btpkSourceTorrent:torrent];
 }
 
 #pragma mark - NSTableViewDataSource (cell-based)

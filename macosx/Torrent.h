@@ -150,7 +150,10 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic, readonly) NSString* btpkFamilyId;  // 64-char hex, or nil if not btpk
 @property(nonatomic, readonly) NSArray<NSNumber*>* btpkFamilyMemberIds; // torrent IDs, highest seq first
 @property(nonatomic, readonly) BOOL isBtpkFamilyHead;
-@property(nonatomic, readonly) NSString* btpkArchiveRoot; // ~/.transmission/archive/ // true = current/highest-seq version
+@property(nonatomic, readonly) NSString* btpkArchiveRoot;
+
+// Copy btpk_pub + salt from this torrent into another (for family grouping of magnet links)
+- (void)copyBtpkFieldsToTorrent:(Torrent*)target; // ~/.transmission/archive/ // true = current/highest-seq version
 
 - (nullable NSString*)archiveBtpkContentForPublishingWithArchivedPaths:(NSMutableArray<NSString*>*)archivedRelPaths;
 
