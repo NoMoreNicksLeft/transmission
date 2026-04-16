@@ -600,6 +600,37 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
     [NSNotificationCenter.defaultCenter postNotificationName:@"OutlineExpandCollapse" object:self];
 }
 
+// Show disclosure triangle only for btpk family heads, not for TorrentGroup items
+- (NSRect)frameOfOutlineCellAtRow:(NSInteger)row
+{
+    id item = [self itemAtRow:row];
+    if ([item isKindOfClass:[Torrent class]])
+    {
+        Torrent* torrent = (Torrent*)item;
+        if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
+            return NSZeroRect; // child versions don't get disclosure triangles
+
+        // Check if this torrent has family children
+        id dataSource = self.dataSource;
+        if ([dataSource respondsToSelector:@selector(outlineView:numberOfChildrenOfItem:)])
+        {
+            NSInteger childCount = [dataSource outlineView:self numberOfChildrenOfItem:item];
+            if (childCount > 0)
+            {
+                // Position the disclosure triangle to the left of the icon
+                NSRect iconFrame = [self frameOfCellAtColumn:0 row:row];
+                CGFloat triangleSize = 12.0;
+                return NSMakeRect(
+                    iconFrame.origin.x + 2,
+                    iconFrame.origin.y + (iconFrame.size.height - triangleSize) / 2.0,
+                    triangleSize,
+                    triangleSize);
+            }
+        }
+    }
+    return NSZeroRect; // groups and non-expandable items — no disclosure triangle
+}
+
 - (void)mouseDown:(NSEvent*)event
 {
     NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];
