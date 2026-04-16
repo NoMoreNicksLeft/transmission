@@ -174,9 +174,11 @@ static NSString* const kHashColumnId = @"Hash";
         return;
     }
 
-    // Notify the UI that a torrent was added
+    // Wrap the new tr_torrent* in an ObjC Torrent and add to the UI.
+    // rpcAddTorrentStruct handles creating the wrapper, adding to fTorrents,
+    // and calling fullUpdateUI.
     Controller* controller = (Controller*)NSApp.delegate;
-    [controller fullUpdateUI];
+    [controller rpcAddTorrentStruct:result.new_torrent];
 }
 
 #pragma mark - NSTableViewDataSource (cell-based)
