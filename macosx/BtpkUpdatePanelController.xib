@@ -76,7 +76,7 @@
                     </textField>
                     <!-- Status / error field (single line, compact) -->
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="104">
-                        <rect key="frame" x="16" y="66" width="288" height="14"/>
+                        <rect key="frame" x="16" y="40" width="288" height="14"/>
                         <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" title="" id="104c">
                             <font key="font" metaFont="smallSystem"/>
                             <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
@@ -85,7 +85,7 @@
                     </textField>
                     <!-- Continue seeding checkbox -->
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="108">
-                        <rect key="frame" x="16" y="46" width="260" height="18"/>
+                        <rect key="frame" x="16" y="55" width="260" height="18"/>
                         <buttonCell key="cell" type="check" title="Continue seeding previous version" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="off" inset="2" id="108c">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="smallSystem"/>
