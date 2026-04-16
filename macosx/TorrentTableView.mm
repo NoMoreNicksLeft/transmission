@@ -331,19 +331,46 @@ static NSTimeInterval const kToggleProgressSeconds = 0.175;
         // set this so that we can draw bar in torrentCell drawRect
         torrentCell.objectValue = torrent;
 
-        // Show seq number prefix for btpk family child versions
+        torrentCell.fTorrentTitleField.stringValue = torrent.name;
+
+        // Btpk family child versions: dim the row + add "seq N" badge below icon
         if (torrent.hasBtpk && !torrent.isBtpkFamilyHead)
         {
+            torrentCell.alphaValue = 0.55;
+
+            // Draw a "seq N" label below the file icon
             NSInteger seq = torrent.btpkSeq;
             if (seq < 0) seq = 0;
-            torrentCell.fTorrentTitleField.stringValue =
-                [NSString stringWithFormat:@"v%ld — %@", (long)seq, torrent.name];
-            torrentCell.alphaValue = 0.6;
+            NSString* seqLabel = [NSString stringWithFormat:@"seq%ld", (long)seq];
+
+            // Find or create the seq badge label
+            NSTextField* seqBadge = [torrentCell viewWithTag:9999];
+            if (!seqBadge)
+            {
+                NSRect iconFrame = torrentCell.fIconView.frame;
+                seqBadge = [NSTextField labelWithString:seqLabel];
+                seqBadge.tag = 9999;
+                seqBadge.font = [NSFont systemFontOfSize:8.0 weight:NSFontWeightMedium];
+                seqBadge.textColor = NSColor.secondaryLabelColor;
+                seqBadge.alignment = NSTextAlignmentCenter;
+                seqBadge.frame = NSMakeRect(
+                    iconFrame.origin.x - 4,
+                    iconFrame.origin.y - 12,
+                    iconFrame.size.width + 8,
+                    12);
+                [torrentCell addSubview:seqBadge];
+            }
+            seqBadge.stringValue = seqLabel;
+            seqBadge.hidden = NO;
         }
         else
         {
-            torrentCell.fTorrentTitleField.stringValue = torrent.name;
             torrentCell.alphaValue = 1.0;
+
+            // Hide seq badge if present (cell may be reused)
+            NSTextField* seqBadge = [torrentCell viewWithTag:9999];
+            if (seqBadge)
+                seqBadge.hidden = YES;
         }
 
         torrentCell.fActionButton.action = @selector(displayTorrentActionPopover:);

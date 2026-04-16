@@ -2290,14 +2290,21 @@ std::string tr_torrentBtpkFamilyId(tr_torrent const* tor)
     auto const& key = tor->metainfo().btpk_key();
     if (!key)
         return {};
-    // Convert 32-byte key to 64-char hex string
+    // Family ID = hex(btpk_pub) + ":" + hex(btpk_salt)
+    // The salt differentiates channels from the same publisher key.
     static constexpr char hex_chars[] = "0123456789abcdef";
     std::string result;
-    result.reserve(64);
+    result.reserve(128);
     for (auto const byte : *key)
     {
         result += hex_chars[static_cast<uint8_t>(byte) >> 4];
         result += hex_chars[static_cast<uint8_t>(byte) & 0x0f];
+    }
+    result += ':';
+    for (auto const ch : tor->metainfo().btpk_salt())
+    {
+        result += hex_chars[static_cast<uint8_t>(ch) >> 4];
+        result += hex_chars[static_cast<uint8_t>(ch) & 0x0f];
     }
     return result;
 }
@@ -2318,7 +2325,7 @@ std::vector<tr_torrent_id_t> tr_torrentBtpkFamilyMembers(tr_torrent const* tor)
         if (t == nullptr)
             continue;
         auto const& t_key = t->metainfo().btpk_key();
-        if (t_key && *t_key == *key)
+        if (t_key && *t_key == *key && t->metainfo().btpk_salt() == tor->metainfo().btpk_salt())
         {
             int64_t seq = t->btpk_seq();
             // btpk_seq of -1 means "original, never published" = effectively 0
