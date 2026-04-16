@@ -10,6 +10,7 @@
 
 #include <libtransmission/transmission.h>
 
+#include <libtransmission/btpk-publish.h>
 #include <libtransmission/btpk-utils.h>
 #include <libtransmission/error.h>
 #include <libtransmission/log.h>
@@ -1090,207 +1091,39 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
         return;
     }
 
-    // Capture everything we need before jumping to the background thread
-    NSString* const contentPath = self.dataLocation;
-    if (!contentPath)
+    // Verify the key matches before committing
+    if (![self btpkPrivateKeyMatchesData:keyData])
     {
         handler(nil,
-                [NSError errorWithDomain:@"BtpkErrorDomain" code:3
-                                userInfo:@{ NSLocalizedDescriptionKey : @"Cannot determine torrent content location" }]);
+                [NSError errorWithDomain:@"BtpkErrorDomain" code:11
+                                userInfo:@{ NSLocalizedDescriptionKey : @"Key does not match torrent public key" }]);
         return;
     }
 
-    // Capture everything needed before the background jump.
-    // Use only public C-API — no internal tr_torrent methods.
-    auto const torView = tr_torrentView(self.fHandle);
-    bool const isPrivate = torView.is_private;
-    auto const comment = std::string{ torView.comment ? torView.comment : "" };
-    auto const source = std::string{ torView.source ? torView.source : "" };
-    // Tracker list captured as NSString for block retention
-    NSString* const trackerListStr = @(tr_torrentGetTrackerList(self.fHandle).c_str());
+    // Copy the private key bytes (will be zeroed by the publish function)
+    uint8_t privKey[96];
+    memcpy(privKey, keyData.bytes, 96);
 
-    // btpk public key as raw bytes (32)
-    uint8_t pubKeyBytes[32] = {};
-    if (!tr_torrentBtpkGetPublicKey(self.fHandle, pubKeyBytes))
+    // Content path
+    NSString* contentPath = self.dataLocation;
+    std::string content_path = contentPath ? std::string{ contentPath.UTF8String } : std::string{};
+
+    // Call the libtransmission publish function — handles background hashing,
+    // DHT signing, metainfo swap, and .torrent file update.
+    tr_torrentPublishBtpkUpdate(self.fHandle, privKey, std::move(content_path),
+        [handler](tr_btpk_publish_result const& result)
     {
-        handler(nil,
-                [NSError errorWithDomain:@"BtpkErrorDomain" code:10
-                                userInfo:@{ NSLocalizedDescriptionKey : @"Torrent has no btpk public key" }]);
-        return;
-    }
-    NSData* const pubKeyData = [NSData dataWithBytes:pubKeyBytes length:32];
-
-    // btpk salt
-    char saltBuf[256] = {};
-    int const saltLen = (int)tr_torrentBtpkGetSalt(self.fHandle, saltBuf, sizeof(saltBuf));
-    NSData* const saltData = [NSData dataWithBytes:saltBuf length:(NSUInteger)saltLen];
-
-    int64_t const lastSeq = tr_torrentBtpkSeq(self.fHandle);
-
-    // Capture the current torrent's infohash — this becomes the history entry
-    // for the version being superseded (current seq → current infohash).
-    // Also capture the existing history so the new torrent's history is cumulative.
-    auto currentHistory = tr_torrentBtpkHistory(self.fHandle);
-    // Always capture the current version's infohash as a history entry.
-    // If lastSeq is -1 (never published), this is the original torrent — seq 0.
-    {
-        tr_btpk_history_entry currentEntry;
-        currentEntry.seq = (lastSeq < 0) ? 0 : lastSeq;
-        currentEntry.infohash = tr_torrentInfoHash(self.fHandle);
-        currentHistory.push_back(currentEntry);
-        std::sort(currentHistory.begin(), currentHistory.end(),
-            [](auto const& a, auto const& b) { return a.seq < b.seq; });
-    }
-
-    // Copy the 96 private-key bytes into NSData for block capture and zeroing
-    uint8_t privKeyBytes[96];
-    memcpy(privKeyBytes, keyData.bytes, 96);
-    NSMutableData* const privKeyBytes_copy = [NSMutableData dataWithBytes:privKeyBytes length:96];
-    memset(privKeyBytes, 0, 96); // zero the stack copy immediately
-
-    __weak Torrent* weakSelf = self;
-
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        // ----------------------------------------------------------------
-        // Step 1: build a new tr_metainfo_builder over the content path
-        // and copy all the relevant settings from the existing torrent.
-        auto builder = tr_metainfo_builder{ contentPath.UTF8String };
-        builder.set_private(isPrivate);
-        if (!comment.empty())
-            builder.set_comment(comment);
-        if (!source.empty())
-            builder.set_source(source);
-        // Re-apply the tracker list from the original torrent
-        if (trackerListStr.length > 0)
-        {
-            tr_announce_list announceList;
-            announceList.parse(trackerListStr.UTF8String);
-            builder.set_announce_list(std::move(announceList));
-        }
-        // Set btpk public key from the captured 32-byte NSData
-        {
-            std::array<uint8_t, 32> pub;
-            memcpy(pub.data(), pubKeyData.bytes, 32);
-            builder.set_btpk_public_key(pub);
-        }
-        if (saltLen > 0)
-            builder.set_btpk_salt(std::string_view{ static_cast<char const*>(saltData.bytes), static_cast<size_t>(saltLen) });
-        // History is mandatory for btpk torrents — not publisher's choice
-        if (!currentHistory.empty())
-            builder.set_btpk_history(currentHistory);
-
-        // ----------------------------------------------------------------
-        // Step 2: hash all the pieces (this is the slow part)
-        auto checksumFuture = builder.make_checksums();
-        auto error = checksumFuture.get(); // blocks until done
-        if (error)
-        {
-            auto const msgStr = std::string{ error.message() };
-            auto const msg = @(msgStr.c_str());
-            memset(const_cast<void*>(privKeyBytes_copy.bytes), 0, 96);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                handler(nil, [NSError errorWithDomain:@"BtpkErrorDomain" code:4 userInfo:@{ NSLocalizedDescriptionKey : msg }]);
-            });
-            return;
-        }
-
-        // ----------------------------------------------------------------
-        // Step 3: generate metainfo benc and parse to get the new infohash
-        auto bencError = tr_error{};
-        auto const bencData = builder.benc(&bencError);
-        if (bencData.empty())
-        {
-            auto const msgStr = bencError ? std::string{ bencError.message() } : std::string{ "Failed to encode metainfo" };
-            auto const msg = @(msgStr.c_str());
-            memset(const_cast<void*>(privKeyBytes_copy.bytes), 0, 96);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                handler(nil, [NSError errorWithDomain:@"BtpkErrorDomain" code:5 userInfo:@{ NSLocalizedDescriptionKey : msg }]);
-            });
-            return;
-        }
-
-        auto newMetainfo = tr_torrent_metainfo{};
-        if (!newMetainfo.parse_benc({ bencData.data(), bencData.size() }))
-        {
-            memset(const_cast<void*>(privKeyBytes_copy.bytes), 0, 96);
-            dispatch_async(dispatch_get_main_queue(), ^{
-                handler(nil,
-                        [NSError errorWithDomain:@"BtpkErrorDomain" code:6
-                                        userInfo:@{ NSLocalizedDescriptionKey : @"Failed to parse new metainfo" }]);
-            });
-            return;
-        }
-
-        // ----------------------------------------------------------------
-        // Step 4: encode the BEP 46 DHT value: d1:ih20:<bytes>e
-        auto const& newHash = newMetainfo.info_hash();
-        std::array<uint8_t, 20> hashBytes;
-        memcpy(hashBytes.data(), newHash.data(), 20);
-        auto const v = libtransmission::tr_btpk_encode_v(hashBytes);
-
-        int64_t const newSeq = (lastSeq < 0 ? 0 : lastSeq) + 1;
-
-        // Wrap benc bytes in NSData so we can cross the block boundary
-        NSData* const bencNSData = [NSData dataWithBytes:bencData.data() length:bencData.size()];
-        NSData* const vNSData = [NSData dataWithBytes:v.data() length:v.size()];
-
-        // Extract the magnet link here while builder is in scope
-        NSString* const magnetLink = @(builder.magnet_link().c_str());
-
-        // Sign + publish must happen on the main thread (session access)
+        // This callback runs on the session thread — dispatch to main for ObjC
         dispatch_async(dispatch_get_main_queue(), ^{
-            Torrent* strongSelf = weakSelf;
-            if (!strongSelf)
+            if (result.success)
             {
-                memset(const_cast<void*>(privKeyBytes_copy.bytes), 0, 96);
-                return;
+                handler(@(result.magnet_link.c_str()), nil);
             }
-
-            bool const ok = tr_torrentBtpkSignAndPut(strongSelf.fHandle,
-                                                     static_cast<uint8_t const*>(pubKeyData.bytes),
-                                                     static_cast<uint8_t const*>(privKeyBytes_copy.bytes),
-                                                     static_cast<char const*>(saltData.bytes),
-                                                     saltLen,
-                                                     newSeq,
-                                                     static_cast<uint8_t const*>(vNSData.bytes),
-                                                     static_cast<int>(vNSData.length));
-
-            memset(const_cast<void*>(privKeyBytes_copy.bytes), 0, 96);
-
-            if (!ok)
+            else
             {
-                handler(nil, [NSError errorWithDomain:@"BtpkErrorDomain" code:9 userInfo:@{
-                            NSLocalizedDescriptionKey : @"Failed to sign and publish to DHT (DHT not running?)"
-                        }]);
-                return;
+                handler(nil, [NSError errorWithDomain:@"BtpkErrorDomain" code:99
+                                            userInfo:@{ NSLocalizedDescriptionKey : @(result.error_message.c_str()) }]);
             }
-
-            // ----------------------------------------------------------------
-            // Step 5: swap the torrent's metainfo and update the seq
-            auto parsedMetainfo = tr_torrent_metainfo{};
-            if (parsedMetainfo.parse_benc({ static_cast<char const*>(bencNSData.bytes), bencNSData.length }))
-            {
-                if (!tr_torrentReplaceBtpkMetainfo(strongSelf.fHandle, std::move(parsedMetainfo)))
-                    tr_logAddError("btpk publish: metainfo swap failed (key mismatch?)");
-                else
-                {
-                    tr_torrentSetBtpkSeq(strongSelf.fHandle, newSeq);
-
-                    // Overwrite the .torrent file on disk with the new benc so
-                    // the updated metainfo survives a restart.
-                    auto const torrent_path = std::string{ tr_torrentFilename(strongSelf.fHandle) };
-                    auto write_error = tr_error{};
-                    tr_file_save(torrent_path, std::string_view{ static_cast<char const*>(bencNSData.bytes), bencNSData.length }, &write_error);
-                    if (write_error)
-                    {
-                        tr_logAddError(fmt::format("btpk publish: couldn't overwrite .torrent '{}': {}",
-                                                  torrent_path, write_error.message()).c_str());
-                    }
-                }
-            }
-
-            // Return the unchanged btpk: magnet URI
-            handler(magnetLink, nil);
         });
     });
 }
