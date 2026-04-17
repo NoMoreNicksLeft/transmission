@@ -2807,3 +2807,8 @@ void tr_session::addTorrent(tr_torrent* tor)
 
     tr_peerMgrAddTorrent(peer_mgr_.get(), tor);
 }
+
+int tr_sessionGetBtpkDefaultUpdateMode(tr_session const* session)
+{
+    return static_cast<int>(session->settings().btpk_default_update_mode);
+}

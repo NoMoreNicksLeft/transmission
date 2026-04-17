@@ -2745,7 +2745,7 @@
                                 <font key="font" metaFont="smallSystem"/>
                             </buttonCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableAllowAdditional" id="3542"/>
+                                <action selector="setMutableAllowAdditional:" target="-2" id="3640"/>
                             </connections>
                         </button>
                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3543">
@@ -2755,7 +2755,7 @@
                                 <font key="font" metaFont="smallSystem"/>
                             </buttonCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableAllowRenaming" id="3545"/>
+                                <action selector="setMutableAllowRenaming:" target="-2" id="3641"/>
                             </connections>
                         </button>
 
@@ -2767,7 +2767,7 @@
                                 <font key="font" metaFont="smallSystem"/>
                             </buttonCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableAllowOverwrites" id="3548"/>
+                                <action selector="setMutableAllowOverwrites:" target="-2" id="3642"/>
                             </connections>
                         </button>
                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3549">
@@ -2777,7 +2777,7 @@
                                 <font key="font" metaFont="smallSystem"/>
                             </buttonCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableAllowDeletions" id="3551"/>
+                                <action selector="setMutableAllowDeletions:" target="-2" id="3643"/>
                             </connections>
                         </button>
 
@@ -2810,7 +2810,7 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableVersionsToKeep" id="3574"/>
+                                <action selector="setMutableVersionsToKeep:" target="-2" id="3644"/>
                             </connections>
                         </textField>
                         <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3575">
@@ -2839,7 +2839,7 @@
                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                             </textFieldCell>
                             <connections>
-                                <binding destination="365" name="value" keyPath="values.MutableMaxStorageGB" id="3594"/>
+                                <action selector="setMutableMaxStorageGB:" target="-2" id="3645"/>
                             </connections>
                         </textField>
                         <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="3595">

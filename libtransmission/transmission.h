@@ -250,6 +250,10 @@ void tr_sessionReloadBlocklists(tr_session* session);
  */
 void tr_sessionClose(tr_session* session, size_t timeout_secs = 15);
 
+// btpk session defaults C API
+int tr_sessionGetBtpkDefaultUpdateMode(tr_session const* session);
+tr_session* tr_torrentGetSession(tr_torrent* torrent);
+
 /**
  * @brief Return the session's configuration directory.
  *

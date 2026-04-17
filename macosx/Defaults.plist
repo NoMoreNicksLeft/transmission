@@ -8,20 +8,6 @@
 	<false/>
 	<key>AutoStartDownload</key>
 	<true/>
-	<key>MutableUpdateBehavior</key>
-	<integer>0</integer>
-	<key>MutableAllowAdditional</key>
-	<true/>
-	<key>MutableAllowRenaming</key>
-	<false/>
-	<key>MutableAllowOverwrites</key>
-	<true/>
-	<key>MutableAllowDeletions</key>
-	<false/>
-	<key>MutableVersionsToKeep</key>
-	<integer>5</integer>
-	<key>MutableMaxStorageGB</key>
-	<integer>10</integer>
 	<key>AutoUpdateBeta</key>
 	<false/>
 	<key>BadgeDownloadRate</key>

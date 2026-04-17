@@ -182,9 +182,10 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
         }
         else if (!torrent.hasBtpk)
         {
-            // Non-btpk torrent: apply global default
+            // Non-btpk torrent: apply session default
+            // Use C API to access session btpk defaults
             tr_torrentSetBtpkUpdateMode(torrent.fHandle,
-                (tr_btpk_update_mode)[NSUserDefaults.standardUserDefaults integerForKey:@"MutableUpdateBehavior"]);
+                static_cast<tr_btpk_update_mode>(tr_sessionGetBtpkDefaultUpdateMode(tr_torrentGetSession(torrent.fHandle))));
         }
     }
 

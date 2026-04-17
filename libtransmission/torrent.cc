@@ -3210,3 +3210,8 @@ std::vector<time_t> const& tr_torrent::ResumeHelper::file_mtimes() const noexcep
 {
     return tor_.file_mtimes_;
 }
+
+tr_session* tr_torrentGetSession(tr_torrent* tor)
+{
+    return tor->session;
+}
