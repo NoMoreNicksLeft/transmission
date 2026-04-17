@@ -821,6 +821,11 @@ struct tr_torrent
     {
         return pending_btpk_seq_;
     }
+    constexpr void set_pending_btpk_seq(int64_t seq) noexcept
+    {
+        pending_btpk_seq_ = seq;
+    }
+
     void clear_pending_btpk_update() noexcept
     {
         pending_btpk_hash_.reset();

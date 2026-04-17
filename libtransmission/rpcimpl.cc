@@ -1577,6 +1577,12 @@ namespace make_torrent_field_helpers
             tr_torrentSetBtpkAllowDeletions(tor, *val);
         if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_versions_to_keep); val)
             tr_torrentSetBtpkVersionsToKeep(tor, static_cast<int>(*val));
+        if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_pending_seq); val)
+        {
+            tor->set_pending_btpk_seq(*val);
+            if (*val >= 0)
+                session->onBtpkUpdateAvailable(tor, *val);
+        }
         if (auto const val = args_in.value_if<int64_t>(TR_KEY_btpk_max_storage_gb); val)
             tr_torrentSetBtpkMaxStorageGb(tor, static_cast<int>(*val));
 
