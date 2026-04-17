@@ -173,6 +173,16 @@ private:
     Gtk::Label* last_activity_lb_ = nullptr;
 
     Gtk::Label* hash_lb_ = nullptr;
+    Gtk::Label* format_lb_ = nullptr;
+    Gtk::Label* btpk_pub_lb_ = nullptr;
+    Gtk::Label* btpk_salt_lb_ = nullptr;
+    Gtk::Label* btpk_seq_lb_ = nullptr;
+    Gtk::Label* btpk_mode_lb_ = nullptr;
+    Gtk::Label* btpk_pub_label_ = nullptr;
+    Gtk::Label* btpk_salt_label_ = nullptr;
+    Gtk::Label* btpk_seq_label_ = nullptr;
+    Gtk::Label* btpk_mode_label_ = nullptr;
+    Gtk::Label* format_label_ = nullptr;
     Gtk::Label* privacy_lb_ = nullptr;
     Gtk::Label* origin_lb_ = nullptr;
     Gtk::Label* destination_lb_ = nullptr;
@@ -1048,6 +1058,76 @@ void DetailsDialog::Impl::refreshInfo(std::vector<tr_torrent*> const& torrents)
     }
 
     last_activity_lb_->set_text(str);
+
+    /* format_lb */
+    if (torrents.empty())
+    {
+        format_lb_->set_text(no_torrent);
+    }
+    else if (torrents.size() == 1)
+    {
+        int const ver = tr_torrentGetMetainfoVersion(torrents.front());
+        switch (ver)
+        {
+        case 3: format_lb_->set_text("BitTorrent v1+v2 (Hybrid)"); break;
+        case 2: format_lb_->set_text("BitTorrent v2"); break;
+        default: format_lb_->set_text("BitTorrent v1"); break;
+        }
+    }
+    else
+    {
+        format_lb_->set_text(mixed);
+    }
+
+    /* btpk fields — show/hide based on whether torrent is mutable */
+    {
+        auto set_visible = [](Gtk::Widget* w, bool visible)
+        {
+            if (w != nullptr) w->set_visible(visible);
+        };
+
+        bool show_btpk = false;
+
+        if (torrents.size() == 1)
+        {
+            auto* const tor = torrents.front();
+            uint8_t pk[32] = {};
+            show_btpk = tr_torrentBtpkGetPublicKey(tor, pk);
+
+            if (show_btpk)
+            {
+                auto hex = std::string{};
+                hex.reserve(64);
+                for (auto const b : pk)
+                    fmt::format_to(std::back_inserter(hex), "{:02x}", static_cast<unsigned>(b));
+                btpk_pub_lb_->set_text(hex);
+
+                char salt_buf[256] = {};
+                size_t const salt_len = tr_torrentBtpkGetSalt(tor, salt_buf, sizeof(salt_buf));
+                btpk_salt_lb_->set_text(salt_len > 0 ? Glib::ustring(salt_buf, salt_len) : _("None"));
+
+                btpk_seq_lb_->set_text(fmt::format("{}", tr_torrentBtpkSeq(tor)));
+
+                auto const mode = tor->btpk_update_mode();
+                switch (mode)
+                {
+                case 0: btpk_mode_lb_->set_text(_("Never")); break;
+                case 1: btpk_mode_lb_->set_text(_("When offered")); break;
+                case 2: btpk_mode_lb_->set_text(_("Always versioned")); break;
+                default: btpk_mode_lb_->set_text(_("Unknown")); break;
+                }
+            }
+        }
+
+        set_visible(btpk_pub_lb_, show_btpk);
+        set_visible(btpk_pub_label_, show_btpk);
+        set_visible(btpk_salt_lb_, show_btpk);
+        set_visible(btpk_salt_label_, show_btpk);
+        set_visible(btpk_seq_lb_, show_btpk);
+        set_visible(btpk_seq_label_, show_btpk);
+        set_visible(btpk_mode_lb_, show_btpk);
+        set_visible(btpk_mode_label_, show_btpk);
+    }
 }
 
 void DetailsDialog::Impl::info_page_init(Glib::RefPtr<Gtk::Builder> const& builder)
@@ -2526,6 +2606,16 @@ DetailsDialog::Impl::Impl(DetailsDialog& dialog, Glib::RefPtr<Gtk::Builder> cons
     , eta_lb_(gtr_get_widget<Gtk::Label>(builder, "remaining_time_value_label"))
     , last_activity_lb_(gtr_get_widget<Gtk::Label>(builder, "last_activity_value_label"))
     , hash_lb_(gtr_get_widget<Gtk::Label>(builder, "hash_value_label"))
+    , format_lb_(gtr_get_widget<Gtk::Label>(builder, "format_value_label"))
+    , btpk_pub_lb_(gtr_get_widget<Gtk::Label>(builder, "btpk_pub_value_label"))
+    , btpk_salt_lb_(gtr_get_widget<Gtk::Label>(builder, "btpk_salt_value_label"))
+    , btpk_seq_lb_(gtr_get_widget<Gtk::Label>(builder, "btpk_seq_value_label"))
+    , btpk_mode_lb_(gtr_get_widget<Gtk::Label>(builder, "btpk_mode_value_label"))
+    , btpk_pub_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_pub_label"))
+    , btpk_salt_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_salt_label"))
+    , btpk_seq_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_seq_label"))
+    , btpk_mode_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_mode_label"))
+    , format_label_(gtr_get_widget<Gtk::Label>(builder, "format_label"))
     , privacy_lb_(gtr_get_widget<Gtk::Label>(builder, "privacy_value_label"))
     , origin_lb_(gtr_get_widget<Gtk::Label>(builder, "origin_value_label"))
     , destination_lb_(gtr_get_widget<Gtk::Label>(builder, "location_value_label"))
