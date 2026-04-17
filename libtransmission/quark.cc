@@ -104,7 +104,8 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "btpk_publish"sv, // rpc method: publish a btpk update
     "btpk_salt"sv, // .resume
     "btpk_seq"sv,
-    "btpk_start_version"sv, // rpc method: start a historical version // .resume
+    "btpk_start_version"sv, // rpc method: start a historical version
+    "btpk_supported"sv, // session-get: true when daemon supports btpk
     "btpk_update_mode"sv, // rpc torrent-get/set
     "btpk_versions_to_keep"sv, // .resume, rpc
     "bytesCompleted"sv, // rpc
@@ -359,10 +360,11 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "message"sv, // json-rpc, rpc
     "message-level"sv, // daemon, gtk app, tr_session::Settings
     "message_level"sv, // daemon, gtk app, tr_session::Settings
-    "metadataPercentComplete"sv, // rpc
+    "metadataPercentComplete"sv,
     "metadata_percent_complete"sv, // rpc
     "metadata_size"sv, // BEP0009; BT protocol
     "metainfo"sv, // rpc
+    "metainfo_version"sv,
     "method"sv, // json-rpc
     "move"sv, // rpc
     "msg_type"sv, // BT protocol

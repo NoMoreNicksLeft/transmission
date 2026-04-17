@@ -1037,6 +1037,15 @@ void print_details(tr_variant::Map const& result)
             fmt::print("  Hash: {:s}\n", *sv);
         }
 
+        if (auto const sv = t->value_if<std::string_view>(TR_KEY_metainfo_version))
+        {
+            std::string_view label = "Unknown";
+            if (*sv == "1") label = "BitTorrent v1";
+            else if (*sv == "2") label = "BitTorrent v2";
+            else if (*sv == "1+2") label = "BitTorrent v1+v2 (Hybrid)";
+            fmt::print("  Format: {:s}\n", label);
+        }
+
         if (auto const sv = t->value_if<std::string_view>(TR_KEY_magnet_link))
         {
             fmt::print("  Magnet: {:s}\n", *sv);

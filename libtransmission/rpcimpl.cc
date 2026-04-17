@@ -758,6 +758,7 @@ namespace make_torrent_field_helpers
     case TR_KEY_btpk_versions_to_keep:
     case TR_KEY_btpk_max_storage_gb:
     case TR_KEY_btpk_pending_seq:
+    case TR_KEY_metainfo_version:
     case TR_KEY_btpk_apply_in_progress:
     case TR_KEY_btpk_history:
     case TR_KEY_comment:
@@ -933,6 +934,14 @@ namespace make_torrent_field_helpers
         }
     case TR_KEY_btpk_seq:
         return tr_torrentBtpkSeq(&tor);
+    case TR_KEY_metainfo_version:
+        {
+            bool const v1 = tor.metainfo().has_v1_metadata();
+            bool const v2 = tor.metainfo().has_v2_metadata();
+            if (v1 && v2) return std::string{"1+2"};
+            if (v2) return std::string{"2"};
+            return std::string{"1"};
+        }
     case TR_KEY_btpk_update_mode:
         return tr_torrentBtpkUpdateMode(&tor);
     case TR_KEY_btpk_allow_additional:
@@ -3030,6 +3039,11 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
             if (auto const val = src.value_if<int64_t>(); val && *val >= 0)
                 tgt.mutableSettings().btpk_default_max_storage_gb = static_cast<size_t>(*val);
         });
+
+    map.try_emplace(
+        TR_KEY_btpk_supported,
+        [](tr_session const& /*src*/) -> tr_variant { return true; },
+        nullptr);
 
     map.try_emplace(
         TR_KEY_version,
