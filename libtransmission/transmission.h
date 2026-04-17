@@ -254,6 +254,9 @@ void tr_sessionClose(tr_session* session, size_t timeout_secs = 15);
 int tr_sessionGetBtpkDefaultUpdateMode(tr_session const* session);
 tr_session* tr_torrentGetSession(tr_torrent* torrent);
 
+// Returns 1 for v1, 2 for v2, 3 for hybrid (v1+v2)
+int tr_torrentGetMetainfoVersion(tr_torrent const* torrent);
+
 /**
  * @brief Return the session's configuration directory.
  *

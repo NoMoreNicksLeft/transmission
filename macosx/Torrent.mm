@@ -2603,4 +2603,15 @@ bool trashDataFile(char const* filename, void* /*user_data*/, tr_error* error)
     return self.flatFileList;
 }
 
+
+- (NSString*)metainfoVersionString
+{
+    int const ver = tr_torrentGetMetainfoVersion(self.fHandle);
+    switch (ver) {
+        case 3: return @"BitTorrent v1+v2 (Hybrid)";
+        case 2: return @"BitTorrent v2";
+        default: return @"BitTorrent v1";
+    }
+}
+
 @end

@@ -115,6 +115,7 @@ extern NSString* const kTorrentDidChangeGroupNotification;
 @property(nonatomic, readonly) NSInteger pieceCount;
 @property(nonatomic, readonly) NSString* hashString;
 @property(nonatomic, readonly) BOOL privateTorrent;
+@property(nonatomic, readonly) NSString* metainfoVersionString;
 @property(nonatomic, readonly) BOOL hasBtpk;
 @property(nonatomic) BtpkUpdateMode btpkUpdateMode;
 @property(nonatomic, readonly) NSInteger btpkSeq;

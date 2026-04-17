@@ -3215,3 +3215,12 @@ tr_session* tr_torrentGetSession(tr_torrent* tor)
 {
     return tor->session;
 }
+
+int tr_torrentGetMetainfoVersion(tr_torrent const* tor)
+{
+    bool const v1 = tor->metainfo().has_v1_metadata();
+    bool const v2 = tor->metainfo().has_v2_metadata();
+    if (v1 && v2) return 3;
+    if (v2) return 2;
+    return 1;
+}
