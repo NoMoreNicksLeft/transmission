@@ -2423,7 +2423,7 @@ using SessionAccessors = std::pair<SessionGetter, SessionSetter>;
 
 [[nodiscard]] auto& session_accessors()
 {
-    static auto map = small::max_size_map<tr_quark, SessionAccessors, 64U>{};
+    static auto map = small::max_size_map<tr_quark, SessionAccessors, 80U>{};
 
     if (!std::empty(map))
     {
