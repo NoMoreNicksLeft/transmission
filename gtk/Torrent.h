@@ -109,6 +109,10 @@ public:
     Glib::ustring get_long_progress_text() const;
     Glib::ustring get_long_status_text() const;
     bool get_sensitive() const;
+    bool is_btpk() const;
+    bool is_btpk_family_head() const;
+    std::string get_btpk_family_id() const;
+    int64_t get_btpk_seq() const;
     std::vector<Glib::ustring> get_css_classes() const;
 
     ChangeFlags update();

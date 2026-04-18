@@ -190,6 +190,41 @@ TorrentSorter::TorrentSorter()
 {
 }
 
+
+namespace
+{
+
+/* Wrap any compare function so btpk family members sort adjacent.
+ * Within a family: head first (highest seq), then descending seq.
+ * Across families or non-btpk: delegate to the inner compare. */
+int family_aware_compare(Torrent const& lhs, Torrent const& rhs, int (*inner)(Torrent const&, Torrent const&))
+{
+    auto const lhs_fam = lhs.get_btpk_family_id();
+    auto const rhs_fam = rhs.get_btpk_family_id();
+
+    if (!lhs_fam.empty() && lhs_fam == rhs_fam)
+    {
+        /* Same family — head first, then descending seq */
+        if (lhs.is_btpk_family_head() != rhs.is_btpk_family_head())
+            return lhs.is_btpk_family_head() ? -1 : 1;
+        return -tr_compare_3way(lhs.get_btpk_seq(), rhs.get_btpk_seq());
+    }
+
+    if (!lhs_fam.empty() || !rhs_fam.empty())
+    {
+        /* At least one is btpk. Use the head's sort value for the family.
+         * For non-head members, delegate to the inner compare using
+         * the same result as the head would give — this keeps children
+         * adjacent to their head. We approximate by just using the inner
+         * compare directly; the head will sort normally, and children
+         * will sort after the head via seq ordering within the family. */
+    }
+
+    return inner(lhs, rhs);
+}
+
+} // namespace
+
 void TorrentSorter::set_mode(SortMode const mode)
 {
     static auto constexpr DefaultCompareFunc = &compare_by_name;
@@ -230,7 +265,22 @@ void TorrentSorter::set_reversed(bool is_reversed)
 
 int TorrentSorter::compare(Torrent const& lhs, Torrent const& rhs) const
 {
-    return compare_func_ != nullptr ? std::clamp(compare_func_(lhs, rhs), -1, 1) * (is_reversed_ ? -1 : 1) : 0;
+    if (compare_func_ == nullptr)
+        return 0;
+
+    /* btpk family grouping takes priority over user-selected sort */
+    auto const lhs_fam = lhs.get_btpk_family_id();
+    auto const rhs_fam = rhs.get_btpk_family_id();
+
+    if (!lhs_fam.empty() && lhs_fam == rhs_fam)
+    {
+        /* Same family: head first, then descending seq */
+        if (lhs.is_btpk_family_head() != rhs.is_btpk_family_head())
+            return lhs.is_btpk_family_head() ? -1 : 1;
+        return -tr_compare_3way(lhs.get_btpk_seq(), rhs.get_btpk_seq());
+    }
+
+    return std::clamp(compare_func_(lhs, rhs), -1, 1) * (is_reversed_ ? -1 : 1);
 }
 
 void TorrentSorter::update(Torrent::ChangeFlags changes)

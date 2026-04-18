@@ -371,6 +371,16 @@ void TorrentCellRenderer::Impl::render_compact(
     fill_area.set_width(fill_area.get_width() - xpad * 2);
     fill_area.set_height(fill_area.get_height() - ypad * 2);
 
+    /* Indent btpk family children (non-head members) */
+    static constexpr int BtpkChildIndent = 48;
+    bool const is_btpk = torrent.is_btpk();
+    bool const is_btpk_child = is_btpk && !torrent.is_btpk_family_head();
+    if (is_btpk_child)
+    {
+        fill_area.set_x(fill_area.get_x() + BtpkChildIndent);
+        fill_area.set_width(fill_area.get_width() - BtpkChildIndent);
+    }
+
     auto icon_area = fill_area;
     icon_renderer_->property_gicon() = icon;
     icon_renderer_->property_stock_size() = CompactIconSize;
@@ -495,6 +505,25 @@ void TorrentCellRenderer::Impl::render_full(
     fill_area.set_width(fill_area.get_width() - xpad * 2);
     fill_area.set_height(fill_area.get_height() - ypad * 2);
 
+    /* Indent btpk family children (non-head members) */
+    static constexpr int BtpkChildIndent = 48;
+    bool const is_btpk = torrent.is_btpk();
+    bool const is_btpk_child = is_btpk && !torrent.is_btpk_family_head();
+    if (is_btpk_child)
+    {
+        fill_area.set_x(fill_area.get_x() + BtpkChildIndent);
+        fill_area.set_width(fill_area.get_width() - BtpkChildIndent);
+    }
+
+        /* Indent btpk family children */
+    bool const is_btpk_compact = torrent.is_btpk();
+    bool const is_btpk_child_compact = is_btpk_compact && !torrent.is_btpk_family_head();
+    if (is_btpk_child_compact)
+    {
+        fill_area.set_x(fill_area.get_x() + 48);
+        fill_area.set_width(fill_area.get_width() - 48);
+    }
+
     /* icon */
     icon_area.set_y(fill_area.get_y() + (fill_area.get_height() - icon_area.get_height()) / 2);
 
@@ -537,6 +566,28 @@ void TorrentCellRenderer::Impl::render_full(
     icon_renderer_->property_stock_size() = FullIconSize;
     icon_renderer_->property_sensitive() = sensitive;
     icon_renderer_->render(context, widget, icon_area, icon_area, flags);
+
+    /* btpk version badge below icon */
+    if (is_btpk)
+    {
+        auto const seq = torrent.get_btpk_seq();
+        auto const is_head = torrent.is_btpk_family_head();
+        auto const badge = is_head ? std::string("current") : (seq >= 0 ? fmt::format("seq{}", seq) : std::string("seq?"));
+        text_renderer_->property_text() = Glib::ustring(badge);
+        text_renderer_->property_scale() = SmallScale * 0.85;
+        text_renderer_->property_weight() = TR_PANGO_WEIGHT(BOLD);
+        text_renderer_->property_ellipsize() = TR_PANGO_ELLIPSIZE_MODE(NONE);
+
+        Gtk::Requisition badge_min, badge_size;
+        text_renderer_->get_preferred_size(widget, badge_min, badge_size);
+        Gdk::Rectangle badge_area;
+        badge_area.set_x(icon_area.get_x() + (icon_area.get_width() - badge_size.width) / 2);
+        badge_area.set_y(icon_area.get_y() + icon_area.get_height() + 1);
+        badge_area.set_width(badge_size.width);
+        badge_area.set_height(badge_size.height);
+        text_renderer_->property_sensitive() = sensitive;
+        text_renderer_->render(context, widget, badge_area, badge_area, flags);
+    }
 
     text_renderer_->property_text() = name;
     text_renderer_->property_scale() = 1.0;

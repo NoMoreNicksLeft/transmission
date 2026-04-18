@@ -892,6 +892,28 @@ bool Torrent::get_sensitive() const
     return impl_->get_cache().activity != TR_STATUS_STOPPED;
 }
 
+
+bool Torrent::is_btpk() const
+{
+    uint8_t pk[32] = {};
+    return tr_torrentBtpkGetPublicKey(&get_underlying(), pk);
+}
+
+bool Torrent::is_btpk_family_head() const
+{
+    return tr_torrentIsBtpkFamilyHead(&get_underlying());
+}
+
+std::string Torrent::get_btpk_family_id() const
+{
+    return tr_torrentBtpkFamilyId(&get_underlying());
+}
+
+int64_t Torrent::get_btpk_seq() const
+{
+    return tr_torrentBtpkSeq(&get_underlying());
+}
+
 std::vector<Glib::ustring> Torrent::get_css_classes() const
 {
     return impl_->get_css_classes();
