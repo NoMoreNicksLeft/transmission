@@ -561,46 +561,6 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
 
     tor.getMimeTypeIcon().paint(painter, layout.icon_rect, Qt::AlignCenter, icon_mode, icon_state);
 
-    /* btpk version badge below icon, within row bounds */
-    if (is_btpk)
-    {
-        QString badge;
-        if (tor.btpkHistory().size() > 1)
-        {
-            int64_t max_seq = -1;
-            for (auto const& entry : tor.btpkHistory())
-                if (entry.first > max_seq) max_seq = entry.first;
-            bool const is_head = (tor.btpkSeq() >= max_seq);
-            badge = is_head ? QStringLiteral("current") :
-                (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
-        }
-        else
-        {
-            badge = QStringLiteral("current");
-        }
-
-        auto badge_font = layout.status_font;
-        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.85);
-        badge_font.setBold(true);
-        badge_font.setItalic(true);
-        painter->setFont(badge_font);
-        auto const fm = QFontMetrics(badge_font);
-
-        /* Draw just below the name, at the left edge of name_rect */
-        auto const badge_rect = QRect(
-            layout.name_rect.left(),
-            layout.name_rect.bottom(),
-            fm.horizontalAdvance(badge),
-            fm.height());
-
-        painter->save();
-        auto muted_color = text_color;
-        muted_color.setAlphaF(0.6);
-        painter->setPen(muted_color);
-        painter->drawText(badge_rect, Qt::AlignLeft | Qt::AlignTop, badge);
-        painter->restore();
-    }
-
     if (!emblem_icon.isNull())
     {
         emblem_icon.paint(painter, layout.emblem_rect, Qt::AlignCenter, emblem_im, icon_state);
@@ -637,6 +597,51 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     setProgressBarPercentDone(option, tor);
 
     StyleHelper::drawProgressBar(*painter, progress_bar_style_);
+
+    /* btpk version badge — drawn last so nothing overwrites it */
+    if (is_btpk)
+    {
+        QString badge;
+        if (tor.btpkHistory().size() > 1)
+        {
+            int64_t max_seq = -1;
+            for (auto const& entry : tor.btpkHistory())
+                if (entry.first > max_seq) max_seq = entry.first;
+            bool const is_head = (tor.btpkSeq() >= max_seq);
+            badge = is_head ? QStringLiteral("current") :
+                (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
+        }
+        else
+        {
+            badge = QStringLiteral("current");
+        }
+
+        auto badge_font = layout.status_font;
+        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.8);
+        badge_font.setBold(true);
+        painter->save();
+        painter->setFont(badge_font);
+        auto const fm = QFontMetrics(badge_font);
+        auto const text_width = fm.horizontalAdvance(badge);
+
+        /* Position: centered under the icon */
+        auto const badge_x = layout.icon_rect.center().x() - text_width / 2;
+        auto const badge_y = layout.icon_rect.bottom() - fm.height() + 2;
+        auto const badge_rect = QRect(badge_x - 2, badge_y, text_width + 4, fm.height());
+
+        /* Draw a pill background */
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->setPen(Qt::NoPen);
+        auto bg = option.palette.color(QPalette::Window);
+        bg.setAlpha(200);
+        painter->setBrush(bg);
+        painter->drawRoundedRect(badge_rect, 3, 3);
+
+        /* Draw text */
+        painter->setPen(text_color);
+        painter->drawText(badge_rect, Qt::AlignCenter, badge);
+        painter->restore();
+    }
 
     painter->restore();
 }

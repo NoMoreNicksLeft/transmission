@@ -281,7 +281,7 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
         updates_layout->addWidget(btpk_check_, 0, 0, 1, 2);
 
         btpk_key_edit_ = new QPlainTextEdit();
-        btpk_key_edit_->setMaximumHeight(60);
+        btpk_key_edit_->setMaximumHeight(80);
         btpk_key_edit_->setPlaceholderText(tr("Paste private key (PEM format), or click Generate"));
         btpk_key_edit_->setEnabled(false);
         updates_layout->addWidget(btpk_key_edit_, 1, 0, 1, 2);
