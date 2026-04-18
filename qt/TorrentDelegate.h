@@ -41,7 +41,7 @@ protected:
 
     // Our own overridables
     virtual QSize sizeHint(QStyleOptionViewItem const&, Torrent const&) const;
-    virtual void drawTorrent(QPainter* painter, QStyleOptionViewItem const& option, Torrent const&) const;
+    virtual void drawTorrent(QPainter* painter, QStyleOptionViewItem const& option, Torrent const&, QModelIndex const& index) const;
 
     static QString statusString(Torrent const& tor);
     static QString progressString(Torrent const& tor);

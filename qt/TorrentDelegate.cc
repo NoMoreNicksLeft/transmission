@@ -448,7 +448,7 @@ void TorrentDelegate::paint(QPainter* painter, QStyleOptionViewItem const& optio
     auto const* tor(index.data(TorrentModel::TorrentRole).value<Torrent const*>());
     painter->save();
     painter->setClipRect(option.rect);
-    drawTorrent(painter, option, *tor);
+    drawTorrent(painter, option, *tor, index);
     painter->restore();
 }
 
@@ -474,7 +474,7 @@ void TorrentDelegate::setProgressBarPercentDone(QStyleOptionViewItem const& opti
     }
 }
 
-void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const& option, Torrent const& tor) const
+void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const& option, Torrent const& tor, QModelIndex const& index) const
 {
     auto const* style = QApplication::style();
 
@@ -543,14 +543,28 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk family indentation */
     static constexpr int BtpkChildIndent = 48;
     bool const is_btpk = tor.isBtpk();
-    bool const is_btpk_child = is_btpk && tor.btpkSeq() >= 0 && !tor.btpkHistory().isEmpty() && tor.btpkHistory().size() > 1;
-    if (is_btpk_child)
+    if (is_btpk)
     {
-        /* Check if this torrent is NOT the highest seq in the family */
-        int64_t max_seq = -1;
-        for (auto const& entry : tor.btpkHistory())
-            if (entry.first > max_seq) max_seq = entry.first;
-        if (tor.btpkSeq() < max_seq)
+        /* Check if this is a child in a multi-member family */
+        int64_t max_seq_indent = tor.btpkSeq();
+        int family_indent_count = 1;
+        auto const* indent_model = index.model();
+        if (indent_model != nullptr)
+        {
+            for (int row = 0; row < indent_model->rowCount(); ++row)
+            {
+                auto const* other = indent_model->index(row, 0).data(TorrentModel::TorrentRole)
+                    .value<Torrent const*>();
+                if (other != nullptr && other != &tor && other->isBtpk() &&
+                    other->btpkPub() == tor.btpkPub())
+                {
+                    ++family_indent_count;
+                    if (other->btpkSeq() > max_seq_indent)
+                        max_seq_indent = other->btpkSeq();
+                }
+            }
+        }
+        if (family_indent_count > 1 && tor.btpkSeq() < max_seq_indent)
             content_rect.adjust(BtpkChildIndent, 0, 0, 0);
     }
     auto const layout = ItemLayout{ tor.name(),  progressString(tor), statusString(tor),      emblem_icon,
@@ -601,20 +615,35 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk version badge — drawn last so nothing overwrites it */
     if (is_btpk)
     {
+        /* Determine head/child by walking the model for torrents
+         * sharing the same btpk public key */
+        int64_t max_seq = tor.btpkSeq();
+        int family_count = 1;
+        auto const* model = index.model();
+        if (model != nullptr)
+        {
+            for (int row = 0; row < model->rowCount(); ++row)
+            {
+                auto const* other = model->index(row, 0).data(TorrentModel::TorrentRole)
+                    .value<Torrent const*>();
+                if (other != nullptr && other != &tor && other->isBtpk() &&
+                    other->btpkPub() == tor.btpkPub())
+                {
+                    ++family_count;
+                    if (other->btpkSeq() > max_seq)
+                        max_seq = other->btpkSeq();
+                }
+            }
+        }
+
         QString badge;
-        if (tor.btpkHistory().size() > 1)
-        {
-            int64_t max_seq = -1;
-            for (auto const& entry : tor.btpkHistory())
-                if (entry.first > max_seq) max_seq = entry.first;
-            bool const is_head = (tor.btpkSeq() >= max_seq);
-            badge = is_head ? QStringLiteral("current") :
-                (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
-        }
-        else
-        {
+        bool const is_head = (tor.btpkSeq() >= max_seq);
+        if (is_head)
             badge = QStringLiteral("current");
-        }
+        else if (tor.btpkSeq() >= 0)
+            badge = QStringLiteral("seq%1").arg(tor.btpkSeq());
+        else
+            badge = QStringLiteral("seq?");
 
         auto badge_font = layout.status_font;
         badge_font.setPointSizeF(badge_font.pointSizeF() * 0.8);
