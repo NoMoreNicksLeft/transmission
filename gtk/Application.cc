@@ -351,7 +351,22 @@ bool Application::Impl::refresh_actions()
         gtr_action_set_sensitive("queue-move-down", has_selection);
         gtr_action_set_sensitive("queue-move-bottom", has_selection);
         gtr_action_set_sensitive("show-torrent-properties", has_selection);
-        gtr_action_set_sensitive("btpk-publish-update", has_selection);
+        {
+            bool btpk_selected = false;
+            if (sel_counts.total_count == 1)
+            {
+                auto const ids = get_selected_torrent_ids();
+                if (!ids.empty())
+                {
+                    if (auto const* tor = core_->find_torrent(ids.front()); tor != nullptr)
+                    {
+                        uint8_t pk[32] = {};
+                        btpk_selected = tr_torrentBtpkGetPublicKey(tor, pk);
+                    }
+                }
+            }
+            gtr_action_set_sensitive("btpk-publish-update", btpk_selected);
+        }
         gtr_action_set_sensitive("open-torrent-folder", sel_counts.total_count == 1);
         gtr_action_set_sensitive("copy-magnet-link-to-clipboard", sel_counts.total_count == 1);
 
