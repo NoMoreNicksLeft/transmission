@@ -361,6 +361,87 @@ To add a new primary URL, add it after a blank line.]]></property>
                         <property name="top-attach">2</property>
                       </packing>
                     </child>
+                    <!-- btpk controls -->
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_check">
+                        <property name="label" translatable="yes">Make this torrent updatable (btpk)</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="valign">center</property>
+                        <property name="draw-indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">3</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="btpk_key_scroll">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="height-request">60</property>
+                        <property name="hexpand">True</property>
+                        <property name="shadow-type">in</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">False</property>
+                        <child>
+                          <object class="GtkTextView" id="btpk_key_view">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="wrap-mode">char</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">4</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButtonBox" id="btpk_button_box">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="halign">end</property>
+                        <property name="spacing">6</property>
+                        <property name="layout-style">end</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">False</property>
+                        <child>
+                          <object class="GtkButton" id="btpk_generate_button">
+                            <property name="label" translatable="yes">Generate</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="btpk_copy_button">
+                            <property name="label" translatable="yes">Copy</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">5</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="btpk_fingerprint_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Fingerprint: —</property>
+                        <property name="xalign">0</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">False</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">6</property>
+                        <property name="width">2</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkCheckButton" id="private_check">
                         <property name="label" translatable="yes">_Private torrent</property>
@@ -373,7 +454,7 @@ To add a new primary URL, add it after a blank line.]]></property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
-                        <property name="top-attach">3</property>
+                        <property name="top-attach">7</property>
                         <property name="width">2</property>
                       </packing>
                     </child>

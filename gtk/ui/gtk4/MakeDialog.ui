@@ -247,6 +247,75 @@ To add a new primary URL, add it after a blank line.]]></property>
                         </layout>
                       </object>
                     </child>
+                    <!-- btpk: Make this torrent updatable -->
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_check">
+                        <property name="label" translatable="yes">Make this torrent updatable (btpk)</property>
+                        <property name="focusable">1</property>
+                        <property name="valign">center</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">3</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkScrolledWindow" id="btpk_key_scroll">
+                        <property name="height-request">60</property>
+                        <property name="focusable">1</property>
+                        <property name="hexpand">1</property>
+                        <property name="has-frame">1</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">0</property>
+                        <property name="child">
+                          <object class="GtkTextView" id="btpk_key_view">
+                            <property name="focusable">1</property>
+                            <property name="wrap-mode">char</property>
+                          </object>
+                        </property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">4</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="btpk_button_box">
+                        <property name="halign">end</property>
+                        <property name="spacing">6</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">0</property>
+                        <child>
+                          <object class="GtkButton" id="btpk_generate_button">
+                            <property name="label" translatable="yes">Generate</property>
+                            <property name="focusable">1</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="btpk_copy_button">
+                            <property name="label" translatable="yes">Copy</property>
+                            <property name="focusable">1</property>
+                          </object>
+                        </child>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">5</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="btpk_fingerprint_label">
+                        <property name="label" translatable="yes">Fingerprint: —</property>
+                        <property name="xalign">0</property>
+                        <property name="sensitive" bind-source="btpk_check" bind-property="active" bind-flags="sync-create">0</property>
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">6</property>
+                          <property name="column-span">2</property>
+                        </layout>
+                      </object>
+                    </child>
                     <child>
                       <object class="GtkCheckButton" id="private_check">
                         <property name="label" translatable="yes">_Private torrent</property>
@@ -255,7 +324,7 @@ To add a new primary URL, add it after a blank line.]]></property>
                         <property name="use-underline">1</property>
                         <layout>
                           <property name="column">0</property>
-                          <property name="row">3</property>
+                          <property name="row">7</property>
                           <property name="column-span">2</property>
                         </layout>
                       </object>

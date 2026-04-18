@@ -9,6 +9,8 @@
 #include "PathButton.h"
 #include "PrefsDialog.h"
 #include "Session.h"
+
+#include "libtransmission/btpk-utils.h"
 #include "Utils.h"
 
 #include <libtransmission/transmission.h>
@@ -158,6 +160,13 @@ private:
     Gtk::CheckButton* comment_check_ = nullptr;
     Gtk::Entry* comment_entry_ = nullptr;
     Gtk::CheckButton* private_check_ = nullptr;
+    Gtk::CheckButton* btpk_check_ = nullptr;
+    Gtk::TextView* btpk_key_view_ = nullptr;
+    Gtk::Button* btpk_generate_button_ = nullptr;
+    Gtk::Button* btpk_copy_button_ = nullptr;
+    Gtk::Label* btpk_fingerprint_label_ = nullptr;
+    libtransmission::BtpkPublicKey btpk_pub_key_ = {};
+    bool btpk_key_generated_ = false;
     Gtk::CheckButton* source_check_ = nullptr;
     Gtk::Entry* source_entry_ = nullptr;
     std::unique_ptr<MakeProgressDialog> progress_dialog_;
@@ -354,6 +363,11 @@ void MakeDialog::Impl::onResponse(int response)
         builder_->set_source(source_entry_->get_text().raw());
     }
 
+    if (btpk_check_->get_active() && btpk_key_generated_)
+    {
+        builder_->set_btpk_public_key(btpk_pub_key_);
+    }
+
     builder_->set_private(private_check_->get_active());
 
     // build the .torrent
@@ -535,11 +549,47 @@ MakeDialog::Impl::Impl(MakeDialog& dialog, Glib::RefPtr<Gtk::Builder> const& bui
     , comment_check_(gtr_get_widget<Gtk::CheckButton>(builder, "comment_check"))
     , comment_entry_(gtr_get_widget<Gtk::Entry>(builder, "comment_entry"))
     , private_check_(gtr_get_widget<Gtk::CheckButton>(builder, "private_check"))
+    , btpk_check_(gtr_get_widget<Gtk::CheckButton>(builder, "btpk_check"))
+    , btpk_key_view_(gtr_get_widget<Gtk::TextView>(builder, "btpk_key_view"))
+    , btpk_generate_button_(gtr_get_widget<Gtk::Button>(builder, "btpk_generate_button"))
+    , btpk_copy_button_(gtr_get_widget<Gtk::Button>(builder, "btpk_copy_button"))
+    , btpk_fingerprint_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_fingerprint_label"))
     , source_check_(gtr_get_widget<Gtk::CheckButton>(builder, "source_check"))
     , source_entry_(gtr_get_widget<Gtk::Entry>(builder, "source_entry"))
     , announce_text_buffer_(gtr_get_widget<Gtk::TextView>(builder, "trackers_view")->get_buffer())
 {
     dialog_.signal_response().connect(sigc::mem_fun(*this, &Impl::onResponse));
+
+    btpk_generate_button_->signal_clicked().connect(
+        [this]()
+        {
+            libtransmission::BtpkPrivateKey priv = {};
+            libtransmission::tr_btpk_key_generate(btpk_pub_key_, priv);
+            btpk_key_generated_ = true;
+
+            /* Show private key as PEM in the text view */
+            auto const pem = libtransmission::tr_btpk_private_key_to_pem(priv);
+            btpk_key_view_->get_buffer()->set_text(pem);
+
+            /* Show fingerprint */
+            auto const fp = libtransmission::tr_btpk_fingerprint(btpk_pub_key_);
+            btpk_fingerprint_label_->set_text(
+                fmt::format("Fingerprint: {}", fp));
+
+            /* Securely erase private key from stack */
+            libtransmission::tr_btpk_zero_key(priv);
+        });
+
+    btpk_copy_button_->signal_clicked().connect(
+        [this]()
+        {
+            auto const text = btpk_key_view_->get_buffer()->get_text();
+            if (!text.empty())
+            {
+                auto clipboard = Gdk::Display::get_default()->get_clipboard();
+                clipboard->set_text(text);
+            }
+        });
 
     destination_chooser_->set_filename(Glib::get_user_special_dir(TR_GLIB_USER_DIRECTORY(DESKTOP)));
 
