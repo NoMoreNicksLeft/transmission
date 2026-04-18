@@ -79,6 +79,7 @@ private:
     void initPrivacyTab();
     void initNetworkTab();
     void initDesktopTab();
+    void initMutableTab();
     void initRemoteTab();
 
     Session& session_;

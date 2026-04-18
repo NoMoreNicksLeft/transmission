@@ -341,6 +341,92 @@ void PrefsDialog::pathChanged(QString const& path)
 
 // ---
 
+
+void PrefsDialog::initMutableTab()
+{
+    auto* tab = new QWidget();
+    auto* vbox = new QVBoxLayout(tab);
+
+    // Update Behavior section
+    auto* heading1 = new QLabel(QStringLiteral("<b>%1</b>").arg(tr("Update Behavior")));
+    vbox->addWidget(heading1);
+
+    auto* mode_combo = new QComboBox();
+    mode_combo->addItem(tr("Never"), 0);
+    mode_combo->addItem(tr("When offered"), 1);
+    mode_combo->addItem(tr("Always versioned"), 2);
+    mode_combo->setCurrentIndex(session_.sessionStats().value(QStringLiteral("btpk_default_update_mode"), 1).toInt());
+    vbox->addWidget(mode_combo);
+
+    // Allowed Changes section
+    auto* heading2 = new QLabel(QStringLiteral("<b>%1</b>").arg(tr("Allowed Changes")));
+    heading2->setContentsMargins(0, 12, 0, 0);
+    vbox->addWidget(heading2);
+
+    auto* chk_add = new QCheckBox(tr("Allow additional files"));
+    chk_add->setChecked(true);
+    vbox->addWidget(chk_add);
+    auto* chk_ren = new QCheckBox(tr("Allow file renaming"));
+    vbox->addWidget(chk_ren);
+    auto* chk_ovw = new QCheckBox(tr("Allow file overwrites"));
+    vbox->addWidget(chk_ovw);
+    auto* chk_del = new QCheckBox(tr("Allow file deletions"));
+    chk_del->setChecked(true);
+    vbox->addWidget(chk_del);
+
+    // Version History section
+    auto* heading3 = new QLabel(QStringLiteral("<b>%1</b>").arg(tr("Version History")));
+    heading3->setContentsMargins(0, 12, 0, 0);
+    vbox->addWidget(heading3);
+
+    auto* grid = new QGridLayout();
+    grid->addWidget(new QLabel(tr("Keep most recent:")), 0, 0);
+    auto* ver_spin = new QSpinBox();
+    ver_spin->setRange(0, 100);
+    ver_spin->setValue(5);
+    grid->addWidget(ver_spin, 0, 1);
+    grid->addWidget(new QLabel(tr("Maximum storage (GB):")), 1, 0);
+    auto* stor_spin = new QSpinBox();
+    stor_spin->setRange(0, 10000);
+    stor_spin->setValue(10);
+    grid->addWidget(stor_spin, 1, 1);
+    vbox->addLayout(grid);
+
+    vbox->addStretch();
+
+    // Sensitivity
+    auto update_sensitivity = [=](int idx)
+    {
+        bool const when_offered = (idx == 1);
+        bool const versioned = (idx == 2);
+        chk_add->setEnabled(when_offered);
+        chk_ren->setEnabled(when_offered);
+        chk_ovw->setEnabled(when_offered);
+        chk_del->setEnabled(when_offered);
+        ver_spin->setEnabled(versioned);
+        stor_spin->setEnabled(versioned);
+    };
+    connect(mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, update_sensitivity);
+    update_sensitivity(mode_combo->currentIndex());
+
+    // Save to session on change
+    connect(mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+        [this, mode_combo](int) { session_.sessionSet(TR_KEY_btpk_default_update_mode, mode_combo->currentData().toInt()); });
+    connect(chk_add, &QCheckBox::clicked, this,
+        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_additional, v); });
+    connect(chk_ren, &QCheckBox::clicked, this,
+        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_renaming, v); });
+    connect(chk_ovw, &QCheckBox::clicked, this,
+        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_overwrites, v); });
+    connect(chk_del, &QCheckBox::clicked, this,
+        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_deletions, v); });
+    connect(ver_spin, &QSpinBox::editingFinished, this,
+        [this, ver_spin]() { session_.sessionSet(TR_KEY_btpk_default_versions_to_keep, ver_spin->value()); });
+    connect(stor_spin, &QSpinBox::editingFinished, this,
+        [this, stor_spin]() { session_.sessionSet(TR_KEY_btpk_default_max_storage_gb, stor_spin->value()); });
+
+    ui_.tabs->addTab(tab, tr("Mutable"));
+}
 void PrefsDialog::initRemoteTab()
 {
     linkWidgetToPref(ui_.enableRpcCheck, Prefs::RPC_ENABLED);
@@ -732,6 +818,7 @@ PrefsDialog::PrefsDialog(Session& session, Prefs& prefs, QWidget* parent)
     initNetworkTab();
     initDesktopTab();
     initRemoteTab();
+    initMutableTab();
 
     connect(&session_, &Session::sessionUpdated, this, &PrefsDialog::sessionUpdated);
 

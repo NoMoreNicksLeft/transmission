@@ -69,6 +69,7 @@ public slots:
     void pauseSelected();
     void removeSelected();
     void deleteSelected();
+    void publishUpdate();
     void verifySelected();
     void queueMoveTop();
     void queueMoveUp();

@@ -10,6 +10,12 @@
 #include <unordered_set>
 
 #include <QString>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QLabel>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QTableWidget>
 #include <QTimer>
 
 #include "BaseDialog.h"

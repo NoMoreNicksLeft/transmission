@@ -232,6 +232,15 @@ public:
         return haveVerified() >= totalSize();
     }
 
+    [[nodiscard]] auto const& btpkPub() const noexcept { return btpk_pub_; }
+    [[nodiscard]] auto const& btpkSalt() const noexcept { return btpk_salt_; }
+    [[nodiscard]] constexpr auto btpkSeq() const noexcept { return btpk_seq_; }
+    [[nodiscard]] constexpr auto btpkPendingSeq() const noexcept { return btpk_pending_seq_; }
+    [[nodiscard]] constexpr auto btpkUpdateMode() const noexcept { return btpk_update_mode_; }
+    [[nodiscard]] auto const& metainfoVersion() const noexcept { return metainfo_version_; }
+    [[nodiscard]] auto const& btpkHistory() const noexcept { return btpk_history_; }
+    [[nodiscard]] bool isBtpk() const noexcept { return !btpk_pub_.isEmpty(); }
+
     [[nodiscard]] constexpr auto isPrivate() const noexcept
     {
         return is_private_;
@@ -613,6 +622,13 @@ public:
         UPLOAD_LIMITED,
         UPLOAD_SPEED,
         WEBSEEDS_SENDING_TO_US,
+        BTPK_PUB,
+        BTPK_SALT,
+        BTPK_SEQ,
+        BTPK_PENDING_SEQ,
+        BTPK_UPDATE_MODE,
+        BTPK_HISTORY,
+        METAINFO_VERSION,
 
         N_FIELDS
     };
@@ -695,6 +711,16 @@ private:
     Prefs const& prefs_;
 
     TorrentHash hash_;
+
+    // btpk fields
+    QString btpk_pub_;
+    QString btpk_salt_;
+    int64_t btpk_seq_ = -1;
+    int64_t btpk_pending_seq_ = -1;
+    int btpk_update_mode_ = 1;
+    QString metainfo_version_;
+    // btpk_history stored as list of (seq, hash) pairs
+    QVector<QPair<int64_t, QString>> btpk_history_;
 };
 
 Q_DECLARE_METATYPE(Torrent const*)

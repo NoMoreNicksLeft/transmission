@@ -538,7 +538,21 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
 
     // layout
     auto const m = margin(*style);
-    auto const content_rect = QRect{ option.rect.adjusted(m.width(), m.height(), -m.width(), -m.height()) };
+    auto content_rect = QRect{ option.rect.adjusted(m.width(), m.height(), -m.width(), -m.height()) };
+
+    /* btpk family indentation */
+    static constexpr int BtpkChildIndent = 48;
+    bool const is_btpk = tor.isBtpk();
+    bool const is_btpk_child = is_btpk && tor.btpkSeq() >= 0 && !tor.btpkHistory().isEmpty() && tor.btpkHistory().size() > 1;
+    if (is_btpk_child)
+    {
+        /* Check if this torrent is NOT the highest seq in the family */
+        int64_t max_seq = -1;
+        for (auto const& entry : tor.btpkHistory())
+            if (entry.first > max_seq) max_seq = entry.first;
+        if (tor.btpkSeq() < max_seq)
+            content_rect.adjust(BtpkChildIndent, 0, 0, 0);
+    }
     auto const layout = ItemLayout{ tor.name(),  progressString(tor), statusString(tor),      emblem_icon,
                                     option.font, option.direction,    content_rect.topLeft(), content_rect.width() };
 
@@ -546,6 +560,41 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     painter->setPen(text_color);
 
     tor.getMimeTypeIcon().paint(painter, layout.icon_rect, Qt::AlignCenter, icon_mode, icon_state);
+
+    /* btpk version badge below icon */
+    if (is_btpk && tor.btpkHistory().size() > 1)
+    {
+        int64_t max_seq = -1;
+        for (auto const& entry : tor.btpkHistory())
+            if (entry.first > max_seq) max_seq = entry.first;
+        bool const is_head = (tor.btpkSeq() >= max_seq);
+        auto const badge = is_head ? QStringLiteral("current") :
+            (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
+        auto badge_font = option.font;
+        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.7);
+        badge_font.setBold(true);
+        painter->setFont(badge_font);
+        auto const badge_rect = QRect(
+            layout.icon_rect.left(),
+            layout.icon_rect.bottom() + 1,
+            layout.icon_rect.width(),
+            QFontMetrics(badge_font).height());
+        painter->drawText(badge_rect, Qt::AlignHCenter | Qt::AlignTop, badge);
+    }
+    else if (is_btpk)
+    {
+        /* Single btpk torrent — show current label */
+        auto badge_font = option.font;
+        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.7);
+        badge_font.setBold(true);
+        painter->setFont(badge_font);
+        auto const badge_rect = QRect(
+            layout.icon_rect.left(),
+            layout.icon_rect.bottom() + 1,
+            layout.icon_rect.width(),
+            QFontMetrics(badge_font).height());
+        painter->drawText(badge_rect, Qt::AlignHCenter | Qt::AlignTop, QStringLiteral("current"));
+    }
 
     if (!emblem_icon.isNull())
     {

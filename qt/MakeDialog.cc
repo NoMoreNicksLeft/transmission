@@ -3,6 +3,8 @@
 // or any future license endorsed by Mnemosyne LLC.
 // License text can be found in the licenses/ folder.
 
+#include <QApplication>
+#include <QClipboard>
 #include "MakeDialog.h"
 
 #include <chrono>
@@ -26,6 +28,8 @@
 #include "ColumnResizer.h"
 #include "Formatter.h"
 #include "Session.h"
+
+#include "libtransmission/btpk-utils.h"
 #include "Utils.h"
 
 #include "ui_MakeProgressDialog.h"
@@ -193,6 +197,11 @@ void MakeDialog::makeTorrent()
         builder_->set_source(ui_.sourceEdit->text().toStdString());
     }
 
+    if (btpk_check_ != nullptr && btpk_check_->isChecked() && btpk_key_generated_)
+    {
+        builder_->set_btpk_public_key(btpk_pub_key_);
+    }
+
     builder_->set_private(ui_.privateCheck->isChecked());
 
     // pop up the dialog
@@ -258,6 +267,66 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
     connect(ui_.dialogButtons, &QDialogButtonBox::accepted, this, &MakeDialog::makeTorrent);
     connect(ui_.dialogButtons, &QDialogButtonBox::rejected, this, &MakeDialog::close);
     connect(ui_.pieceSizeSlider, &QSlider::valueChanged, this, &MakeDialog::onPieceSizeUpdated);
+
+
+    // btpk controls — inserted programmatically into the properties section
+    {
+        auto* props_layout = ui_.propertiesSectionLayout;
+        int const row = props_layout->rowCount();
+
+        btpk_check_ = new QCheckBox(tr("Make this torrent updatable (btpk)"));
+        props_layout->addWidget(btpk_check_, row, 0, 1, 2);
+
+        btpk_key_edit_ = new QPlainTextEdit();
+        btpk_key_edit_->setMaximumHeight(60);
+        btpk_key_edit_->setPlaceholderText(tr("Paste private key (PEM format), or click Generate"));
+        btpk_key_edit_->setEnabled(false);
+        props_layout->addWidget(btpk_key_edit_, row + 1, 0, 1, 2);
+
+        auto* btn_layout = new QHBoxLayout();
+        btn_layout->addStretch();
+        btpk_generate_btn_ = new QPushButton(tr("Generate"));
+        btpk_generate_btn_->setEnabled(false);
+        btn_layout->addWidget(btpk_generate_btn_);
+        btpk_copy_btn_ = new QPushButton(tr("Copy"));
+        btpk_copy_btn_->setEnabled(false);
+        btn_layout->addWidget(btpk_copy_btn_);
+        props_layout->addLayout(btn_layout, row + 2, 0, 1, 2);
+
+        btpk_fingerprint_label_ = new QLabel(tr("Fingerprint: \u2014"));
+        btpk_fingerprint_label_->setEnabled(false);
+        props_layout->addWidget(btpk_fingerprint_label_, row + 3, 0, 1, 2);
+
+        connect(btpk_check_, &QCheckBox::toggled, this, [this](bool checked)
+        {
+            btpk_key_edit_->setEnabled(checked);
+            btpk_generate_btn_->setEnabled(checked);
+            btpk_copy_btn_->setEnabled(checked);
+            btpk_fingerprint_label_->setEnabled(checked);
+        });
+
+        connect(btpk_generate_btn_, &QPushButton::clicked, this, [this]()
+        {
+            libtransmission::BtpkPrivateKey priv = {};
+            libtransmission::tr_btpk_key_generate(btpk_pub_key_, priv);
+            btpk_key_generated_ = true;
+
+            auto const pem = libtransmission::tr_btpk_private_key_to_pem(priv);
+            btpk_key_edit_->setPlainText(QString::fromStdString(pem));
+
+            auto const fp = libtransmission::tr_btpk_fingerprint(btpk_pub_key_);
+            btpk_fingerprint_label_->setText(tr("Fingerprint: %1").arg(QString::fromStdString(fp)));
+
+            libtransmission::tr_btpk_zero_key(priv);
+        });
+
+        connect(btpk_copy_btn_, &QPushButton::clicked, this, [this]()
+        {
+            auto const text = btpk_key_edit_->toPlainText();
+            if (!text.isEmpty())
+                QApplication::clipboard()->setText(text);
+        });
+    }
 
     onSourceChanged();
 }

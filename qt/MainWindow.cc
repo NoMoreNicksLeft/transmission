@@ -112,6 +112,7 @@ MainWindow::MainWindow(Session& session, Prefs& prefs, TorrentModel& model, bool
     connect(ui_.action_Pause, &QAction::triggered, this, &MainWindow::pauseSelected);
     connect(ui_.action_Remove, &QAction::triggered, this, &MainWindow::removeSelected);
     connect(ui_.action_Delete, &QAction::triggered, this, &MainWindow::deleteSelected);
+    connect(ui_.action_PublishUpdate, &QAction::triggered, this, &MainWindow::publishUpdate);
     connect(ui_.action_Verify, &QAction::triggered, this, &MainWindow::verifySelected);
     connect(ui_.action_Announce, &QAction::triggered, this, &MainWindow::reannounceSelected);
     connect(ui_.action_StartAll, &QAction::triggered, this, &MainWindow::startAll);
@@ -1005,6 +1006,51 @@ void MainWindow::removeSelected()
     removeTorrents(false);
 }
 
+
+void MainWindow::publishUpdate()
+{
+    auto const ids = getSelectedTorrents();
+    if (ids.size() != 1)
+        return;
+
+    auto const* tor = model_.getTorrentFromId(ids.front());
+    if (tor == nullptr || !tor->isBtpk())
+        return;
+
+    auto* window = new QDialog(this);
+    window->setWindowTitle(tr("Publish Update"));
+    window->setModal(true);
+
+    auto* vbox = new QVBoxLayout(window);
+    vbox->addWidget(new QLabel(tr("Private key (PEM format):")));
+
+    auto* text_edit = new QPlainTextEdit();
+    text_edit->setMinimumSize(400, 120);
+    vbox->addWidget(text_edit);
+
+    auto* check = new QCheckBox(tr("Continue seeding previous version"));
+    vbox->addWidget(check);
+
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+    buttons->button(QDialogButtonBox::Ok)->setText(tr("Publish"));
+    vbox->addWidget(buttons);
+
+    connect(buttons, &QDialogButtonBox::accepted, window, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, window, &QDialog::reject);
+
+    connect(window, &QDialog::accepted, this, [this, window, text_edit, check, ids]()
+    {
+        auto const pem = text_edit->toPlainText();
+        if (!pem.isEmpty())
+        {
+            // TODO: wire tr_torrentPublishBtpkUpdate in e2e testing
+        }
+        window->deleteLater();
+    });
+    connect(window, &QDialog::rejected, window, &QDialog::deleteLater);
+
+    window->show();
+}
 void MainWindow::deleteSelected()
 {
     removeTorrents(true);

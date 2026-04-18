@@ -261,6 +261,7 @@ DetailsDialog::DetailsDialog(Session& session, Prefs& prefs, TorrentModel const&
     initTrackerTab();
     initFilesTab();
     initOptionsTab();
+    initHistoryTab();
 
     adjustSize();
     ui_.commentTextEdit->setMaximumHeight(QWIDGETSIZE_MAX);
@@ -460,6 +461,78 @@ void setIfIdle(QSpinBox* spin, int value)
 }
 
 } // namespace
+
+
+void DetailsDialog::initHistoryTab()
+{
+    history_tab_ = new QWidget();
+    auto* layout = new QVBoxLayout(history_tab_);
+
+    history_table_ = new QTableWidget(0, 3, history_tab_);
+    history_table_->setHorizontalHeaderLabels({ tr("Version"), tr("Active"), tr("Info Hash") });
+    history_table_->horizontalHeader()->setStretchLastSection(true);
+    history_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    history_table_->setSelectionMode(QAbstractItemView::SingleSelection);
+    history_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    history_table_->verticalHeader()->hide();
+    layout->addWidget(history_table_);
+
+    auto* button_layout = new QHBoxLayout();
+    button_layout->addStretch();
+    start_version_button_ = new QPushButton(tr("Start Version"), history_tab_);
+    button_layout->addWidget(start_version_button_);
+    layout->addLayout(button_layout);
+
+    connect(start_version_button_, &QPushButton::clicked, this, [this]()
+    {
+        auto const sel = history_table_->selectedItems();
+        if (sel.isEmpty() || ids_.size() != 1)
+            return;
+        int const row = sel.first()->row();
+        auto const* seq_item = history_table_->item(row, 0);
+        if (seq_item == nullptr)
+            return;
+        int64_t const seq = seq_item->data(Qt::UserRole).toLongLong();
+        session_.torrentSet(ids_, TR_KEY_btpk_start_version, static_cast<int>(seq));
+    });
+
+    ui_.tabs->addTab(history_tab_, tr("History"));
+}
+
+void DetailsDialog::refreshHistoryTab(QList<Torrent const*> const& torrents)
+{
+    bool const show = (torrents.size() == 1 && torrents.front()->isBtpk());
+
+    int const tab_index = ui_.tabs->indexOf(history_tab_);
+    if (tab_index >= 0)
+    {
+        ui_.tabs->setTabVisible(tab_index, show);
+    }
+
+    if (!show)
+        return;
+
+    auto const& tor = *torrents.front();
+    auto const& history = tor.btpkHistory();
+
+    if (history_table_->rowCount() != history.size())
+    {
+        history_table_->setRowCount(0);
+        for (int i = 0; i < history.size(); ++i)
+        {
+            auto const& entry = history[i];
+            history_table_->insertRow(i);
+
+            auto* seq_item = new QTableWidgetItem(QString::number(entry.first));
+            seq_item->setData(Qt::UserRole, static_cast<qlonglong>(entry.first));
+            history_table_->setItem(i, 0, seq_item);
+
+            bool const is_active = (entry.second == tor.hash().toString());
+            history_table_->setItem(i, 1, new QTableWidgetItem(is_active ? tr("Yes") : tr("No")));
+            history_table_->setItem(i, 2, new QTableWidgetItem(entry.second));
+        }
+    }
+}
 
 void DetailsDialog::refreshUI()
 {
@@ -1038,6 +1111,58 @@ void DetailsDialog::refreshUI()
 
     ui_.addedValueLabel->setText(string);
 
+
+    // Format version
+    string = none;
+    if (!torrents.empty())
+    {
+        string = torrents.front()->metainfoVersion();
+        if (string == QStringLiteral("1")) string = tr("BitTorrent v1");
+        else if (string == QStringLiteral("2")) string = tr("BitTorrent v2");
+        else if (string == QStringLiteral("1+2")) string = tr("BitTorrent v1+v2 (Hybrid)");
+        for (Torrent const* const t : torrents)
+        {
+            if (t->metainfoVersion() != torrents.front()->metainfoVersion())
+            {
+                string = mixed;
+                break;
+            }
+        }
+    }
+    ui_.formatValueLabel->setText(string);
+
+    // btpk fields — show/hide based on whether torrent is mutable
+    {
+        bool const show_btpk = single && !torrents.empty() && torrents.front()->isBtpk();
+
+        ui_.btpkPubLabel->setVisible(show_btpk);
+        ui_.btpkPubValueLabel->setVisible(show_btpk);
+        ui_.btpkSaltLabel->setVisible(show_btpk);
+        ui_.btpkSaltValueLabel->setVisible(show_btpk);
+        ui_.btpkSeqLabel->setVisible(show_btpk);
+        ui_.btpkSeqValueLabel->setVisible(show_btpk);
+        ui_.btpkModeLabel->setVisible(show_btpk);
+        ui_.btpkModeValueLabel->setVisible(show_btpk);
+
+        if (show_btpk)
+        {
+            auto const& tor = *torrents.front();
+            ui_.btpkPubValueLabel->setText(tor.btpkPub());
+            ui_.btpkSaltValueLabel->setText(tor.btpkSalt().isEmpty() ? tr("None") : tor.btpkSalt());
+            ui_.btpkSeqValueLabel->setText(QString::number(tor.btpkSeq()));
+
+            switch (tor.btpkUpdateMode())
+            {
+            case 0: ui_.btpkModeValueLabel->setText(tr("Never")); break;
+            case 1: ui_.btpkModeValueLabel->setText(tr("When offered")); break;
+            case 2: ui_.btpkModeValueLabel->setText(tr("Always versioned")); break;
+            default: ui_.btpkModeValueLabel->setText(tr("Unknown")); break;
+            }
+        }
+    }
+
+    refreshHistoryTab(torrents);
+
     ///
     ///  Options Tab
     ///
@@ -1562,6 +1687,77 @@ void DetailsDialog::initOptionsTab()
     connect(ui_.singleDownSpin, &QSpinBox::editingFinished, this, &DetailsDialog::onSpinBoxEditingFinished);
     connect(ui_.singleUpCheck, &QCheckBox::clicked, this, &DetailsDialog::onUploadLimitedToggled);
     connect(ui_.singleUpSpin, &QSpinBox::editingFinished, this, &DetailsDialog::onSpinBoxEditingFinished);
+
+    // Mutable torrent section — added programmatically to options tab
+    {
+        btpk_options_widget_ = new QWidget();
+        auto* vbox = new QVBoxLayout(btpk_options_widget_);
+        vbox->setContentsMargins(0, 12, 0, 0);
+
+        auto* heading = new QLabel(QStringLiteral("<b>%1</b>").arg(tr("Mutable Torrent")));
+        vbox->addWidget(heading);
+
+        auto* grid = new QGridLayout();
+        grid->setHorizontalSpacing(12);
+        grid->setVerticalSpacing(6);
+
+        grid->addWidget(new QLabel(tr("Update behavior:")), 0, 0);
+        btpk_mode_combo_ = new QComboBox();
+        btpk_mode_combo_->addItem(tr("Never"), 0);
+        btpk_mode_combo_->addItem(tr("When offered"), 1);
+        btpk_mode_combo_->addItem(tr("Always versioned"), 2);
+        grid->addWidget(btpk_mode_combo_, 0, 1);
+
+        btpk_allow_additional_ = new QCheckBox(tr("Allow additional files"));
+        grid->addWidget(btpk_allow_additional_, 1, 0, 1, 2);
+        btpk_allow_renaming_ = new QCheckBox(tr("Allow file renaming"));
+        grid->addWidget(btpk_allow_renaming_, 2, 0, 1, 2);
+        btpk_allow_overwrites_ = new QCheckBox(tr("Allow file overwrites"));
+        grid->addWidget(btpk_allow_overwrites_, 3, 0, 1, 2);
+        btpk_allow_deletions_ = new QCheckBox(tr("Allow file deletions"));
+        grid->addWidget(btpk_allow_deletions_, 4, 0, 1, 2);
+
+        grid->addWidget(new QLabel(tr("Keep most recent:")), 5, 0);
+        btpk_versions_spin_ = new QSpinBox();
+        btpk_versions_spin_->setRange(0, 100);
+        grid->addWidget(btpk_versions_spin_, 5, 1);
+
+        grid->addWidget(new QLabel(tr("Maximum storage (GB):")), 6, 0);
+        btpk_storage_spin_ = new QSpinBox();
+        btpk_storage_spin_->setRange(0, 10000);
+        grid->addWidget(btpk_storage_spin_, 6, 1);
+
+        vbox->addLayout(grid);
+
+        ui_.optionsTab->layout()->addWidget(btpk_options_widget_);
+        btpk_options_widget_->hide();
+
+        connect(btpk_mode_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            [this](int idx)
+            {
+                torrentSet(TR_KEY_btpk_update_mode, btpk_mode_combo_->itemData(idx).toInt());
+                bool const when_offered = (idx == 1);
+                bool const versioned = (idx == 2);
+                btpk_allow_additional_->setEnabled(when_offered);
+                btpk_allow_renaming_->setEnabled(when_offered);
+                btpk_allow_overwrites_->setEnabled(when_offered);
+                btpk_allow_deletions_->setEnabled(when_offered);
+                btpk_versions_spin_->setEnabled(versioned);
+                btpk_storage_spin_->setEnabled(versioned);
+            });
+        connect(btpk_allow_additional_, &QCheckBox::clicked, this,
+            [this](bool v) { torrentSet(TR_KEY_btpk_allow_additional, v); });
+        connect(btpk_allow_renaming_, &QCheckBox::clicked, this,
+            [this](bool v) { torrentSet(TR_KEY_btpk_allow_renaming, v); });
+        connect(btpk_allow_overwrites_, &QCheckBox::clicked, this,
+            [this](bool v) { torrentSet(TR_KEY_btpk_allow_overwrites, v); });
+        connect(btpk_allow_deletions_, &QCheckBox::clicked, this,
+            [this](bool v) { torrentSet(TR_KEY_btpk_allow_deletions, v); });
+        connect(btpk_versions_spin_, &QSpinBox::editingFinished, this,
+            [this]() { torrentSet(TR_KEY_btpk_versions_to_keep, btpk_versions_spin_->value()); });
+        connect(btpk_storage_spin_, &QSpinBox::editingFinished, this,
+            [this]() { torrentSet(TR_KEY_btpk_max_storage_gb, btpk_storage_spin_->value()); });
+    }
 }
 
 // ---

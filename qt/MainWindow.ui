@@ -219,6 +219,8 @@
     <addaction name="separator"/>
     <addaction name="action_Remove"/>
     <addaction name="action_Delete"/>
+    <addaction name="separator"/>
+    <addaction name="action_PublishUpdate"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -422,6 +424,11 @@
    </property>
    <property name="priority">
     <enum>QAction::LowPriority</enum>
+   </property>
+  </action>
+  <action name="action_PublishUpdate">
+   <property name="text">
+    <string>Publish Update…</string>
    </property>
   </action>
   <action name="action_Delete">

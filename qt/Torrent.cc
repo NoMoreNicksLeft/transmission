@@ -235,6 +235,12 @@ Torrent::fields_t Torrent::update(tr_quark const* keys, tr_variant const* const*
             HANDLE_KEY(upload_limited, upload_limited, UPLOAD_LIMITED)
             HANDLE_KEY(uploaded_ever, uploaded_ever, UPLOADED_EVER)
             HANDLE_KEY(webseeds_sending_to_us, webseeds_sending_to_us, WEBSEEDS_SENDING_TO_US)
+            HANDLE_KEY(btpk_pub, btpk_pub, BTPK_PUB)
+            HANDLE_KEY(btpk_salt, btpk_salt, BTPK_SALT)
+            HANDLE_KEY(btpk_seq, btpk_seq, BTPK_SEQ)
+            HANDLE_KEY(btpk_pending_seq, btpk_pending_seq, BTPK_PENDING_SEQ)
+            HANDLE_KEY(btpk_update_mode, btpk_update_mode, BTPK_UPDATE_MODE)
+            HANDLE_KEY(metainfo_version, metainfo_version, METAINFO_VERSION)
 #undef HANDLE_KEY
 
 #define HANDLE_KEY(key, bit) \
@@ -253,6 +259,34 @@ Torrent::fields_t Torrent::update(tr_quark const* keys, tr_variant const* const*
             HANDLE_KEY(error_string, TORRENT_ERROR_STRING)
 
 #undef HANDLE_KEY
+        case TR_KEY_btpk_history:
+        {
+            QVector<QPair<int64_t, QString>> new_history;
+            if (auto const* list = child->get_if<tr_variant::Vector>(); list != nullptr)
+            {
+                for (auto const& item : *list)
+                {
+                    if (auto const* map = item.get_if<tr_variant::Map>(); map != nullptr)
+                    {
+                        int64_t seq = 0;
+                        QString hash;
+                        if (auto const val = map->value_if<int64_t>(TR_KEY_btpk_seq))
+                            seq = *val;
+                        if (auto const val = map->value_if<std::string_view>(TR_KEY_hash_string))
+                            hash = QString::fromUtf8(val->data(), val->size());
+                        new_history.append({ seq, hash });
+                    }
+                }
+            }
+            if (new_history != btpk_history_)
+            {
+                btpk_history_ = new_history;
+                field_changed = true;
+            }
+            changed.set(BTPK_HISTORY, field_changed);
+            break;
+        }
+
         default:
             break;
         }

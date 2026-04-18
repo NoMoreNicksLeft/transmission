@@ -9,6 +9,13 @@
 
 #include <libtransmission/makemeta.h>
 
+#include <QCheckBox>
+#include <QLabel>
+#include <QPlainTextEdit>
+#include <QPushButton>
+
+#include <libtransmission/btpk-utils.h>
+
 #include "BaseDialog.h"
 #include "ui_MakeDialog.h"
 
@@ -44,4 +51,12 @@ private:
     Ui::MakeDialog ui_ = {};
 
     std::optional<tr_metainfo_builder> builder_;
+
+    QCheckBox* btpk_check_ = nullptr;
+    QPlainTextEdit* btpk_key_edit_ = nullptr;
+    QPushButton* btpk_generate_btn_ = nullptr;
+    QPushButton* btpk_copy_btn_ = nullptr;
+    QLabel* btpk_fingerprint_label_ = nullptr;
+    libtransmission::BtpkPublicKey btpk_pub_key_ = {};
+    bool btpk_key_generated_ = false;
 };
