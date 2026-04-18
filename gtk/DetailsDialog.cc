@@ -1362,7 +1362,9 @@ void DetailsDialog::Impl::refreshHistory(std::vector<tr_torrent*> const& torrent
         {
             show_history = true;
             auto const history = tr_torrentBtpkHistory(tor);
-            auto const current_hash = std::string(tr_torrentView(tor).hash_string);
+
+            /* Get all family member IDs to check which versions are active */
+            auto const family_ids = tr_torrentBtpkFamilyMembers(tor);
 
             /* Only rebuild if count changed (avoid flicker) */
             if (static_cast<int>(history.size()) != static_cast<int>(history_store_->children().size()))
@@ -1380,9 +1382,20 @@ void DetailsDialog::Impl::refreshHistory(std::vector<tr_torrent*> const& torrent
                         fmt::format_to(std::back_inserter(hex), "{:02x}", static_cast<unsigned>(b));
                     row[history_cols.infohash] = hex;
 
-                    /* Compare by formatting both as hex */
-                    auto cur_hex = std::string(current_hash);
-                    bool const is_active = (hex == cur_hex);
+                    /* Check if any torrent in the session has this infohash */
+                    bool is_active = false;
+                    for (auto const fam_id : family_ids)
+                    {
+                        if (auto const* fam_tor = core_->find_torrent(fam_id); fam_tor != nullptr)
+                        {
+                            auto const fam_hash = tr_torrentInfoHash(fam_tor);
+                            if (fam_hash == entry.infohash)
+                            {
+                                is_active = true;
+                                break;
+                            }
+                        }
+                    }
                     row[history_cols.active] = is_active ? _("Yes") : _("No");
                 }
             }
