@@ -355,7 +355,7 @@ void PrefsDialog::initMutableTab()
     mode_combo->addItem(tr("Never"), 0);
     mode_combo->addItem(tr("When offered"), 1);
     mode_combo->addItem(tr("Always versioned"), 2);
-    mode_combo->setCurrentIndex(session_.sessionStats().value(QStringLiteral("btpk_default_update_mode"), 1).toInt());
+    mode_combo->setCurrentIndex(1); // default: When offered
     vbox->addWidget(mode_combo);
 
     // Allowed Changes section
@@ -410,20 +410,30 @@ void PrefsDialog::initMutableTab()
     update_sensitivity(mode_combo->currentIndex());
 
     // Save to session on change
+    auto session_set = [this](tr_quark key, QVariant const& val)
+    {
+        auto args = tr_variant::Map{};
+        if (val.typeId() == QMetaType::Bool)
+            args.try_emplace(key, val.toBool());
+        else
+            args.try_emplace(key, val.toInt());
+        auto* args_var = new tr_variant{ std::move(args) };
+        session_.exec(TR_KEY_session_set, args_var);
+    };
     connect(mode_combo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-        [this, mode_combo](int) { session_.sessionSet(TR_KEY_btpk_default_update_mode, mode_combo->currentData().toInt()); });
+        [session_set, mode_combo](int) { session_set(TR_KEY_btpk_default_update_mode, mode_combo->currentData().toInt()); });
     connect(chk_add, &QCheckBox::clicked, this,
-        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_additional, v); });
+        [session_set](bool v) { session_set(TR_KEY_btpk_default_allow_additional, v); });
     connect(chk_ren, &QCheckBox::clicked, this,
-        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_renaming, v); });
+        [session_set](bool v) { session_set(TR_KEY_btpk_default_allow_renaming, v); });
     connect(chk_ovw, &QCheckBox::clicked, this,
-        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_overwrites, v); });
+        [session_set](bool v) { session_set(TR_KEY_btpk_default_allow_overwrites, v); });
     connect(chk_del, &QCheckBox::clicked, this,
-        [this](bool v) { session_.sessionSet(TR_KEY_btpk_default_allow_deletions, v); });
+        [session_set](bool v) { session_set(TR_KEY_btpk_default_allow_deletions, v); });
     connect(ver_spin, &QSpinBox::editingFinished, this,
-        [this, ver_spin]() { session_.sessionSet(TR_KEY_btpk_default_versions_to_keep, ver_spin->value()); });
+        [session_set, ver_spin]() { session_set(TR_KEY_btpk_default_versions_to_keep, ver_spin->value()); });
     connect(stor_spin, &QSpinBox::editingFinished, this,
-        [this, stor_spin]() { session_.sessionSet(TR_KEY_btpk_default_max_storage_gb, stor_spin->value()); });
+        [session_set, stor_spin]() { session_set(TR_KEY_btpk_default_max_storage_gb, stor_spin->value()); });
 
     ui_.tabs->addTab(tab, tr("Mutable"));
 }

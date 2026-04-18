@@ -153,5 +153,22 @@ private:
     QIcon const icon_encrypted_ = QIcon{ QStringLiteral(":/icons/encrypted.svg") };
     QIcon const icon_unencrypted_ = {};
 
+    void initHistoryTab();
+    void refreshHistoryTab(QList<Torrent const*> const& torrents);
+
+    QTableWidget* history_table_ = nullptr;
+    QPushButton* start_version_button_ = nullptr;
+    QWidget* history_tab_ = nullptr;
+
+    // Mutable options in Options tab
+    QWidget* btpk_options_widget_ = nullptr;
+    QComboBox* btpk_mode_combo_ = nullptr;
+    QCheckBox* btpk_allow_additional_ = nullptr;
+    QCheckBox* btpk_allow_renaming_ = nullptr;
+    QCheckBox* btpk_allow_overwrites_ = nullptr;
+    QCheckBox* btpk_allow_deletions_ = nullptr;
+    QSpinBox* btpk_versions_spin_ = nullptr;
+    QSpinBox* btpk_storage_spin_ = nullptr;
+
     static int prev_tab_index_;
 };

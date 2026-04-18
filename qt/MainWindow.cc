@@ -1013,7 +1013,7 @@ void MainWindow::publishUpdate()
     if (ids.size() != 1)
         return;
 
-    auto const* tor = model_.getTorrentFromId(ids.front());
+    auto const* tor = model_.getTorrentFromId(*ids.begin());
     if (tor == nullptr || !tor->isBtpk())
         return;
 
