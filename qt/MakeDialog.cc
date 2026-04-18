@@ -5,6 +5,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QGroupBox>
 #include "MakeDialog.h"
 
 #include <chrono>
@@ -269,19 +270,21 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
     connect(ui_.pieceSizeSlider, &QSlider::valueChanged, this, &MakeDialog::onPieceSizeUpdated);
 
 
-    // btpk controls — inserted programmatically into the properties section
+    // btpk controls — in a new "Updates" section below Properties
     {
-        auto* props_layout = ui_.propertiesSectionLayout;
-        int const row = props_layout->rowCount();
+        auto* updates_group = new QGroupBox(tr("Updates"));
+        auto* updates_layout = new QGridLayout(updates_group);
+        updates_layout->setColumnStretch(0, 0);
+        updates_layout->setColumnStretch(1, 1);
 
         btpk_check_ = new QCheckBox(tr("Make this torrent updatable (btpk)"));
-        props_layout->addWidget(btpk_check_, row, 0, 1, 2);
+        updates_layout->addWidget(btpk_check_, 0, 0, 1, 2);
 
         btpk_key_edit_ = new QPlainTextEdit();
         btpk_key_edit_->setMaximumHeight(60);
         btpk_key_edit_->setPlaceholderText(tr("Paste private key (PEM format), or click Generate"));
         btpk_key_edit_->setEnabled(false);
-        props_layout->addWidget(btpk_key_edit_, row + 1, 0, 1, 2);
+        updates_layout->addWidget(btpk_key_edit_, 1, 0, 1, 2);
 
         auto* btn_layout = new QHBoxLayout();
         btn_layout->addStretch();
@@ -291,11 +294,21 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
         btpk_copy_btn_ = new QPushButton(tr("Copy"));
         btpk_copy_btn_->setEnabled(false);
         btn_layout->addWidget(btpk_copy_btn_);
-        props_layout->addLayout(btn_layout, row + 2, 0, 1, 2);
+        updates_layout->addLayout(btn_layout, 2, 0, 1, 2);
 
         btpk_fingerprint_label_ = new QLabel(tr("Fingerprint: \u2014"));
         btpk_fingerprint_label_->setEnabled(false);
-        props_layout->addWidget(btpk_fingerprint_label_, row + 3, 0, 1, 2);
+        updates_layout->addWidget(btpk_fingerprint_label_, 3, 0, 1, 2);
+
+        // Insert the Updates group box into the dialog's main layout
+        // after the Properties group box
+        auto* main_layout = qobject_cast<QVBoxLayout*>(layout());
+        if (main_layout != nullptr)
+        {
+            // Find the index of the button box and insert before it
+            int const count = main_layout->count();
+            main_layout->insertWidget(count - 1, updates_group);
+        }
 
         connect(btpk_check_, &QCheckBox::toggled, this, [this](bool checked)
         {

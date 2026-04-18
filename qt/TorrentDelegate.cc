@@ -561,7 +561,7 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
 
     tor.getMimeTypeIcon().paint(painter, layout.icon_rect, Qt::AlignCenter, icon_mode, icon_state);
 
-    /* btpk version badge overlapping bottom of icon */
+    /* btpk version badge below icon, within row bounds */
     if (is_btpk)
     {
         QString badge;
@@ -579,24 +579,25 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
             badge = QStringLiteral("current");
         }
 
-        auto badge_font = option.font;
-        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.65);
+        auto badge_font = layout.status_font;
+        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.85);
         badge_font.setBold(true);
+        badge_font.setItalic(true);
         painter->setFont(badge_font);
         auto const fm = QFontMetrics(badge_font);
-        auto const text_width = fm.horizontalAdvance(badge);
+
+        /* Draw just below the name, at the left edge of name_rect */
         auto const badge_rect = QRect(
-            layout.icon_rect.center().x() - text_width / 2 - 2,
-            layout.icon_rect.bottom() - fm.height(),
-            text_width + 4,
+            layout.name_rect.left(),
+            layout.name_rect.bottom(),
+            fm.horizontalAdvance(badge),
             fm.height());
 
         painter->save();
-        painter->setOpacity(0.75);
-        painter->fillRect(badge_rect, option.palette.color(QPalette::Base));
-        painter->setOpacity(1.0);
-        painter->setPen(text_color);
-        painter->drawText(badge_rect, Qt::AlignCenter, badge);
+        auto muted_color = text_color;
+        muted_color.setAlphaF(0.6);
+        painter->setPen(muted_color);
+        painter->drawText(badge_rect, Qt::AlignLeft | Qt::AlignTop, badge);
         painter->restore();
     }
 
