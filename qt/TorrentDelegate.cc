@@ -543,12 +543,12 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk family indentation */
     static constexpr int BtpkChildIndent = 48;
     bool const is_btpk = tor.isBtpk();
-    /* btpk family detection: family = same pub key + same salt */
+    /* btpk family detection using authoritative family ID from daemon */
     int64_t btpk_max_seq = tor.btpkSeq();
     int btpk_family_count = 1;
-    if (is_btpk)
+    if (is_btpk && !tor.btpkFamilyId().isEmpty())
     {
-        auto const family_key = tor.btpkPub() + QStringLiteral(":") + tor.btpkSalt();
+        auto const& fam_id = tor.btpkFamilyId();
         auto const* model_ptr = index.model();
         if (model_ptr != nullptr)
         {
@@ -556,15 +556,12 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
             {
                 auto const* other = model_ptr->index(row, 0).data(TorrentModel::TorrentRole)
                     .value<Torrent const*>();
-                if (other != nullptr && other != &tor && other->isBtpk())
+                if (other != nullptr && other != &tor &&
+                    other->isBtpk() && other->btpkFamilyId() == fam_id)
                 {
-                    auto const other_key = other->btpkPub() + QStringLiteral(":") + other->btpkSalt();
-                    if (other_key == family_key)
-                    {
-                        ++btpk_family_count;
-                        if (other->btpkSeq() > btpk_max_seq)
-                            btpk_max_seq = other->btpkSeq();
-                    }
+                    ++btpk_family_count;
+                    if (other->btpkSeq() > btpk_max_seq)
+                        btpk_max_seq = other->btpkSeq();
                 }
             }
         }

@@ -110,6 +110,7 @@ enum // NOLINT(performance-enum-size)
     TR_KEY_btpk_default_max_storage_gb,
     TR_KEY_btpk_default_update_mode,
     TR_KEY_btpk_default_versions_to_keep,
+    TR_KEY_btpk_family_id,
     TR_KEY_btpk_history,
     TR_KEY_btpk_max_storage_gb,
     TR_KEY_btpk_pending_seq,

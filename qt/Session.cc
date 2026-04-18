@@ -587,6 +587,8 @@ using TorrentProperties = Session::TorrentProperties;
                 TR_KEY_error_string,
                 TR_KEY_eta,
                 TR_KEY_file_count,
+                TR_KEY_btpk_family_id,
+                TR_KEY_btpk_family_id,
                 TR_KEY_btpk_history,
                 TR_KEY_btpk_pub,
                 TR_KEY_btpk_seq,
@@ -624,6 +626,7 @@ using TorrentProperties = Session::TorrentProperties;
         case TorrentProperties::MainInfo:
             return {
                 TR_KEY_added_date,
+                TR_KEY_btpk_family_id,
                 TR_KEY_btpk_history,
                 TR_KEY_btpk_pub,
                 TR_KEY_btpk_seq,

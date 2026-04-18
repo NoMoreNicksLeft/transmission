@@ -97,6 +97,7 @@ auto constexpr MyStatic = std::array<std::string_view, TR_N_KEYS>{
     "btpk_default_max_storage_gb"sv,
     "btpk_default_update_mode"sv,
     "btpk_default_versions_to_keep"sv,
+    "btpk_family_id"sv,
     "btpk_history"sv, // info dict: list of [seq, infohash] pairs for prior versions
     "btpk_max_storage_gb"sv, // .resume, rpc
     "btpk_pending_seq"sv, // rpc torrent-get: pending update seq (-1 if none)

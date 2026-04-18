@@ -235,6 +235,7 @@ Torrent::fields_t Torrent::update(tr_quark const* keys, tr_variant const* const*
             HANDLE_KEY(upload_limited, upload_limited, UPLOAD_LIMITED)
             HANDLE_KEY(uploaded_ever, uploaded_ever, UPLOADED_EVER)
             HANDLE_KEY(webseeds_sending_to_us, webseeds_sending_to_us, WEBSEEDS_SENDING_TO_US)
+            HANDLE_KEY(btpk_family_id, btpk_family_id, BTPK_FAMILY_ID)
             HANDLE_KEY(btpk_pub, btpk_pub, BTPK_PUB)
             HANDLE_KEY(btpk_salt, btpk_salt, BTPK_SALT)
             HANDLE_KEY(btpk_seq, btpk_seq, BTPK_SEQ)

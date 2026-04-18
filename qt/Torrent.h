@@ -232,6 +232,7 @@ public:
         return haveVerified() >= totalSize();
     }
 
+    [[nodiscard]] auto const& btpkFamilyId() const noexcept { return btpk_family_id_; }
     [[nodiscard]] auto const& btpkPub() const noexcept { return btpk_pub_; }
     [[nodiscard]] auto const& btpkSalt() const noexcept { return btpk_salt_; }
     [[nodiscard]] constexpr auto btpkSeq() const noexcept { return btpk_seq_; }
@@ -627,6 +628,7 @@ public:
         BTPK_SEQ,
         BTPK_PENDING_SEQ,
         BTPK_UPDATE_MODE,
+        BTPK_FAMILY_ID,
         BTPK_HISTORY,
         METAINFO_VERSION,
 
@@ -713,6 +715,7 @@ private:
     TorrentHash hash_;
 
     // btpk fields
+    QString btpk_family_id_;
     QString btpk_pub_;
     QString btpk_salt_;
     int64_t btpk_seq_ = -1;

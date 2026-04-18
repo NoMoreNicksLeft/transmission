@@ -934,6 +934,8 @@ namespace make_torrent_field_helpers
         }
     case TR_KEY_btpk_seq:
         return tr_torrentBtpkSeq(&tor);
+    case TR_KEY_btpk_family_id:
+        return tr_torrentBtpkFamilyId(&tor);
     case TR_KEY_metainfo_version:
         {
             bool const v1 = tor.metainfo().has_v1_metadata();
