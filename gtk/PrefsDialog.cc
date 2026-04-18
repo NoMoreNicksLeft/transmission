@@ -57,6 +57,78 @@ using namespace libtransmission::Values;
 ***
 **/
 
+/****
+*****  Mutable Tab
+****/
+
+class MutablePage : public PageBase
+{
+public:
+    MutablePage(BaseObjectType* cast_item, Glib::RefPtr<Gtk::Builder> const& builder, Glib::RefPtr<Session> const& core);
+    MutablePage(MutablePage&&) = delete;
+    MutablePage(MutablePage const&) = delete;
+    MutablePage& operator=(MutablePage&&) = delete;
+    MutablePage& operator=(MutablePage const&) = delete;
+    ~MutablePage() override = default;
+
+private:
+    void on_mode_changed();
+    void update_sensitivity();
+
+    Gtk::ComboBoxText* mode_combo_ = nullptr;
+    Gtk::CheckButton* allow_additional_ = nullptr;
+    Gtk::CheckButton* allow_renaming_ = nullptr;
+    Gtk::CheckButton* allow_overwrites_ = nullptr;
+    Gtk::CheckButton* allow_deletions_ = nullptr;
+    Gtk::SpinButton* versions_spin_ = nullptr;
+    Gtk::SpinButton* storage_spin_ = nullptr;
+    Glib::RefPtr<Session> core_;
+};
+
+MutablePage::MutablePage(
+    BaseObjectType* cast_item,
+    Glib::RefPtr<Gtk::Builder> const& builder,
+    Glib::RefPtr<Session> const& core)
+    : PageBase(cast_item, builder, core)
+    , core_(core)
+{
+    mode_combo_ = get_widget<Gtk::ComboBoxText>("btpk_default_mode_combo");
+    mode_combo_->set_active(gtr_pref_int_get(TR_KEY_btpk_default_update_mode));
+    mode_combo_->signal_changed().connect(sigc::mem_fun(*this, &MutablePage::on_mode_changed));
+
+    allow_additional_ = init_check_button("btpk_allow_additional_check", TR_KEY_btpk_default_allow_additional);
+    allow_renaming_ = init_check_button("btpk_allow_renaming_check", TR_KEY_btpk_default_allow_renaming);
+    allow_overwrites_ = init_check_button("btpk_allow_overwrites_check", TR_KEY_btpk_default_allow_overwrites);
+    allow_deletions_ = init_check_button("btpk_allow_deletions_check", TR_KEY_btpk_default_allow_deletions);
+
+    versions_spin_ = init_spin_button("btpk_versions_to_keep_spin", TR_KEY_btpk_default_versions_to_keep, 0, 100, 1);
+    storage_spin_ = init_spin_button("btpk_max_storage_spin", TR_KEY_btpk_default_max_storage_gb, 0, 10000, 1);
+
+    update_sensitivity();
+}
+
+void MutablePage::on_mode_changed()
+{
+    auto const mode = mode_combo_->get_active_row_number();
+    core_->set_pref(TR_KEY_btpk_default_update_mode, static_cast<int>(mode));
+    update_sensitivity();
+}
+
+void MutablePage::update_sensitivity()
+{
+    auto const mode = mode_combo_->get_active_row_number();
+    bool const when_offered = (mode == 1);
+    bool const versioned = (mode == 2);
+
+    allow_additional_->set_sensitive(when_offered);
+    allow_renaming_->set_sensitive(when_offered);
+    allow_overwrites_->set_sensitive(when_offered);
+    allow_deletions_->set_sensitive(when_offered);
+    versions_spin_->set_sensitive(versioned);
+    storage_spin_->set_sensitive(versioned);
+}
+
+
 class PrefsDialog::Impl
 {
 public:
@@ -1103,6 +1175,7 @@ PrefsDialog::Impl::Impl(PrefsDialog& dialog, Glib::RefPtr<Gtk::Builder> const& b
     gtr_get_widget_derived<NetworkPage>(builder, "network_page_layout", core_);
     gtr_get_widget_derived<DesktopPage>(builder, "desktop_page_layout", core_);
     gtr_get_widget_derived<RemotePage>(builder, "remote_page_layout", core_);
+    gtr_get_widget_derived<MutablePage>(builder, "mutable_page_layout", core_);
 
     dialog_.signal_response().connect(sigc::mem_fun(*this, &Impl::response_cb));
 }

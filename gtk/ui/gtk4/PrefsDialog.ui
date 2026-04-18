@@ -1456,6 +1456,118 @@ To add a new primary URL, add it after a blank line.]]></property>
                 </property>
               </object>
             </child>
+            <child>
+              <object class="GtkNotebookPage">
+                <property name="child">
+                  <object class="GtkBox" id="mutable_page_layout">
+                    <property name="css-classes">tr-pad-large</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkLabel" id="mutable_behavior_section_label">
+                        <property name="label" translatable="yes">Update Behavior</property>
+                        <property name="halign">start</property>
+                        <attributes><attribute name="weight" value="bold"/></attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkComboBoxText" id="btpk_default_mode_combo">
+                        <items>
+                          <item translatable="yes">Never</item>
+                          <item translatable="yes">When offered</item>
+                          <item translatable="yes">Always versioned</item>
+                        </items>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="mutable_allowed_section_label">
+                        <property name="label" translatable="yes">Allowed Changes</property>
+                        <property name="halign">start</property>
+                        <property name="margin-top">6</property>
+                        <attributes><attribute name="weight" value="bold"/></attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_allow_additional_check">
+                        <property name="label" translatable="yes">Allow additional files</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_allow_renaming_check">
+                        <property name="label" translatable="yes">Allow file renaming</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_allow_overwrites_check">
+                        <property name="label" translatable="yes">Allow file overwrites</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="btpk_allow_deletions_check">
+                        <property name="label" translatable="yes">Allow file deletions</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="mutable_history_section_label">
+                        <property name="label" translatable="yes">Version History</property>
+                        <property name="halign">start</property>
+                        <property name="margin-top">6</property>
+                        <attributes><attribute name="weight" value="bold"/></attributes>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkGrid" id="mutable_history_grid">
+                        <property name="row-spacing">6</property>
+                        <property name="column-spacing">12</property>
+                        <child>
+                          <object class="GtkLabel" id="btpk_versions_label">
+                            <property name="label" translatable="yes">Keep most recent:</property>
+                            <property name="xalign">0</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="btpk_versions_to_keep_spin">
+                            <property name="focusable">1</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">0</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="btpk_storage_label">
+                            <property name="label" translatable="yes">Maximum storage (GB):</property>
+                            <property name="xalign">0</property>
+                            <layout>
+                              <property name="column">0</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="btpk_max_storage_spin">
+                            <property name="focusable">1</property>
+                            <layout>
+                              <property name="column">1</property>
+                              <property name="row">1</property>
+                            </layout>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+                <property name="tab">
+                  <object class="GtkLabel" id="mutable_page_label">
+                    <property name="label" translatable="yes">Mutable</property>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

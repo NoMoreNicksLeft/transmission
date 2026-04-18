@@ -1963,6 +1963,153 @@ To add a new primary URL, add it after a blank line.]]></property>
                 <property name="tab-fill">False</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkBox" id="mutable_page_layout">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="border-width">12</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <child>
+                  <object class="GtkLabel" id="mutable_behavior_section_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Update Behavior</property>
+                    <attributes><attribute name="weight" value="bold"/></attributes>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="btpk_default_mode_combo">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <items>
+                      <item translatable="yes">Never</item>
+                      <item translatable="yes">When offered</item>
+                      <item translatable="yes">Always versioned</item>
+                    </items>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="mutable_allowed_section_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="margin-top">6</property>
+                    <property name="label" translatable="yes">Allowed Changes</property>
+                    <attributes><attribute name="weight" value="bold"/></attributes>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="btpk_allow_additional_check">
+                    <property name="label" translatable="yes">Allow additional files</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="btpk_allow_renaming_check">
+                    <property name="label" translatable="yes">Allow file renaming</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="btpk_allow_overwrites_check">
+                    <property name="label" translatable="yes">Allow file overwrites</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="btpk_allow_deletions_check">
+                    <property name="label" translatable="yes">Allow file deletions</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="mutable_history_section_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">start</property>
+                    <property name="margin-top">6</property>
+                    <property name="label" translatable="yes">Version History</property>
+                    <attributes><attribute name="weight" value="bold"/></attributes>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkGrid" id="mutable_history_grid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">12</property>
+                    <child>
+                      <object class="GtkLabel" id="btpk_versions_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Keep most recent:</property>
+                        <property name="xalign">0</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="btpk_versions_to_keep_spin">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="btpk_storage_label">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Maximum storage (GB):</property>
+                        <property name="xalign">0</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSpinButton" id="btpk_max_storage_spin">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="position">7</property>
+              </packing>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel" id="mutable_page_label">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Mutable</property>
+              </object>
+              <packing>
+                <property name="position">7</property>
+                <property name="tab-fill">False</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
