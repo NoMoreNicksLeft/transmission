@@ -328,6 +328,7 @@ MakeDialog::MakeDialog(Session& session, QWidget* parent)
         });
     }
 
+    resize(minimumSizeHint());
     onSourceChanged();
 }
 

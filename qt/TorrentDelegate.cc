@@ -561,39 +561,43 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
 
     tor.getMimeTypeIcon().paint(painter, layout.icon_rect, Qt::AlignCenter, icon_mode, icon_state);
 
-    /* btpk version badge below icon */
-    if (is_btpk && tor.btpkHistory().size() > 1)
+    /* btpk version badge overlapping bottom of icon */
+    if (is_btpk)
     {
-        int64_t max_seq = -1;
-        for (auto const& entry : tor.btpkHistory())
-            if (entry.first > max_seq) max_seq = entry.first;
-        bool const is_head = (tor.btpkSeq() >= max_seq);
-        auto const badge = is_head ? QStringLiteral("current") :
-            (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
+        QString badge;
+        if (tor.btpkHistory().size() > 1)
+        {
+            int64_t max_seq = -1;
+            for (auto const& entry : tor.btpkHistory())
+                if (entry.first > max_seq) max_seq = entry.first;
+            bool const is_head = (tor.btpkSeq() >= max_seq);
+            badge = is_head ? QStringLiteral("current") :
+                (tor.btpkSeq() >= 0 ? QStringLiteral("seq%1").arg(tor.btpkSeq()) : QStringLiteral("seq?"));
+        }
+        else
+        {
+            badge = QStringLiteral("current");
+        }
+
         auto badge_font = option.font;
-        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.7);
+        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.65);
         badge_font.setBold(true);
         painter->setFont(badge_font);
+        auto const fm = QFontMetrics(badge_font);
+        auto const text_width = fm.horizontalAdvance(badge);
         auto const badge_rect = QRect(
-            layout.icon_rect.left(),
-            layout.icon_rect.bottom() + 1,
-            layout.icon_rect.width(),
-            QFontMetrics(badge_font).height());
-        painter->drawText(badge_rect, Qt::AlignHCenter | Qt::AlignTop, badge);
-    }
-    else if (is_btpk)
-    {
-        /* Single btpk torrent — show current label */
-        auto badge_font = option.font;
-        badge_font.setPointSizeF(badge_font.pointSizeF() * 0.7);
-        badge_font.setBold(true);
-        painter->setFont(badge_font);
-        auto const badge_rect = QRect(
-            layout.icon_rect.left(),
-            layout.icon_rect.bottom() + 1,
-            layout.icon_rect.width(),
-            QFontMetrics(badge_font).height());
-        painter->drawText(badge_rect, Qt::AlignHCenter | Qt::AlignTop, QStringLiteral("current"));
+            layout.icon_rect.center().x() - text_width / 2 - 2,
+            layout.icon_rect.bottom() - fm.height(),
+            text_width + 4,
+            fm.height());
+
+        painter->save();
+        painter->setOpacity(0.75);
+        painter->fillRect(badge_rect, option.palette.color(QPalette::Base));
+        painter->setOpacity(1.0);
+        painter->setPen(text_color);
+        painter->drawText(badge_rect, Qt::AlignCenter, badge);
+        painter->restore();
     }
 
     if (!emblem_icon.isNull())
