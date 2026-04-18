@@ -442,6 +442,12 @@
         <attribute name="accel">&lt;shift&gt;Delete</attribute>
       </item>
     </section>
+    <section>
+      <item>
+        <attribute name="action">win.btpk-publish-update</attribute>
+        <attribute name="label" translatable="yes">Publish Update…</attribute>
+      </item>
+    </section>
   </menu>
 
   <menu id="icon-popup">

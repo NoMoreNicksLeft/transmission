@@ -6,6 +6,7 @@
 
 #include "Actions.h"
 #include "DetailsDialog.h"
+#include "libtransmission/btpk-publish.h"
 #include "Dialogs.h"
 #include "FilterBar.h"
 #include "GtkCompat.h"
@@ -350,6 +351,7 @@ bool Application::Impl::refresh_actions()
         gtr_action_set_sensitive("queue-move-down", has_selection);
         gtr_action_set_sensitive("queue-move-bottom", has_selection);
         gtr_action_set_sensitive("show-torrent-properties", has_selection);
+        gtr_action_set_sensitive("btpk-publish-update", has_selection);
         gtr_action_set_sensitive("open-torrent-folder", sel_counts.total_count == 1);
         gtr_action_set_sensitive("copy-magnet-link-to-clipboard", sel_counts.total_count == 1);
 
@@ -1573,6 +1575,66 @@ void Application::Impl::actions_handler(Glib::ustring const& action_name)
         auto w = std::shared_ptr<MakeDialog>(MakeDialog::create(*wind_, core_));
         gtr_window_on_close(*w, [w]() mutable { w.reset(); });
         w->show();
+    }
+    else if (action_name == "btpk-publish-update")
+    {
+        auto const sel = get_selected_torrent_ids();
+        if (sel.size() != 1)
+            return;
+
+        auto* tor = core_->find_torrent(sel.front());
+        if (tor == nullptr)
+            return;
+
+        uint8_t pk[32] = {};
+        if (!tr_torrentBtpkGetPublicKey(tor, pk))
+            return;
+
+        auto* dialog = new Gtk::Dialog(_("Publish Update"), *wind_, true);
+        dialog->add_button(_("_Cancel"), Gtk::ResponseType::CANCEL);
+        dialog->add_button(_("_Publish"), Gtk::ResponseType::OK);
+        dialog->set_default_response(Gtk::ResponseType::OK);
+
+        auto* content = dialog->get_content_area();
+        content->set_spacing(8);
+
+        auto* label = Gtk::make_managed<Gtk::Label>(_("Private key (PEM format):"));
+        label->set_halign(Gtk::Align::START);
+        content->append(*label);
+
+        auto* scrolled = Gtk::make_managed<Gtk::ScrolledWindow>();
+        scrolled->set_size_request(400, 120);
+        auto* textview = Gtk::make_managed<Gtk::TextView>();
+        textview->set_wrap_mode(Gtk::WrapMode::CHAR);
+        scrolled->set_child(*textview);
+        content->append(*scrolled);
+
+        auto* check = Gtk::make_managed<Gtk::CheckButton>(_("Continue seeding previous version"));
+        content->append(*check);
+
+        auto const tor_id = sel.front();
+        auto buffer = textview->get_buffer();
+
+        dialog->signal_response().connect(
+            [this, dialog, buffer, check, tor_id](int response)
+            {
+                if (response == static_cast<int>(Gtk::ResponseType::OK))
+                {
+                    auto const pem = buffer->get_text();
+                    if (!pem.empty())
+                    {
+                        auto* tor2 = core_->find_torrent(tor_id);
+                        if (tor2 != nullptr)
+                        {
+                            // TODO: call tr_torrentPublishBtpkUpdate once we wire the full publish path
+                            // For now this is a placeholder that will be connected in e2e testing
+                        }
+                    }
+                }
+                delete dialog;
+            });
+
+        dialog->show();
     }
     else if (action_name == "remove-torrent")
     {

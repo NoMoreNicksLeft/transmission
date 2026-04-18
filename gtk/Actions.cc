@@ -98,6 +98,7 @@ constexpr std::array<std::string_view, 29U> const Entries = {
     "quit"sv,
     "relocate-torrent"sv,
     "remove-torrent"sv,
+    "btpk-publish-update"sv,
     "select-all"sv,
     "show-about-dialog"sv,
     "show-stats"sv,
