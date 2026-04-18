@@ -543,28 +543,33 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk family indentation */
     static constexpr int BtpkChildIndent = 48;
     bool const is_btpk = tor.isBtpk();
+    /* btpk family detection: family = same pub key + same salt */
+    int64_t btpk_max_seq = tor.btpkSeq();
+    int btpk_family_count = 1;
     if (is_btpk)
     {
-        /* Check if this is a child in a multi-member family */
-        int64_t max_seq_indent = tor.btpkSeq();
-        int family_indent_count = 1;
-        auto const* indent_model = index.model();
-        if (indent_model != nullptr)
+        auto const family_key = tor.btpkPub() + QStringLiteral(":") + tor.btpkSalt();
+        auto const* model_ptr = index.model();
+        if (model_ptr != nullptr)
         {
-            for (int row = 0; row < indent_model->rowCount(); ++row)
+            for (int row = 0; row < model_ptr->rowCount(); ++row)
             {
-                auto const* other = indent_model->index(row, 0).data(TorrentModel::TorrentRole)
+                auto const* other = model_ptr->index(row, 0).data(TorrentModel::TorrentRole)
                     .value<Torrent const*>();
-                if (other != nullptr && other != &tor && other->isBtpk() &&
-                    other->btpkPub() == tor.btpkPub())
+                if (other != nullptr && other != &tor && other->isBtpk())
                 {
-                    ++family_indent_count;
-                    if (other->btpkSeq() > max_seq_indent)
-                        max_seq_indent = other->btpkSeq();
+                    auto const other_key = other->btpkPub() + QStringLiteral(":") + other->btpkSalt();
+                    if (other_key == family_key)
+                    {
+                        ++btpk_family_count;
+                        if (other->btpkSeq() > btpk_max_seq)
+                            btpk_max_seq = other->btpkSeq();
+                    }
                 }
             }
         }
-        if (family_indent_count > 1 && tor.btpkSeq() < max_seq_indent)
+        /* Only indent non-head members of multi-member families */
+        if (btpk_family_count > 1 && tor.btpkSeq() >= 0 && tor.btpkSeq() < btpk_max_seq)
             content_rect.adjust(BtpkChildIndent, 0, 0, 0);
     }
     auto const layout = ItemLayout{ tor.name(),  progressString(tor), statusString(tor),      emblem_icon,
@@ -615,33 +620,15 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk version badge — drawn last so nothing overwrites it */
     if (is_btpk)
     {
-        /* Determine head/child by walking the model for torrents
-         * sharing the same btpk public key */
-        int64_t max_seq = tor.btpkSeq();
-        int family_count = 1;
-        auto const* model = index.model();
-        if (model != nullptr)
-        {
-            for (int row = 0; row < model->rowCount(); ++row)
-            {
-                auto const* other = model->index(row, 0).data(TorrentModel::TorrentRole)
-                    .value<Torrent const*>();
-                if (other != nullptr && other != &tor && other->isBtpk() &&
-                    other->btpkPub() == tor.btpkPub())
-                {
-                    ++family_count;
-                    if (other->btpkSeq() > max_seq)
-                        max_seq = other->btpkSeq();
-                }
-            }
-        }
-
+        /* Reuse family data computed above for indentation */
         QString badge;
-        bool const is_head = (tor.btpkSeq() >= max_seq);
+        bool const is_head = (tor.btpkSeq() >= 0 && tor.btpkSeq() >= btpk_max_seq);
         if (is_head)
             badge = QStringLiteral("current");
         else if (tor.btpkSeq() >= 0)
             badge = QStringLiteral("seq%1").arg(tor.btpkSeq());
+        else if (btpk_family_count <= 1)
+            badge = QStringLiteral("current");
         else
             badge = QStringLiteral("seq?");
 
