@@ -543,12 +543,18 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
     /* btpk family indentation */
     static constexpr int BtpkChildIndent = 48;
     bool const is_btpk = tor.isBtpk();
-    /* btpk family detection using authoritative family ID from daemon */
+    /* btpk family detection:
+     * Prefer btpk_family_id from daemon (authoritative, based on infohash lineage).
+     * Fall back to btpk_pub+btpk_salt if family_id is empty (e.g. daemon hasn't
+     * populated it yet). */
     int64_t btpk_max_seq = tor.btpkSeq();
     int btpk_family_count = 1;
-    if (is_btpk && !tor.btpkFamilyId().isEmpty())
+    if (is_btpk)
     {
-        auto const& fam_id = tor.btpkFamilyId();
+        auto const has_fam_id = !tor.btpkFamilyId().isEmpty();
+        auto const fam_id = tor.btpkFamilyId();
+        auto const fallback_key = tor.btpkPub() + QStringLiteral(":") + tor.btpkSalt();
+
         auto const* model_ptr = index.model();
         if (model_ptr != nullptr)
         {
@@ -556,8 +562,16 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
             {
                 auto const* other = model_ptr->index(row, 0).data(TorrentModel::TorrentRole)
                     .value<Torrent const*>();
-                if (other != nullptr && other != &tor &&
-                    other->isBtpk() && other->btpkFamilyId() == fam_id)
+                if (other == nullptr || other == &tor || !other->isBtpk())
+                    continue;
+
+                bool same_family = false;
+                if (has_fam_id && !other->btpkFamilyId().isEmpty())
+                    same_family = (other->btpkFamilyId() == fam_id);
+                else
+                    same_family = (other->btpkPub() + QStringLiteral(":") + other->btpkSalt() == fallback_key);
+
+                if (same_family)
                 {
                     ++btpk_family_count;
                     if (other->btpkSeq() > btpk_max_seq)
