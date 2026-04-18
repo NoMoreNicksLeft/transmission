@@ -35,6 +35,8 @@
 #include <gtkmm/liststore.h>
 #include <gtkmm/messagedialog.h>
 #include <gtkmm/notebook.h>
+
+#include "libtransmission/btpk-publish.h"
 #include <gtkmm/scrolledwindow.h>
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/textbuffer.h>
@@ -91,6 +93,8 @@ public:
 
 private:
     void info_page_init(Glib::RefPtr<Gtk::Builder> const& builder);
+    void history_page_init(Glib::RefPtr<Gtk::Builder> const& builder);
+    void refreshHistory(std::vector<tr_torrent*> const& torrents);
     void peer_page_init(Glib::RefPtr<Gtk::Builder> const& builder);
     void tracker_page_init(Glib::RefPtr<Gtk::Builder> const& builder);
     void options_page_init(Glib::RefPtr<Gtk::Builder> const& builder);
@@ -183,6 +187,13 @@ private:
     Gtk::Label* btpk_seq_label_ = nullptr;
     Gtk::Label* btpk_mode_label_ = nullptr;
     Gtk::Label* format_label_ = nullptr;
+
+    /* History page */
+    Gtk::TreeView* history_view_ = nullptr;
+    Gtk::Button* start_version_button_ = nullptr;
+    Gtk::Box* history_page_layout_ = nullptr;
+    Glib::RefPtr<Gtk::ListStore> history_store_;
+
     Gtk::Label* privacy_lb_ = nullptr;
     Gtk::Label* origin_lb_ = nullptr;
     Gtk::Label* destination_lb_ = nullptr;
@@ -1127,6 +1138,130 @@ void DetailsDialog::Impl::refreshInfo(std::vector<tr_torrent*> const& torrents)
         set_visible(btpk_seq_label_, show_btpk);
         set_visible(btpk_mode_lb_, show_btpk);
         set_visible(btpk_mode_label_, show_btpk);
+    }
+}
+
+
+/****
+*****
+*****  HISTORY TAB
+*****
+****/
+
+namespace
+{
+
+class HistoryModelColumns : public Gtk::TreeModelColumnRecord
+{
+public:
+    HistoryModelColumns() noexcept
+    {
+        add(seq);
+        add(active);
+        add(infohash);
+    }
+
+    Gtk::TreeModelColumn<int64_t> seq;
+    Gtk::TreeModelColumn<Glib::ustring> active;
+    Gtk::TreeModelColumn<Glib::ustring> infohash;
+};
+
+HistoryModelColumns const history_cols;
+
+} // namespace
+
+void DetailsDialog::Impl::history_page_init(Glib::RefPtr<Gtk::Builder> const& /*builder*/)
+{
+    history_store_ = Gtk::ListStore::create(history_cols);
+    history_view_->set_model(history_store_);
+
+    {
+        auto* col = Gtk::make_managed<Gtk::TreeViewColumn>(_("Version"), history_cols.seq);
+        col->set_fixed_width(80);
+        col->set_sizing(Gtk::TreeViewColumn::Sizing::FIXED);
+        history_view_->append_column(*col);
+    }
+    {
+        auto* col = Gtk::make_managed<Gtk::TreeViewColumn>(_("Active"), history_cols.active);
+        col->set_fixed_width(80);
+        col->set_sizing(Gtk::TreeViewColumn::Sizing::FIXED);
+        history_view_->append_column(*col);
+    }
+    {
+        auto* col = Gtk::make_managed<Gtk::TreeViewColumn>(_("Info Hash"), history_cols.infohash);
+        col->set_expand(true);
+        history_view_->append_column(*col);
+    }
+
+    start_version_button_->signal_clicked().connect(
+        [this]()
+        {
+            auto sel = history_view_->get_selection();
+            if (auto const iter = sel->get_selected(); iter)
+            {
+                auto const seq = iter->get_value(history_cols.seq);
+                auto torrents = getTorrents();
+                if (torrents.size() == 1)
+                {
+                    tr_torrentStartBtpkVersion(torrents.front(), seq);
+                }
+            }
+        });
+}
+
+void DetailsDialog::Impl::refreshHistory(std::vector<tr_torrent*> const& torrents)
+{
+    bool show_history = false;
+
+    if (torrents.size() == 1)
+    {
+        auto const* tor = torrents.front();
+        uint8_t pk[32] = {};
+        if (tr_torrentBtpkGetPublicKey(tor, pk))
+        {
+            show_history = true;
+            auto const& history = tor->metainfo().btpk_history();
+            auto const current_hash = tor->info_hash();
+
+            /* Only rebuild if count changed (avoid flicker) */
+            if (static_cast<int>(history.size()) != static_cast<int>(history_store_->children().size()))
+            {
+                history_store_->clear();
+                for (auto const& entry : history)
+                {
+                    auto row = *history_store_->append();
+                    row[history_cols.seq] = entry.seq;
+
+                    /* Format infohash as hex */
+                    auto hex = std::string{};
+                    hex.reserve(40);
+                    for (auto const b : entry.infohash)
+                        fmt::format_to(std::back_inserter(hex), "{:02x}", static_cast<unsigned>(b));
+                    row[history_cols.infohash] = hex;
+
+                    bool const is_active = (entry.infohash == current_hash);
+                    row[history_cols.active] = is_active ? _("Yes") : _("No");
+                }
+            }
+        }
+    }
+
+    if (history_page_layout_ != nullptr)
+    {
+        history_page_layout_->set_visible(show_history);
+    }
+
+    /* Disable start button if no selection or active version selected */
+    if (start_version_button_ != nullptr)
+    {
+        auto sel = history_view_->get_selection();
+        bool sensitive = false;
+        if (auto const iter = sel->get_selected(); iter)
+        {
+            auto const active_str = iter->get_value(history_cols.active);
+            sensitive = (active_str != _("Yes"));
+        }
+        start_version_button_->set_sensitive(sensitive);
     }
 }
 
@@ -2537,6 +2672,7 @@ void DetailsDialog::Impl::refresh()
     refreshTracker(torrents);
     refreshFiles(torrents);
     refreshOptions(torrents);
+    refreshHistory(torrents);
 
     if (torrents.empty())
     {
@@ -2616,6 +2752,9 @@ DetailsDialog::Impl::Impl(DetailsDialog& dialog, Glib::RefPtr<Gtk::Builder> cons
     , btpk_seq_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_seq_label"))
     , btpk_mode_label_(gtr_get_widget<Gtk::Label>(builder, "btpk_mode_label"))
     , format_label_(gtr_get_widget<Gtk::Label>(builder, "format_label"))
+    , history_view_(gtr_get_widget<Gtk::TreeView>(builder, "history_view"))
+    , start_version_button_(gtr_get_widget<Gtk::Button>(builder, "start_version_button"))
+    , history_page_layout_(gtr_get_widget<Gtk::Box>(builder, "history_page_layout"))
     , privacy_lb_(gtr_get_widget<Gtk::Label>(builder, "privacy_value_label"))
     , origin_lb_(gtr_get_widget<Gtk::Label>(builder, "origin_value_label"))
     , destination_lb_(gtr_get_widget<Gtk::Label>(builder, "location_value_label"))
@@ -2649,6 +2788,7 @@ DetailsDialog::Impl::Impl(DetailsDialog& dialog, Glib::RefPtr<Gtk::Builder> cons
     peer_page_init(builder);
     tracker_page_init(builder);
     options_page_init(builder);
+    history_page_init(builder);
 
     periodic_refresh_tag_ = Glib::signal_timeout().connect_seconds(
         [this]() { return refresh(), true; },
