@@ -30,6 +30,9 @@
 #include <gtkmm/cellrenderertext.h>
 #include <gtkmm/checkbutton.h>
 #include <gtkmm/combobox.h>
+#include <gtkmm/dropdown.h>
+#include <gtkmm/grid.h>
+#include <gtkmm/stringlist.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/label.h>
 #include <gtkmm/liststore.h>
@@ -190,7 +193,7 @@ private:
 
     /* Mutable torrent options (in Options page) */
     Gtk::Box* btpk_options_box_ = nullptr;
-    Gtk::ComboBoxText* btpk_mode_combo_ = nullptr;
+    Gtk::DropDown* btpk_mode_combo_ = nullptr;
     Gtk::CheckButton* btpk_allow_additional_check_ = nullptr;
     Gtk::CheckButton* btpk_allow_renaming_check_ = nullptr;
     Gtk::CheckButton* btpk_allow_overwrites_check_ = nullptr;
@@ -491,17 +494,17 @@ void DetailsDialog::Impl::refreshOptions(std::vector<tr_torrent*> const& torrent
 
             if (show_btpk)
             {
-                auto const mode = tor->btpk_update_mode();
+                auto const mode = static_cast<int>(tr_torrentBtpkUpdateMode(tor));
                 btpk_mode_tag_.block();
-                btpk_mode_combo_->set_active(mode);
+                btpk_mode_combo_->set_selected(static_cast<guint>(mode));
                 btpk_mode_tag_.unblock();
 
-                set_togglebutton_if_different(btpk_allow_additional_check_, btpk_allow_additional_tag_, tor->btpk_allow_additional());
-                set_togglebutton_if_different(btpk_allow_renaming_check_, btpk_allow_renaming_tag_, tor->btpk_allow_renaming());
-                set_togglebutton_if_different(btpk_allow_overwrites_check_, btpk_allow_overwrites_tag_, tor->btpk_allow_overwrites());
-                set_togglebutton_if_different(btpk_allow_deletions_check_, btpk_allow_deletions_tag_, tor->btpk_allow_deletions());
-                set_int_spin_if_different(btpk_versions_spin_, btpk_versions_tag_, tor->btpk_versions_to_keep());
-                set_int_spin_if_different(btpk_storage_spin_, btpk_storage_tag_, tor->btpk_max_storage_gb());
+                set_togglebutton_if_different(btpk_allow_additional_check_, btpk_allow_additional_tag_, tr_torrentBtpkAllowAdditional(tor));
+                set_togglebutton_if_different(btpk_allow_renaming_check_, btpk_allow_renaming_tag_, tr_torrentBtpkAllowRenaming(tor));
+                set_togglebutton_if_different(btpk_allow_overwrites_check_, btpk_allow_overwrites_tag_, tr_torrentBtpkAllowOverwrites(tor));
+                set_togglebutton_if_different(btpk_allow_deletions_check_, btpk_allow_deletions_tag_, tr_torrentBtpkAllowDeletions(tor));
+                set_int_spin_if_different(btpk_versions_spin_, btpk_versions_tag_, tr_torrentBtpkVersionsToKeep(tor));
+                set_int_spin_if_different(btpk_storage_spin_, btpk_storage_tag_, tr_torrentBtpkMaxStorageGb(tor));
 
                 /* Sensitivity: checkboxes only for "When offered", spinners only for "Always versioned" */
                 bool const when_offered = (mode == 1);
@@ -612,12 +615,10 @@ void DetailsDialog::Impl::options_page_init(Glib::RefPtr<Gtk::Builder> const& /*
         mode_label->set_halign(Gtk::Align::START);
         grid->attach(*mode_label, 0, 0);
 
-        btpk_mode_combo_ = Gtk::make_managed<Gtk::ComboBoxText>();
-        btpk_mode_combo_->append(_("Never"));
-        btpk_mode_combo_->append(_("When offered"));
-        btpk_mode_combo_->append(_("Always versioned"));
-        btpk_mode_tag_ = btpk_mode_combo_->signal_changed().connect(
-            [this]() { torrent_set_field(TR_KEY_btpk_update_mode, btpk_mode_combo_->get_active_row_number()); });
+        auto btpk_mode_strings = Gtk::StringList::create({_("Never"), _("When offered"), _("Always versioned")});
+        btpk_mode_combo_ = Gtk::make_managed<Gtk::DropDown>(btpk_mode_strings);
+        btpk_mode_tag_ = btpk_mode_combo_->property_selected().signal_changed().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_update_mode, static_cast<int>(btpk_mode_combo_->get_selected())); });
         grid->attach(*btpk_mode_combo_, 1, 0);
 
         /* Allow checkboxes */
@@ -1259,7 +1260,7 @@ void DetailsDialog::Impl::refreshInfo(std::vector<tr_torrent*> const& torrents)
 
                 btpk_seq_lb_->set_text(fmt::format("{}", tr_torrentBtpkSeq(tor)));
 
-                auto const mode = tor->btpk_update_mode();
+                auto const mode = static_cast<int>(tr_torrentBtpkUpdateMode(tor));
                 switch (mode)
                 {
                 case 0: btpk_mode_lb_->set_text(_("Never")); break;
@@ -1360,8 +1361,8 @@ void DetailsDialog::Impl::refreshHistory(std::vector<tr_torrent*> const& torrent
         if (tr_torrentBtpkGetPublicKey(tor, pk))
         {
             show_history = true;
-            auto const& history = tor->metainfo().btpk_history();
-            auto const current_hash = tor->info_hash();
+            auto const history = tr_torrentBtpkHistory(tor);
+            auto const current_hash = std::string(tr_torrentView(tor).hash_string);
 
             /* Only rebuild if count changed (avoid flicker) */
             if (static_cast<int>(history.size()) != static_cast<int>(history_store_->children().size()))
@@ -1379,7 +1380,9 @@ void DetailsDialog::Impl::refreshHistory(std::vector<tr_torrent*> const& torrent
                         fmt::format_to(std::back_inserter(hex), "{:02x}", static_cast<unsigned>(b));
                     row[history_cols.infohash] = hex;
 
-                    bool const is_active = (entry.infohash == current_hash);
+                    /* Compare by formatting both as hex */
+                    auto cur_hex = std::string(current_hash);
+                    bool const is_active = (hex == cur_hex);
                     row[history_cols.active] = is_active ? _("Yes") : _("No");
                 }
             }

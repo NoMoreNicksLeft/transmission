@@ -78,7 +78,7 @@ constexpr std::array<std::pair<std::string_view, tr_quark>, 6U> const PrefToggle
     { "sort-reversed"sv, TR_KEY_sort_reversed },
 } };
 
-constexpr std::array<std::string_view, 29U> const Entries = {
+constexpr std::array<std::string_view, 30U> const Entries = {
     "copy-magnet-link-to-clipboard"sv,
     "delete-torrent"sv,
     "deselect-all"sv,

@@ -50,7 +50,11 @@
 #include <gtkmm/icontheme.h>
 #include <gtkmm/image.h>
 #include <gtkmm/label.h>
+#include <gtkmm/checkbutton.h>
 #include <gtkmm/messagedialog.h>
+#include <gtkmm/scrolledwindow.h>
+#include <gtkmm/textview.h>
+#include <gtkmm/window.h>
 #include <gtkmm/stylecontext.h>
 #include <gtkmm/window.h>
 
@@ -351,22 +355,7 @@ bool Application::Impl::refresh_actions()
         gtr_action_set_sensitive("queue-move-down", has_selection);
         gtr_action_set_sensitive("queue-move-bottom", has_selection);
         gtr_action_set_sensitive("show-torrent-properties", has_selection);
-        {
-            bool btpk_selected = false;
-            if (sel_counts.total_count == 1)
-            {
-                auto const ids = get_selected_torrent_ids();
-                if (!ids.empty())
-                {
-                    if (auto const* tor = core_->find_torrent(ids.front()); tor != nullptr)
-                    {
-                        uint8_t pk[32] = {};
-                        btpk_selected = tr_torrentBtpkGetPublicKey(tor, pk);
-                    }
-                }
-            }
-            gtr_action_set_sensitive("btpk-publish-update", btpk_selected);
-        }
+        gtr_action_set_sensitive("btpk-publish-update", has_selection);
         gtr_action_set_sensitive("open-torrent-folder", sel_counts.total_count == 1);
         gtr_action_set_sensitive("copy-magnet-link-to-clipboard", sel_counts.total_count == 1);
 
@@ -1605,51 +1594,65 @@ void Application::Impl::actions_handler(Glib::ustring const& action_name)
         if (!tr_torrentBtpkGetPublicKey(tor, pk))
             return;
 
-        auto* dialog = new Gtk::Dialog(_("Publish Update"), *wind_, true);
-        dialog->add_button(_("_Cancel"), Gtk::ResponseType::CANCEL);
-        dialog->add_button(_("_Publish"), Gtk::ResponseType::OK);
-        dialog->set_default_response(Gtk::ResponseType::OK);
+        auto* window = new Gtk::Window();
+        window->set_title(Glib::ustring(_("Publish Update")));
+        window->set_transient_for(*wind_);
+        window->set_modal(true);
+        window->set_default_size(450, 250);
 
-        auto* content = dialog->get_content_area();
-        content->set_spacing(8);
+        auto* vbox = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 8);
+        vbox->set_margin_start(12);
+        vbox->set_margin_end(12);
+        vbox->set_margin_top(12);
+        vbox->set_margin_bottom(12);
 
-        auto* label = Gtk::make_managed<Gtk::Label>(_("Private key (PEM format):"));
+        auto* label = Gtk::make_managed<Gtk::Label>(Glib::ustring(_("Private key (PEM format):")));
         label->set_halign(Gtk::Align::START);
-        content->append(*label);
+        vbox->append(*label);
 
         auto* scrolled = Gtk::make_managed<Gtk::ScrolledWindow>();
         scrolled->set_size_request(400, 120);
+        scrolled->set_vexpand(true);
         auto* textview = Gtk::make_managed<Gtk::TextView>();
         textview->set_wrap_mode(Gtk::WrapMode::CHAR);
         scrolled->set_child(*textview);
-        content->append(*scrolled);
+        vbox->append(*scrolled);
 
-        auto* check = Gtk::make_managed<Gtk::CheckButton>(_("Continue seeding previous version"));
-        content->append(*check);
+        auto* check = Gtk::make_managed<Gtk::CheckButton>(Glib::ustring(_("Continue seeding previous version")));
+        vbox->append(*check);
+
+        auto* button_box = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 6);
+        button_box->set_halign(Gtk::Align::END);
+        auto* cancel_btn = Gtk::make_managed<Gtk::Button>(Glib::ustring(_("_Cancel")));
+        cancel_btn->set_use_underline(true);
+        auto* publish_btn = Gtk::make_managed<Gtk::Button>(Glib::ustring(_("_Publish")));
+        publish_btn->set_use_underline(true);
+        button_box->append(*cancel_btn);
+        button_box->append(*publish_btn);
+        vbox->append(*button_box);
+
+        window->set_child(*vbox);
 
         auto const tor_id = sel.front();
         auto buffer = textview->get_buffer();
 
-        dialog->signal_response().connect(
-            [this, dialog, buffer, check, tor_id](int response)
+        cancel_btn->signal_clicked().connect([window]() { delete window; });
+        publish_btn->signal_clicked().connect(
+            [this, window, buffer, check, tor_id]()
             {
-                if (response == static_cast<int>(Gtk::ResponseType::OK))
+                auto const pem = buffer->get_text();
+                if (!pem.empty())
                 {
-                    auto const pem = buffer->get_text();
-                    if (!pem.empty())
+                    auto* tor2 = core_->find_torrent(tor_id);
+                    if (tor2 != nullptr)
                     {
-                        auto* tor2 = core_->find_torrent(tor_id);
-                        if (tor2 != nullptr)
-                        {
-                            // TODO: call tr_torrentPublishBtpkUpdate once we wire the full publish path
-                            // For now this is a placeholder that will be connected in e2e testing
-                        }
+                        // TODO: wire tr_torrentPublishBtpkUpdate in e2e testing
                     }
                 }
-                delete dialog;
+                delete window;
             });
 
-        dialog->show();
+        window->show();
     }
     else if (action_name == "remove-torrent")
     {

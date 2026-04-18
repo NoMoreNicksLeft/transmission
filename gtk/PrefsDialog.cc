@@ -24,6 +24,8 @@
 #include <gtkmm/adjustment.h>
 #include <gtkmm/box.h>
 #include <gtkmm/button.h>
+#include <gtkmm/dropdown.h>
+#include <gtkmm/stringlist.h>
 #include <gtkmm/cellrenderertext.h>
 #include <gtkmm/checkbutton.h>
 #include <gtkmm/combobox.h>
@@ -57,76 +59,9 @@ using namespace libtransmission::Values;
 ***
 **/
 
-/****
-*****  Mutable Tab
-****/
 
-class MutablePage : public PageBase
-{
-public:
-    MutablePage(BaseObjectType* cast_item, Glib::RefPtr<Gtk::Builder> const& builder, Glib::RefPtr<Session> const& core);
-    MutablePage(MutablePage&&) = delete;
-    MutablePage(MutablePage const&) = delete;
-    MutablePage& operator=(MutablePage&&) = delete;
-    MutablePage& operator=(MutablePage const&) = delete;
-    ~MutablePage() override = default;
 
-private:
-    void on_mode_changed();
-    void update_sensitivity();
 
-    Gtk::ComboBoxText* mode_combo_ = nullptr;
-    Gtk::CheckButton* allow_additional_ = nullptr;
-    Gtk::CheckButton* allow_renaming_ = nullptr;
-    Gtk::CheckButton* allow_overwrites_ = nullptr;
-    Gtk::CheckButton* allow_deletions_ = nullptr;
-    Gtk::SpinButton* versions_spin_ = nullptr;
-    Gtk::SpinButton* storage_spin_ = nullptr;
-    Glib::RefPtr<Session> core_;
-};
-
-MutablePage::MutablePage(
-    BaseObjectType* cast_item,
-    Glib::RefPtr<Gtk::Builder> const& builder,
-    Glib::RefPtr<Session> const& core)
-    : PageBase(cast_item, builder, core)
-    , core_(core)
-{
-    mode_combo_ = get_widget<Gtk::ComboBoxText>("btpk_default_mode_combo");
-    mode_combo_->set_active(gtr_pref_int_get(TR_KEY_btpk_default_update_mode));
-    mode_combo_->signal_changed().connect(sigc::mem_fun(*this, &MutablePage::on_mode_changed));
-
-    allow_additional_ = init_check_button("btpk_allow_additional_check", TR_KEY_btpk_default_allow_additional);
-    allow_renaming_ = init_check_button("btpk_allow_renaming_check", TR_KEY_btpk_default_allow_renaming);
-    allow_overwrites_ = init_check_button("btpk_allow_overwrites_check", TR_KEY_btpk_default_allow_overwrites);
-    allow_deletions_ = init_check_button("btpk_allow_deletions_check", TR_KEY_btpk_default_allow_deletions);
-
-    versions_spin_ = init_spin_button("btpk_versions_to_keep_spin", TR_KEY_btpk_default_versions_to_keep, 0, 100, 1);
-    storage_spin_ = init_spin_button("btpk_max_storage_spin", TR_KEY_btpk_default_max_storage_gb, 0, 10000, 1);
-
-    update_sensitivity();
-}
-
-void MutablePage::on_mode_changed()
-{
-    auto const mode = mode_combo_->get_active_row_number();
-    core_->set_pref(TR_KEY_btpk_default_update_mode, static_cast<int>(mode));
-    update_sensitivity();
-}
-
-void MutablePage::update_sensitivity()
-{
-    auto const mode = mode_combo_->get_active_row_number();
-    bool const when_offered = (mode == 1);
-    bool const versioned = (mode == 2);
-
-    allow_additional_->set_sensitive(when_offered);
-    allow_renaming_->set_sensitive(when_offered);
-    allow_overwrites_->set_sensitive(when_offered);
-    allow_deletions_->set_sensitive(when_offered);
-    versions_spin_->set_sensitive(versioned);
-    storage_spin_->set_sensitive(versioned);
-}
 
 
 class PrefsDialog::Impl
@@ -1138,6 +1073,91 @@ NetworkPage::NetworkPage(
     init_check_button("enable_lpd_check", TR_KEY_lpd_enabled);
     init_text_view("default_trackers_view", TR_KEY_default_trackers);
 }
+
+/****
+*****  Mutable Tab
+****/
+
+class MutablePage : public PageBase
+{
+public:
+    MutablePage(BaseObjectType* cast_item, Glib::RefPtr<Gtk::Builder> const& builder, Glib::RefPtr<Session> const& core);
+    MutablePage(MutablePage&&) = delete;
+    MutablePage(MutablePage const&) = delete;
+    MutablePage& operator=(MutablePage&&) = delete;
+    MutablePage& operator=(MutablePage const&) = delete;
+    ~MutablePage() override = default;
+
+private:
+    void on_mode_changed();
+    void update_sensitivity();
+
+    Gtk::DropDown* mode_combo_ = nullptr;
+    Gtk::CheckButton* allow_additional_ = nullptr;
+    Gtk::CheckButton* allow_renaming_ = nullptr;
+    Gtk::CheckButton* allow_overwrites_ = nullptr;
+    Gtk::CheckButton* allow_deletions_ = nullptr;
+    Gtk::SpinButton* versions_spin_ = nullptr;
+    Gtk::SpinButton* storage_spin_ = nullptr;
+    Glib::RefPtr<Session> core_;
+};
+
+MutablePage::MutablePage(
+    BaseObjectType* cast_item,
+    Glib::RefPtr<Gtk::Builder> const& builder,
+    Glib::RefPtr<Session> const& core)
+    : PageBase(cast_item, builder, core)
+    , core_(core)
+{
+    /* The UI XML has a GtkComboBoxText which doesn't exist in gtkmm4.
+     * Create a DropDown programmatically and replace the XML widget. */
+    {
+        auto* xml_combo = get_widget<Gtk::Widget>("btpk_default_mode_combo");
+        auto strings = Gtk::StringList::create({_("Never"), _("When offered"), _("Always versioned")});
+        mode_combo_ = Gtk::make_managed<Gtk::DropDown>(strings);
+        auto* parent = xml_combo->get_parent();
+        if (auto* box = dynamic_cast<Gtk::Box*>(parent); box != nullptr)
+        {
+            box->insert_child_after(*mode_combo_, *xml_combo);
+            box->remove(*xml_combo);
+        }
+    }
+    mode_combo_->set_selected(static_cast<guint>(gtr_pref_int_get(TR_KEY_btpk_default_update_mode)));
+    mode_combo_->property_selected().signal_changed().connect(sigc::mem_fun(*this, &MutablePage::on_mode_changed));
+
+    allow_additional_ = init_check_button("btpk_allow_additional_check", TR_KEY_btpk_default_allow_additional);
+    allow_renaming_ = init_check_button("btpk_allow_renaming_check", TR_KEY_btpk_default_allow_renaming);
+    allow_overwrites_ = init_check_button("btpk_allow_overwrites_check", TR_KEY_btpk_default_allow_overwrites);
+    allow_deletions_ = init_check_button("btpk_allow_deletions_check", TR_KEY_btpk_default_allow_deletions);
+
+    versions_spin_ = init_spin_button("btpk_versions_to_keep_spin", TR_KEY_btpk_default_versions_to_keep, 0, 100, 1);
+    storage_spin_ = init_spin_button("btpk_max_storage_spin", TR_KEY_btpk_default_max_storage_gb, 0, 10000, 1);
+
+    update_sensitivity();
+}
+
+void MutablePage::on_mode_changed()
+{
+    auto const mode = static_cast<int>(mode_combo_->get_selected());
+    core_->set_pref(TR_KEY_btpk_default_update_mode, static_cast<int>(mode));
+    update_sensitivity();
+}
+
+void MutablePage::update_sensitivity()
+{
+    auto const mode = static_cast<int>(mode_combo_->get_selected());
+    bool const when_offered = (mode == 1);
+    bool const versioned = (mode == 2);
+
+    allow_additional_->set_sensitive(when_offered);
+    allow_renaming_->set_sensitive(when_offered);
+    allow_overwrites_->set_sensitive(when_offered);
+    allow_deletions_->set_sensitive(when_offered);
+    versions_spin_->set_sensitive(versioned);
+    storage_spin_->set_sensitive(versioned);
+}
+
+
 
 } // namespace
 
