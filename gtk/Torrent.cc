@@ -127,6 +127,8 @@ public:
         LONG_STATUS,
         SENSITIVE,
         CSS_CLASSES,
+        BTPK_VERSION_LABEL,
+        BTPK_INDENT,
 
         N_PROPS
     };
@@ -611,6 +613,16 @@ void Torrent::Impl::class_init(void* cls, void* /*user_data*/)
               "CSS classes",
               "CSS class names used for styling view items",
               &Torrent::get_css_classes },
+            { Property::BTPK_VERSION_LABEL,
+              "btpk-version-label",
+              "Btpk version label",
+              "Version label for btpk torrents (current, seq{N}, or empty)",
+              &Torrent::get_btpk_version_label },
+            { Property::BTPK_INDENT,
+              "btpk-indent",
+              "Btpk indent",
+              "Left indent in pixels for btpk family children",
+              &Torrent::get_btpk_indent },
         });
 }
 
@@ -892,6 +904,24 @@ bool Torrent::get_sensitive() const
     return impl_->get_cache().activity != TR_STATUS_STOPPED;
 }
 
+
+
+Glib::ustring Torrent::get_btpk_version_label() const
+{
+    if (!is_btpk())
+        return {};
+    if (is_btpk_family_head())
+        return "current";
+    auto const seq = get_btpk_seq();
+    return seq >= 0 ? Glib::ustring(fmt::format("seq{}", seq)) : Glib::ustring("seq?");
+}
+
+int Torrent::get_btpk_indent() const
+{
+    if (is_btpk() && !is_btpk_family_head())
+        return 48;
+    return 0;
+}
 
 bool Torrent::is_btpk() const
 {

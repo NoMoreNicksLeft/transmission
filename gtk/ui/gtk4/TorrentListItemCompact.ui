@@ -19,6 +19,11 @@
             <lookup name="item">GtkListItem</lookup>
           </lookup>
         </binding>
+        <binding name="margin-start">
+          <lookup name="btpk-indent" type="gtkmm__CustomObject_7Torrent">
+            <lookup name="item">GtkListItem</lookup>
+          </lookup>
+        </binding>
         <child>
           <object class="GtkImage">
             <property name="pixel-size">16</property>
@@ -29,6 +34,23 @@
                 <lookup name="item">GtkListItem</lookup>
               </lookup>
             </binding>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="valign">0.5</property>
+            <binding name="label">
+              <lookup name="btpk-version-label" type="gtkmm__CustomObject_7Torrent">
+                <lookup name="item">GtkListItem</lookup>
+              </lookup>
+            </binding>
+            <style>
+              <class name="tr-small"/>
+            </style>
+            <attributes>
+              <attribute name="weight" value="bold"/>
+              <attribute name="scale" value="0.75"/>
+            </attributes>
           </object>
         </child>
         <child>

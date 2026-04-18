@@ -113,6 +113,8 @@ public:
     bool is_btpk_family_head() const;
     std::string get_btpk_family_id() const;
     int64_t get_btpk_seq() const;
+    Glib::ustring get_btpk_version_label() const;
+    int get_btpk_indent() const;
     std::vector<Glib::ustring> get_css_classes() const;
 
     ChangeFlags update();
