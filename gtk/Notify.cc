@@ -290,3 +290,38 @@ void gtr_notify_torrent_added(Glib::RefPtr<Session> const& core, tr_torrent_id_t
             std::map<Glib::ustring, Glib::VariantBase>(),
             -1));
 }
+
+void gtr_notify_btpk_update_available(Glib::RefPtr<Session> const& core, tr_torrent_id_t tor_id, int64_t new_seq)
+{
+    g_return_if_fail(proxy != nullptr);
+
+    auto const* const tor = core->find_torrent(tor_id);
+    if (tor == nullptr)
+    {
+        return;
+    }
+
+    auto const n = TrNotification{ core, tor_id };
+
+    std::vector<Glib::ustring> actions;
+    /* No actions for now — the user applies from the UI */
+
+    std::map<Glib::ustring, Glib::VariantBase> hints;
+    hints.try_emplace("category", StringVariantType::create("transfer"));
+
+    proxy->call(
+        "Notify",
+        [n](auto& res) { notify_callback(res, n); },
+        make_variant_tuple(
+            Glib::ustring("Transmission"),
+            0U,
+            Glib::ustring("transmission"),
+            Glib::ustring(_("Mutable Torrent Update Available")),
+            Glib::ustring(fmt::format(
+                fmt::runtime(_("{name} has a new version available (seq {seq})")),
+                fmt::arg("name", tr_torrentName(tor)),
+                fmt::arg("seq", new_seq))),
+            actions,
+            hints,
+            -1));
+}

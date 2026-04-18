@@ -169,6 +169,7 @@ private:
     void on_pref_changed(tr_quark key);
 
     void on_torrent_completeness_changed(tr_torrent* tor, tr_completeness completeness, bool was_running);
+    void on_btpk_update_available(tr_torrent* tor, int64_t new_seq);
     void on_torrent_metadata_changed(tr_torrent* raw_torrent);
 
 private:
@@ -552,6 +553,12 @@ Session::Impl::Impl(Session& core, tr_session* session)
         [](auto* tor, auto completeness, bool was_running, gpointer impl)
         { static_cast<Impl*>(impl)->on_torrent_completeness_changed(tor, completeness, was_running); },
         this);
+
+    tr_sessionSetBtpkUpdateCallback(
+        session,
+        [](auto* /*session*/, auto* tor, int64_t new_seq, gpointer impl)
+        { static_cast<Impl*>(impl)->on_btpk_update_available(tor, new_seq); },
+        this);
 }
 
 Session::Impl::~Impl()
@@ -583,6 +590,20 @@ tr_session* Session::Impl::close()
 
 /* this is called in the libtransmission thread, *NOT* the GTK+ thread,
    so delegate to the GTK+ thread before calling notify's dbus code... */
+void Session::Impl::on_btpk_update_available(tr_torrent* tor, int64_t new_seq)
+{
+    auto const torrent_id = tr_torrentId(tor);
+    Glib::signal_idle().connect_once(
+        [this, torrent_id, new_seq]()
+        {
+            auto const core = get_core_ptr();
+            if (core != nullptr)
+            {
+                gtr_notify_btpk_update_available(core, torrent_id, new_seq);
+            }
+        });
+}
+
 void Session::Impl::on_torrent_completeness_changed(tr_torrent* tor, tr_completeness completeness, bool was_running)
 {
     if (was_running && completeness != TR_LEECH && tr_torrentStat(tor)->sizeWhenDone != 0)
