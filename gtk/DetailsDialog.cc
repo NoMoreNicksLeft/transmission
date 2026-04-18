@@ -188,6 +188,23 @@ private:
     Gtk::Label* btpk_mode_label_ = nullptr;
     Gtk::Label* format_label_ = nullptr;
 
+    /* Mutable torrent options (in Options page) */
+    Gtk::Box* btpk_options_box_ = nullptr;
+    Gtk::ComboBoxText* btpk_mode_combo_ = nullptr;
+    Gtk::CheckButton* btpk_allow_additional_check_ = nullptr;
+    Gtk::CheckButton* btpk_allow_renaming_check_ = nullptr;
+    Gtk::CheckButton* btpk_allow_overwrites_check_ = nullptr;
+    Gtk::CheckButton* btpk_allow_deletions_check_ = nullptr;
+    Gtk::SpinButton* btpk_versions_spin_ = nullptr;
+    Gtk::SpinButton* btpk_storage_spin_ = nullptr;
+    sigc::connection btpk_mode_tag_;
+    sigc::connection btpk_allow_additional_tag_;
+    sigc::connection btpk_allow_renaming_tag_;
+    sigc::connection btpk_allow_overwrites_tag_;
+    sigc::connection btpk_allow_deletions_tag_;
+    sigc::connection btpk_versions_tag_;
+    sigc::connection btpk_storage_tag_;
+
     /* History page */
     Gtk::TreeView* history_view_ = nullptr;
     Gtk::Button* start_version_button_ = nullptr;
@@ -460,6 +477,46 @@ void DetailsDialog::Impl::refreshOptions(std::vector<tr_torrent*> const& torrent
         auto const baseline = tr_torrentGetPeerLimit(torrents.front());
         set_int_spin_if_different(max_peers_spin_, max_peers_spin_tag_, baseline);
     }
+
+    /* btpk mutable options */
+    if (btpk_options_box_ != nullptr)
+    {
+        bool show_btpk = false;
+
+        if (torrents.size() == 1)
+        {
+            auto* const tor = torrents.front();
+            uint8_t pk[32] = {};
+            show_btpk = tr_torrentBtpkGetPublicKey(tor, pk);
+
+            if (show_btpk)
+            {
+                auto const mode = tor->btpk_update_mode();
+                btpk_mode_tag_.block();
+                btpk_mode_combo_->set_active(mode);
+                btpk_mode_tag_.unblock();
+
+                set_togglebutton_if_different(btpk_allow_additional_check_, btpk_allow_additional_tag_, tor->btpk_allow_additional());
+                set_togglebutton_if_different(btpk_allow_renaming_check_, btpk_allow_renaming_tag_, tor->btpk_allow_renaming());
+                set_togglebutton_if_different(btpk_allow_overwrites_check_, btpk_allow_overwrites_tag_, tor->btpk_allow_overwrites());
+                set_togglebutton_if_different(btpk_allow_deletions_check_, btpk_allow_deletions_tag_, tor->btpk_allow_deletions());
+                set_int_spin_if_different(btpk_versions_spin_, btpk_versions_tag_, tor->btpk_versions_to_keep());
+                set_int_spin_if_different(btpk_storage_spin_, btpk_storage_tag_, tor->btpk_max_storage_gb());
+
+                /* Sensitivity: checkboxes only for "When offered", spinners only for "Always versioned" */
+                bool const when_offered = (mode == 1);
+                bool const versioned = (mode == 2);
+                btpk_allow_additional_check_->set_sensitive(when_offered);
+                btpk_allow_renaming_check_->set_sensitive(when_offered);
+                btpk_allow_overwrites_check_->set_sensitive(when_offered);
+                btpk_allow_deletions_check_->set_sensitive(when_offered);
+                btpk_versions_spin_->set_sensitive(versioned);
+                btpk_storage_spin_->set_sensitive(versioned);
+            }
+        }
+
+        btpk_options_box_->set_visible(show_btpk);
+    }
 }
 
 void DetailsDialog::Impl::options_page_init(Glib::RefPtr<Gtk::Builder> const& /*builder*/)
@@ -529,6 +586,89 @@ void DetailsDialog::Impl::options_page_init(Glib::RefPtr<Gtk::Builder> const& /*
     max_peers_spin_->set_adjustment(Gtk::Adjustment::create(1, 1, 3000, 5));
     max_peers_spin_tag_ = max_peers_spin_->signal_value_changed().connect(
         [this]() { torrent_set_field(TR_KEY_peer_limit, max_peers_spin_->get_value_as_int()); });
+
+    /* Mutable torrent section — built programmatically, appended to options page */
+    {
+        auto* options_layout = dynamic_cast<Gtk::Box*>(max_peers_spin_->get_ancestor(GTK_TYPE_BOX));
+        if (options_layout == nullptr)
+        {
+            /* fallback: walk up from honor_limits_check_ */
+            options_layout = dynamic_cast<Gtk::Box*>(honor_limits_check_->get_ancestor(GTK_TYPE_BOX));
+        }
+
+        btpk_options_box_ = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::VERTICAL, 6);
+
+        auto* heading = Gtk::make_managed<Gtk::Label>();
+        heading->set_markup("<b>" + Glib::ustring(_("Mutable Torrent")) + "</b>");
+        heading->set_halign(Gtk::Align::START);
+        btpk_options_box_->append(*heading);
+
+        auto* grid = Gtk::make_managed<Gtk::Grid>();
+        grid->set_row_spacing(6);
+        grid->set_column_spacing(12);
+
+        /* Update behavior combo */
+        auto* mode_label = Gtk::make_managed<Gtk::Label>(_("Update behavior:"));
+        mode_label->set_halign(Gtk::Align::START);
+        grid->attach(*mode_label, 0, 0);
+
+        btpk_mode_combo_ = Gtk::make_managed<Gtk::ComboBoxText>();
+        btpk_mode_combo_->append(_("Never"));
+        btpk_mode_combo_->append(_("When offered"));
+        btpk_mode_combo_->append(_("Always versioned"));
+        btpk_mode_tag_ = btpk_mode_combo_->signal_changed().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_update_mode, btpk_mode_combo_->get_active_row_number()); });
+        grid->attach(*btpk_mode_combo_, 1, 0);
+
+        /* Allow checkboxes */
+        btpk_allow_additional_check_ = Gtk::make_managed<Gtk::CheckButton>(_("Allow additional files"));
+        btpk_allow_additional_tag_ = btpk_allow_additional_check_->signal_toggled().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_allow_additional, btpk_allow_additional_check_->get_active()); });
+        grid->attach(*btpk_allow_additional_check_, 0, 1);
+
+        btpk_allow_renaming_check_ = Gtk::make_managed<Gtk::CheckButton>(_("Allow file renaming"));
+        btpk_allow_renaming_tag_ = btpk_allow_renaming_check_->signal_toggled().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_allow_renaming, btpk_allow_renaming_check_->get_active()); });
+        grid->attach(*btpk_allow_renaming_check_, 0, 2);
+
+        btpk_allow_overwrites_check_ = Gtk::make_managed<Gtk::CheckButton>(_("Allow file overwrites"));
+        btpk_allow_overwrites_tag_ = btpk_allow_overwrites_check_->signal_toggled().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_allow_overwrites, btpk_allow_overwrites_check_->get_active()); });
+        grid->attach(*btpk_allow_overwrites_check_, 0, 3);
+
+        btpk_allow_deletions_check_ = Gtk::make_managed<Gtk::CheckButton>(_("Allow file deletions"));
+        btpk_allow_deletions_tag_ = btpk_allow_deletions_check_->signal_toggled().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_allow_deletions, btpk_allow_deletions_check_->get_active()); });
+        grid->attach(*btpk_allow_deletions_check_, 0, 4);
+
+        /* Version history spinners */
+        auto* ver_label = Gtk::make_managed<Gtk::Label>(_("Keep most recent:"));
+        ver_label->set_halign(Gtk::Align::START);
+        grid->attach(*ver_label, 0, 5);
+
+        btpk_versions_spin_ = Gtk::make_managed<Gtk::SpinButton>();
+        btpk_versions_spin_->set_adjustment(Gtk::Adjustment::create(5, 0, 100, 1));
+        btpk_versions_tag_ = btpk_versions_spin_->signal_value_changed().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_versions_to_keep, btpk_versions_spin_->get_value_as_int()); });
+        grid->attach(*btpk_versions_spin_, 1, 5);
+
+        auto* stor_label = Gtk::make_managed<Gtk::Label>(_("Maximum storage (GB):"));
+        stor_label->set_halign(Gtk::Align::START);
+        grid->attach(*stor_label, 0, 6);
+
+        btpk_storage_spin_ = Gtk::make_managed<Gtk::SpinButton>();
+        btpk_storage_spin_->set_adjustment(Gtk::Adjustment::create(10, 0, 10000, 1));
+        btpk_storage_tag_ = btpk_storage_spin_->signal_value_changed().connect(
+            [this]() { torrent_set_field(TR_KEY_btpk_max_storage_gb, btpk_storage_spin_->get_value_as_int()); });
+        grid->attach(*btpk_storage_spin_, 1, 6);
+
+        btpk_options_box_->append(*grid);
+
+        if (options_layout != nullptr)
+        {
+            options_layout->append(*btpk_options_box_);
+        }
+    }
 }
 
 /****
