@@ -81,6 +81,21 @@ bool TorrentFilter::lessThan(QModelIndex const& left, QModelIndex const& right) 
     auto const* a = sourceModel()->data(left, TorrentModel::TorrentRole).value<Torrent const*>();
     auto const* b = sourceModel()->data(right, TorrentModel::TorrentRole).value<Torrent const*>();
 
+    /* btpk family grouping: same-family torrents always sort adjacent,
+     * head first (highest seq), then children in descending seq order */
+    if (a->isBtpk() && b->isBtpk())
+    {
+        auto const a_fam = !a->btpkFamilyId().isEmpty() ? a->btpkFamilyId()
+            : a->btpkPub() + QStringLiteral(":") + a->btpkSalt();
+        auto const b_fam = !b->btpkFamilyId().isEmpty() ? b->btpkFamilyId()
+            : b->btpkPub() + QStringLiteral(":") + b->btpkSalt();
+        if (a_fam == b_fam)
+        {
+            /* Same family: highest seq first */
+            return a->btpkSeq() > b->btpkSeq();
+        }
+    }
+
     switch (prefs_.get<SortMode>(Prefs::SORT_MODE))
     {
     case SortMode::SortByQueue:
