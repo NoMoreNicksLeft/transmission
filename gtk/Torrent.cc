@@ -910,6 +910,10 @@ Glib::ustring Torrent::get_btpk_version_label() const
 {
     if (!is_btpk())
         return {};
+    /* Only show labels when there are multiple family members */
+    auto const family = tr_torrentBtpkFamilyMembers(&get_underlying());
+    if (family.size() <= 1)
+        return {};
     if (is_btpk_family_head())
         return "current";
     auto const seq = get_btpk_seq();
@@ -918,7 +922,12 @@ Glib::ustring Torrent::get_btpk_version_label() const
 
 int Torrent::get_btpk_indent() const
 {
-    if (is_btpk() && !is_btpk_family_head())
+    if (!is_btpk())
+        return 0;
+    auto const family = tr_torrentBtpkFamilyMembers(&get_underlying());
+    if (family.size() <= 1)
+        return 0;
+    if (!is_btpk_family_head())
         return 48;
     return 0;
 }
