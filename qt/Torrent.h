@@ -238,6 +238,12 @@ public:
     [[nodiscard]] constexpr auto btpkSeq() const noexcept { return btpk_seq_; }
     [[nodiscard]] constexpr auto btpkPendingSeq() const noexcept { return btpk_pending_seq_; }
     [[nodiscard]] constexpr auto btpkUpdateMode() const noexcept { return btpk_update_mode_; }
+    [[nodiscard]] constexpr auto btpkAllowAdditional() const noexcept { return btpk_allow_additional_; }
+    [[nodiscard]] constexpr auto btpkAllowRenaming() const noexcept { return btpk_allow_renaming_; }
+    [[nodiscard]] constexpr auto btpkAllowOverwrites() const noexcept { return btpk_allow_overwrites_; }
+    [[nodiscard]] constexpr auto btpkAllowDeletions() const noexcept { return btpk_allow_deletions_; }
+    [[nodiscard]] constexpr auto btpkVersionsToKeep() const noexcept { return btpk_versions_to_keep_; }
+    [[nodiscard]] constexpr auto btpkMaxStorageGb() const noexcept { return btpk_max_storage_gb_; }
     [[nodiscard]] auto const& metainfoVersion() const noexcept { return metainfo_version_; }
     [[nodiscard]] auto const& btpkHistory() const noexcept { return btpk_history_; }
     [[nodiscard]] bool isBtpk() const noexcept { return !btpk_pub_.isEmpty(); }
@@ -630,6 +636,12 @@ public:
         BTPK_UPDATE_MODE,
         BTPK_FAMILY_ID,
         BTPK_HISTORY,
+        BTPK_ALLOW_ADDITIONAL,
+        BTPK_ALLOW_RENAMING,
+        BTPK_ALLOW_OVERWRITES,
+        BTPK_ALLOW_DELETIONS,
+        BTPK_VERSIONS_TO_KEEP,
+        BTPK_MAX_STORAGE_GB,
         METAINFO_VERSION,
 
         N_FIELDS
@@ -721,6 +733,12 @@ private:
     int64_t btpk_seq_ = -1;
     int64_t btpk_pending_seq_ = -1;
     int btpk_update_mode_ = 1;
+    bool btpk_allow_additional_ = true;
+    bool btpk_allow_renaming_ = false;
+    bool btpk_allow_overwrites_ = true;
+    bool btpk_allow_deletions_ = false;
+    int btpk_versions_to_keep_ = 5;
+    int btpk_max_storage_gb_ = 10;
     QString metainfo_version_;
     // btpk_history stored as list of (seq, hash) pairs
     QVector<QPair<int64_t, QString>> btpk_history_;

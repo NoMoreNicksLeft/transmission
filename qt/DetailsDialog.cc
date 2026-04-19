@@ -316,7 +316,7 @@ void DetailsDialog::setIds(torrent_ids_t const& ids)
         refreshModel();
         refreshUI();
 
-        /* Initialize btpk combo from torrent data when selection changes */
+        /* Initialize btpk widgets from torrent data when selection changes */
         if (btpk_mode_combo_ != nullptr && ids_.size() == 1)
         {
             auto const* tor = model_.getTorrentFromId(*ids_.begin());
@@ -325,6 +325,13 @@ void DetailsDialog::setIds(torrent_ids_t const& ids)
                 btpk_mode_combo_->blockSignals(true);
                 btpk_mode_combo_->setCurrentIndex(tor->btpkUpdateMode());
                 btpk_mode_combo_->blockSignals(false);
+
+                btpk_allow_additional_->setChecked(tor->btpkAllowAdditional());
+                btpk_allow_renaming_->setChecked(tor->btpkAllowRenaming());
+                btpk_allow_overwrites_->setChecked(tor->btpkAllowOverwrites());
+                btpk_allow_deletions_->setChecked(tor->btpkAllowDeletions());
+                btpk_versions_spin_->setValue(tor->btpkVersionsToKeep());
+                btpk_storage_spin_->setValue(tor->btpkMaxStorageGb());
             }
         }
     }

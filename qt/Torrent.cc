@@ -240,6 +240,12 @@ Torrent::fields_t Torrent::update(tr_quark const* keys, tr_variant const* const*
             HANDLE_KEY(btpk_salt, btpk_salt, BTPK_SALT)
             HANDLE_KEY(btpk_seq, btpk_seq, BTPK_SEQ)
             HANDLE_KEY(btpk_pending_seq, btpk_pending_seq, BTPK_PENDING_SEQ)
+            HANDLE_KEY(btpk_allow_additional, btpk_allow_additional, BTPK_ALLOW_ADDITIONAL)
+            HANDLE_KEY(btpk_allow_renaming, btpk_allow_renaming, BTPK_ALLOW_RENAMING)
+            HANDLE_KEY(btpk_allow_overwrites, btpk_allow_overwrites, BTPK_ALLOW_OVERWRITES)
+            HANDLE_KEY(btpk_allow_deletions, btpk_allow_deletions, BTPK_ALLOW_DELETIONS)
+            HANDLE_KEY(btpk_versions_to_keep, btpk_versions_to_keep, BTPK_VERSIONS_TO_KEEP)
+            HANDLE_KEY(btpk_max_storage_gb, btpk_max_storage_gb, BTPK_MAX_STORAGE_GB)
             HANDLE_KEY(btpk_update_mode, btpk_update_mode, BTPK_UPDATE_MODE)
             HANDLE_KEY(metainfo_version, metainfo_version, METAINFO_VERSION)
 #undef HANDLE_KEY
