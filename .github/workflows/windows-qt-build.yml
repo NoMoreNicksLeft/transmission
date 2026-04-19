@@ -8,9 +8,6 @@ on:
       - 'v*-btpk-*'
   workflow_dispatch:
 
-env:
-  BUILD_TYPE: Release
-
 jobs:
   windows-qt:
     runs-on: windows-latest
@@ -26,7 +23,6 @@ jobs:
           git submodule init
           git submodule deinit third-party/dht 2>/dev/null || true
           git -c protocol.version=2 submodule update --depth 1 || true
-          # Ensure third-party/dht has content even if submodule fails
           if [ ! -f third-party/dht/dht.h ]; then
             git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
               https://github.com/NoMoreNicksLeft/dht.git third-party/dht
@@ -38,49 +34,16 @@ jobs:
           version: '6.8.*'
           cache: true
 
-      - name: Install curl (vcpkg)
+      - name: Install curl and openssl (vcpkg)
         shell: pwsh
         run: vcpkg install --triplet x64-windows curl openssl
 
-      - name: Debug Qt paths
-        shell: pwsh
-        run: |
-          echo "QT_ROOT_DIR=$env:QT_ROOT_DIR"
-          echo "Qt6_DIR=$env:Qt6_DIR"
-          echo "CMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH"
-          echo "IQTA_TOOLS=$env:IQTA_TOOLS"
-          Get-ChildItem D:\a\transmission\Qt -ErrorAction SilentlyContinue | Select-Object Name
-          Get-ChildItem D:\a\transmission\Qt\6* -ErrorAction SilentlyContinue | Select-Object Name
-          Get-ChildItem "$env:QT_ROOT_DIR" -ErrorAction SilentlyContinue | Select-Object Name
-
       - name: Configure
         shell: pwsh
-        env:
-          Qt6_DIR: ${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6
         run: |
-          cmake -S . -B build `
-            
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -G "Visual Studio 17 2022" -A x64 `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DENABLE_QT=ON `
-            -DENABLE_GTK=OFF `
-            -DENABLE_MAC=OFF `
-            -DENABLE_CLI=ON `
-            -DENABLE_DAEMON=ON `
-            -DENABLE_UTILS=ON `
-            -DENABLE_TESTS=OFF `
-            -DENABLE_NLS=OFF `
-            -DUSE_SYSTEM_DHT=OFF `
-            -DUSE_SYSTEM_UTP=OFF `
-            -DUSE_SYSTEM_B64=OFF `
-            -DUSE_SYSTEM_EVENT2=OFF `
-            -DUSE_SYSTEM_DEFLATE=OFF `
-            -DUSE_SYSTEM_MINIUPNPC=OFF `
-            -DUSE_SYSTEM_NATPMP=OFF `
-            -DUSE_SYSTEM_PSL=OFF `
-            -DWITH_CRYPTO=openssl
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          $qt_dir = "$env:QT_ROOT_DIR\lib\cmake\Qt6"
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_TOOLCHAIN_FILE=$toolchain" "-DVCPKG_TARGET_TRIPLET=x64-windows" "-DQt6_DIR=$qt_dir" "-DCMAKE_BUILD_TYPE=Release" "-DENABLE_QT=ON" "-DENABLE_GTK=OFF" "-DENABLE_MAC=OFF" "-DENABLE_CLI=ON" "-DENABLE_DAEMON=ON" "-DENABLE_UTILS=ON" "-DENABLE_TESTS=OFF" "-DENABLE_NLS=OFF" "-DUSE_SYSTEM_DHT=OFF" "-DUSE_SYSTEM_UTP=OFF" "-DUSE_SYSTEM_B64=OFF" "-DUSE_SYSTEM_EVENT2=OFF" "-DUSE_SYSTEM_DEFLATE=OFF" "-DUSE_SYSTEM_MINIUPNPC=OFF" "-DUSE_SYSTEM_NATPMP=OFF" "-DUSE_SYSTEM_PSL=OFF" "-DWITH_CRYPTO=openssl"
 
       - name: Build
         shell: pwsh
@@ -101,11 +64,8 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          if ($tag -match '^v') {
-            $version = $tag
-          } else {
-            $version = "dev-" + "${{ github.sha }}".Substring(0, 8)
-          }
+          if ($tag -match '^v') { $version = $tag }
+          else { $version = "dev-" + "${{ github.sha }}".Substring(0, 8) }
           Compress-Archive -Path staging\* -DestinationPath "Transmission-$version-windows-x64-qt.zip"
 
       - name: Upload artifact
