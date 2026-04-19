@@ -1,7 +1,7 @@
 [submodule "third-party/dht"]
 	path = third-party/dht
-	url = https://github.com/transmission/dht.git
-	branch = post-0.27-transmission
+	url = https://github.com/NoMoreNicksLeft/dht.git
+	branch = feature/bep44-46-mutable-torrents
 [submodule "third-party/libb64"]
 	path = third-party/libb64
 	url = https://github.com/transmission/libb64.git
