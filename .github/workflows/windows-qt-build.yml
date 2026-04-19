@@ -42,11 +42,22 @@ jobs:
         shell: pwsh
         run: vcpkg install --triplet x64-windows curl openssl
 
+      - name: Debug Qt paths
+        shell: pwsh
+        run: |
+          echo "QT_ROOT_DIR=$env:QT_ROOT_DIR"
+          echo "Qt6_DIR=$env:Qt6_DIR"
+          echo "CMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH"
+          echo "IQTA_TOOLS=$env:IQTA_TOOLS"
+          Get-ChildItem D:\a\transmission\Qt -ErrorAction SilentlyContinue | Select-Object Name
+          Get-ChildItem D:\a\transmission\Qt\6* -ErrorAction SilentlyContinue | Select-Object Name
+          Get-ChildItem "$env:QT_ROOT_DIR" -ErrorAction SilentlyContinue | Select-Object Name
+
       - name: Configure
         shell: pwsh
         run: |
           cmake -S . -B build `
-            -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
+            -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}" `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows `
             -G "Visual Studio 17 2022" -A x64 `
