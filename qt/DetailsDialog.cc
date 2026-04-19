@@ -493,7 +493,15 @@ void DetailsDialog::initHistoryTab()
         if (seq_item == nullptr)
             return;
         int64_t const seq = seq_item->data(Qt::UserRole).toLongLong();
-        session_.torrentSet(ids_, TR_KEY_btpk_start_version, static_cast<int>(seq));
+
+        /* Call the btpk-start-version RPC method directly */
+        auto* args = new tr_variant{ tr_variant::Map{} };
+        auto& map = args->get_if<tr_variant::Map>()[0];
+        auto ids_vec = tr_variant::Vector{};
+        ids_vec.emplace_back(*ids_.begin());
+        map.try_emplace(TR_KEY_ids, std::move(ids_vec));
+        map.try_emplace(TR_KEY_btpk_seq, seq);
+        session_.exec(TR_KEY_btpk_start_version, args);
     });
 
     ui_.tabs->addTab(history_tab_, tr("History"));
