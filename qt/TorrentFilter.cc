@@ -81,18 +81,78 @@ bool TorrentFilter::lessThan(QModelIndex const& left, QModelIndex const& right) 
     auto const* a = sourceModel()->data(left, TorrentModel::TorrentRole).value<Torrent const*>();
     auto const* b = sourceModel()->data(right, TorrentModel::TorrentRole).value<Torrent const*>();
 
-    /* btpk family grouping: same-family torrents always sort adjacent,
-     * head first (highest seq), then children in descending seq order */
-    if (a->isBtpk() && b->isBtpk())
+    /* btpk family grouping.
+     * For every comparison, resolve each torrent to its "sort identity":
+     * - Non-btpk: itself
+     * - btpk head (highest seq in family): itself
+     * - btpk child: its family head
+     * Compare the sort identities. If they resolve to the same torrent
+     * (i.e. same family), sort head first then descending seq. */
     {
-        auto const a_fam = !a->btpkFamilyId().isEmpty() ? a->btpkFamilyId()
-            : a->btpkPub() + QStringLiteral(":") + a->btpkSalt();
-        auto const b_fam = !b->btpkFamilyId().isEmpty() ? b->btpkFamilyId()
-            : b->btpkPub() + QStringLiteral(":") + b->btpkSalt();
-        if (a_fam == b_fam)
+        auto get_family_key = [](Torrent const* t) -> QString
         {
-            /* Same family: highest seq first */
-            return a->btpkSeq() > b->btpkSeq();
+            if (!t->isBtpk()) return {};
+            return !t->btpkFamilyId().isEmpty() ? t->btpkFamilyId()
+                : t->btpkPub() + QStringLiteral(":") + t->btpkSalt();
+        };
+
+        auto const a_fam = get_family_key(a);
+        auto const b_fam = get_family_key(b);
+
+        /* Same family — sort by seq, head (highest seq) at top.
+         * lessThan is inverted by DescendingOrder, so we check sort order. */
+        if (!a_fam.isEmpty() && a_fam == b_fam)
+        {
+            if (a->btpkSeq() != b->btpkSeq())
+            {
+                bool const head_a = a->btpkSeq() > b->btpkSeq();
+                /* In DescendingOrder (default), lessThan=true → sorts later.
+                 * We want head first, so head should NOT be "less than" child. */
+                return sortOrder() == Qt::AscendingOrder ? head_a : !head_a;
+            }
+        }
+
+        /* Different families or mixed btpk/non-btpk.
+         * Find each torrent's head to use as sort proxy. */
+        auto find_head = [this, &get_family_key](Torrent const* t, QString const& fam) -> Torrent const*
+        {
+            if (fam.isEmpty()) return t;
+            Torrent const* head = t;
+            auto const* mdl = sourceModel();
+            for (int row = 0; row < mdl->rowCount(); ++row)
+            {
+                auto const* o = mdl->index(row, 0).data(TorrentModel::TorrentRole)
+                    .value<Torrent const*>();
+                if (o != nullptr && o->isBtpk() && get_family_key(o) == fam
+                    && o->btpkSeq() > head->btpkSeq())
+                    head = o;
+            }
+            return head;
+        };
+
+        auto const* a_proxy = find_head(a, a_fam);
+        auto const* b_proxy = find_head(b, b_fam);
+
+        if (a_proxy != b_proxy)
+        {
+            /* Different sort proxies — compare by name, respecting sort order.
+             * Normal (non-reversed) is DescendingOrder where lessThan=true → later.
+             * We want alphabetical A-Z top to bottom in the default view. */
+            int cmp = a_proxy->name().compare(b_proxy->name(), Qt::CaseInsensitive);
+            if (cmp != 0)
+            {
+                bool const a_before = cmp < 0;
+                return sortOrder() == Qt::AscendingOrder ? a_before : !a_before;
+            }
+        }
+        else if (a_proxy == b_proxy && a != b)
+        {
+            /* Same proxy = same family. Head sorts first. */
+            bool const asc = (sortOrder() == Qt::AscendingOrder);
+            if (a == a_proxy) return asc;    /* head first */
+            if (b == b_proxy) return !asc;   /* head first */
+            bool const head_a = a->btpkSeq() > b->btpkSeq();
+            return asc ? head_a : !head_a;
         }
     }
 
