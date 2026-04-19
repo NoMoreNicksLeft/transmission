@@ -18,13 +18,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init submodules (skip modified dht)
+        shell: bash
+        run: |
+          git submodule init
+          git submodule deinit third-party/dht || true
+          git submodule update --recursive --depth 1 || true
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.*'
-          modules: 'qtsvg'
+          version: '6.8.*'
           cache: true
 
       - name: Install dependencies (vcpkg)
