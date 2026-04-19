@@ -35,7 +35,7 @@ jobs:
 
       - name: Install dependencies (vcpkg)
         run: |
-          vcpkg install --triplet x64-windows curl deflate libevent miniupnpc libnatpmp libpsl openssl crc32c
+          vcpkg install --triplet x64-windows curl libdeflate libevent miniupnpc libnatpmp libpsl openssl crc32c
 
       - name: Configure
         run: |
