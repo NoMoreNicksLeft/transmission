@@ -34,31 +34,56 @@ jobs:
           version: '6.8.*'
           cache: true
 
-      - name: Install curl and openssl (vcpkg)
+      - name: Install curl via vcpkg (no toolchain)
         shell: pwsh
-        run: vcpkg install --triplet x64-windows curl openssl
+        run: |
+          vcpkg install --triplet x64-windows curl openssl
+          echo "VCPKG_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows" >> $env:GITHUB_ENV
 
       - name: Configure
         shell: pwsh
         run: |
-          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
-          $qt_dir = "$env:QT_ROOT_DIR\lib\cmake\Qt6"
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_TOOLCHAIN_FILE=$toolchain" "-DVCPKG_TARGET_TRIPLET=x64-windows" "-DQt6_DIR=$qt_dir" "-DCMAKE_BUILD_TYPE=Release" "-DENABLE_QT=ON" "-DENABLE_GTK=OFF" "-DENABLE_MAC=OFF" "-DENABLE_CLI=ON" "-DENABLE_DAEMON=ON" "-DENABLE_UTILS=ON" "-DENABLE_TESTS=OFF" "-DENABLE_NLS=OFF" "-DUSE_SYSTEM_DHT=OFF" "-DUSE_SYSTEM_UTP=OFF" "-DUSE_SYSTEM_B64=OFF" "-DUSE_SYSTEM_EVENT2=OFF" "-DUSE_SYSTEM_DEFLATE=OFF" "-DUSE_SYSTEM_MINIUPNPC=OFF" "-DUSE_SYSTEM_NATPMP=OFF" "-DUSE_SYSTEM_PSL=OFF" "-DWITH_CRYPTO=openssl"
+          $qt = "$env:QT_ROOT_DIR\lib\cmake\Qt6"
+          $vcpkg = "$env:VCPKG_DIR"
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR;$vcpkg" `
+            "-DCMAKE_BUILD_TYPE=Release" `
+            "-DENABLE_QT=ON" `
+            "-DENABLE_GTK=OFF" `
+            "-DENABLE_MAC=OFF" `
+            "-DENABLE_CLI=ON" `
+            "-DENABLE_DAEMON=ON" `
+            "-DENABLE_UTILS=ON" `
+            "-DENABLE_TESTS=OFF" `
+            "-DENABLE_NLS=OFF" `
+            "-DUSE_SYSTEM_DHT=OFF" `
+            "-DUSE_SYSTEM_UTP=OFF" `
+            "-DUSE_SYSTEM_B64=OFF" `
+            "-DUSE_SYSTEM_EVENT2=OFF" `
+            "-DUSE_SYSTEM_DEFLATE=OFF" `
+            "-DUSE_SYSTEM_MINIUPNPC=OFF" `
+            "-DUSE_SYSTEM_NATPMP=OFF" `
+            "-DUSE_SYSTEM_PSL=OFF" `
+            "-DWITH_CRYPTO=openssl"
 
       - name: Build
         shell: pwsh
         run: cmake --build build --config Release -j $env:NUMBER_OF_PROCESSORS
 
       - name: Deploy
-        shell: cmd
+        shell: pwsh
         run: |
-          mkdir staging
-          copy build\qt\Release\transmission-qt.exe staging\
-          copy build\utils\Release\transmission-create.exe staging\
-          copy build\utils\Release\transmission-show.exe staging\
-          copy build\cli\Release\transmission-remote.exe staging\
-          copy build\daemon\Release\transmission-daemon.exe staging\
-          windeployqt staging\transmission-qt.exe
+          New-Item -ItemType Directory -Force staging
+          Copy-Item build\qt\Release\transmission-qt.exe staging\
+          Copy-Item build\utils\Release\transmission-create.exe staging\
+          Copy-Item build\utils\Release\transmission-show.exe staging\
+          Copy-Item build\cli\Release\transmission-remote.exe staging\
+          Copy-Item build\daemon\Release\transmission-daemon.exe staging\
+          & windeployqt staging\transmission-qt.exe
+          $vcpkg_bin = "$env:VCPKG_DIR\bin"
+          if (Test-Path $vcpkg_bin) {
+            Copy-Item "$vcpkg_bin\*.dll" staging\ -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Create archive
         shell: pwsh
