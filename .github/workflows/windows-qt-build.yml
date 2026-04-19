@@ -1,0 +1,89 @@
+name: Windows Qt Build
+
+on:
+  push:
+    branches:
+      - 'feature/bep44-46-mutable-torrents'
+    tags:
+      - 'v*-btpk-*'
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  windows-qt:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtsvg'
+          cache: true
+
+      - name: Install dependencies (vcpkg)
+        run: |
+          vcpkg install --triplet x64-windows curl deflate libevent miniupnpc libnatpmp libpsl openssl crc32c
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DENABLE_QT=ON -DENABLE_GTK=OFF -DENABLE_MAC=OFF -DENABLE_CLI=ON -DENABLE_DAEMON=ON -DENABLE_UTILS=ON -DENABLE_TESTS=OFF -DENABLE_NLS=OFF -DUSE_SYSTEM_DHT=OFF -DUSE_SYSTEM_UTP=OFF -DUSE_SYSTEM_B64=OFF -DWITH_CRYPTO=openssl
+
+      - name: Build Qt client
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-qt
+
+      - name: Build CLI tools
+        run: |
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-remote
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-create
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-show
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-daemon
+
+      - name: Deploy Qt dependencies
+        shell: cmd
+        run: |
+          mkdir staging
+          copy build\qt\${{ env.BUILD_TYPE }}\transmission-qt.exe staging\
+          copy build\utils\${{ env.BUILD_TYPE }}\transmission-create.exe staging\
+          copy build\utils\${{ env.BUILD_TYPE }}\transmission-show.exe staging\
+          copy build\cli\${{ env.BUILD_TYPE }}\transmission-remote.exe staging\
+          copy build\daemon\${{ env.BUILD_TYPE }}\transmission-daemon.exe staging\
+          windeployqt staging\transmission-qt.exe
+
+      - name: Copy vcpkg DLLs
+        shell: pwsh
+        run: |
+          $vcpkg_installed = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
+          if (Test-Path $vcpkg_installed) {
+            Copy-Item "$vcpkg_installed\*.dll" staging\ -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Create archive
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -match '^v') {
+            $version = $tag
+          } else {
+            $version = "dev-" + "${{ github.sha }}".Substring(0, 8)
+          }
+          Compress-Archive -Path staging\* -DestinationPath "Transmission-$version-windows-x64-qt.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: transmission-windows-qt
+          path: Transmission-*-windows-x64-qt.zip
+          retention-days: 30
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Transmission-*-windows-x64-qt.zip
