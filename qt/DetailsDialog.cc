@@ -1331,18 +1331,14 @@ void DetailsDialog::refreshUI()
 
     ///
 
-    // Mutable options refresh — only update from server when no pending changes
+    // Mutable options refresh — sensitivity only, combo set in setIds()
     if (btpk_options_widget_ != nullptr)
     {
         bool const show_btpk = single && !torrents.empty() && torrents.front()->isBtpk();
         btpk_options_widget_->setVisible(show_btpk);
-        if (show_btpk && canEdit())
+        if (show_btpk)
         {
-            auto const& tor = *torrents.front();
-            int const mode = tor.btpkUpdateMode();
-            btpk_mode_combo_->blockSignals(true);
-            btpk_mode_combo_->setCurrentIndex(mode);
-            btpk_mode_combo_->blockSignals(false);
+            int const mode = btpk_mode_combo_->currentIndex();
             bool const when_offered = (mode == 1);
             bool const versioned = (mode == 2);
             btpk_allow_additional_->setEnabled(when_offered);
