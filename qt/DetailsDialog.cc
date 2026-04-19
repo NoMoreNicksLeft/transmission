@@ -315,6 +315,18 @@ void DetailsDialog::setIds(torrent_ids_t const& ids)
 
         refreshModel();
         refreshUI();
+
+        /* Initialize btpk combo from torrent data when selection changes */
+        if (btpk_mode_combo_ != nullptr && ids_.size() == 1)
+        {
+            auto const* tor = model_.getTorrentFromId(*ids_.begin());
+            if (tor != nullptr && tor->isBtpk())
+            {
+                btpk_mode_combo_->blockSignals(true);
+                btpk_mode_combo_->setCurrentIndex(tor->btpkUpdateMode());
+                btpk_mode_combo_->blockSignals(false);
+            }
+        }
     }
 }
 
