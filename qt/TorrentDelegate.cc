@@ -579,8 +579,9 @@ void TorrentDelegate::drawTorrent(QPainter* painter, QStyleOptionViewItem const&
                 }
             }
         }
-        /* Only indent non-head members of multi-member families */
-        if (btpk_family_count > 1 && tor.btpkSeq() >= 0 && tor.btpkSeq() < btpk_max_seq)
+        /* Indent non-head members of multi-member families */
+        bool const is_family_head = (tor.btpkSeq() >= 0 && tor.btpkSeq() >= btpk_max_seq);
+        if (btpk_family_count > 1 && !is_family_head)
             content_rect.adjust(BtpkChildIndent, 0, 0, 0);
     }
     auto const layout = ItemLayout{ tor.name(),  progressString(tor), statusString(tor),      emblem_icon,
