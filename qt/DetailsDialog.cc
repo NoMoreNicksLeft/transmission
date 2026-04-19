@@ -527,7 +527,24 @@ void DetailsDialog::refreshHistoryTab(QList<Torrent const*> const& torrents)
             seq_item->setData(Qt::UserRole, static_cast<qlonglong>(entry.first));
             history_table_->setItem(i, 0, seq_item);
 
-            bool const is_active = (entry.second == tor.hash().toString());
+            /* Check if any torrent in the session has this infohash */
+            bool is_active = false;
+            auto const fam_key = !tor.btpkFamilyId().isEmpty() ? tor.btpkFamilyId()
+                : tor.btpkPub() + QStringLiteral(":") + tor.btpkSalt();
+            for (int row = 0; row < model_.rowCount(); ++row)
+            {
+                auto const* other = model_.index(row, 0).data(TorrentModel::TorrentRole).value<Torrent const*>();
+                if (other != nullptr && other->isBtpk())
+                {
+                    auto const other_fam = !other->btpkFamilyId().isEmpty() ? other->btpkFamilyId()
+                        : other->btpkPub() + QStringLiteral(":") + other->btpkSalt();
+                    if (other_fam == fam_key && other->hash().toString() == entry.second)
+                    {
+                        is_active = true;
+                        break;
+                    }
+                }
+            }
             history_table_->setItem(i, 1, new QTableWidgetItem(is_active ? tr("Yes") : tr("No")));
             history_table_->setItem(i, 2, new QTableWidgetItem(entry.second));
         }
