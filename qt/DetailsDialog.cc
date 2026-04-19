@@ -1319,17 +1319,18 @@ void DetailsDialog::refreshUI()
 
     ///
 
-    // Mutable options refresh
+    // Mutable options refresh — only update from server when no pending changes
     if (btpk_options_widget_ != nullptr)
     {
         bool const show_btpk = single && !torrents.empty() && torrents.front()->isBtpk();
         btpk_options_widget_->setVisible(show_btpk);
-        if (show_btpk)
+        if (show_btpk && canEdit())
         {
             auto const& tor = *torrents.front();
             int const mode = tor.btpkUpdateMode();
-            if (btpk_mode_combo_->currentIndex() != mode)
-                btpk_mode_combo_->setCurrentIndex(mode);
+            btpk_mode_combo_->blockSignals(true);
+            btpk_mode_combo_->setCurrentIndex(mode);
+            btpk_mode_combo_->blockSignals(false);
             bool const when_offered = (mode == 1);
             bool const versioned = (mode == 2);
             btpk_allow_additional_->setEnabled(when_offered);
@@ -1741,46 +1742,39 @@ void DetailsDialog::initOptionsTab()
     connect(ui_.singleUpCheck, &QCheckBox::clicked, this, &DetailsDialog::onUploadLimitedToggled);
     connect(ui_.singleUpSpin, &QSpinBox::editingFinished, this, &DetailsDialog::onSpinBoxEditingFinished);
 
-    // Mutable torrent section — added programmatically to options tab
+    // Mutable torrent section — QGroupBox matching Speed/Peer Connections style
     {
-        btpk_options_widget_ = new QWidget();
-        auto* vbox = new QVBoxLayout(btpk_options_widget_);
-        vbox->setContentsMargins(0, 12, 0, 0);
-
-        auto* heading = new QLabel(QStringLiteral("<b>%1</b>").arg(tr("Mutable Torrent")));
-        vbox->addWidget(heading);
-
-        auto* grid = new QGridLayout();
+        auto* group_box = new QGroupBox(tr("Mutable Torrent"));
+        btpk_options_widget_ = group_box;
+        auto* grid = new QGridLayout(group_box);
         grid->setHorizontalSpacing(12);
         grid->setVerticalSpacing(6);
 
-        grid->addWidget(new QLabel(tr("Update behavior:")), 0, 0);
+        grid->addWidget(new QLabel(tr("Update:")), 0, 0);
         btpk_mode_combo_ = new QComboBox();
         btpk_mode_combo_->addItem(tr("Never"), 0);
         btpk_mode_combo_->addItem(tr("When offered"), 1);
         btpk_mode_combo_->addItem(tr("Always versioned"), 2);
-        grid->addWidget(btpk_mode_combo_, 0, 1);
+        grid->addWidget(btpk_mode_combo_, 0, 1, 1, 3);
 
         btpk_allow_additional_ = new QCheckBox(tr("Allow additional files"));
         grid->addWidget(btpk_allow_additional_, 1, 0, 1, 2);
         btpk_allow_renaming_ = new QCheckBox(tr("Allow file renaming"));
-        grid->addWidget(btpk_allow_renaming_, 2, 0, 1, 2);
+        grid->addWidget(btpk_allow_renaming_, 1, 2, 1, 2);
         btpk_allow_overwrites_ = new QCheckBox(tr("Allow file overwrites"));
-        grid->addWidget(btpk_allow_overwrites_, 3, 0, 1, 2);
+        grid->addWidget(btpk_allow_overwrites_, 2, 0, 1, 2);
         btpk_allow_deletions_ = new QCheckBox(tr("Allow file deletions"));
-        grid->addWidget(btpk_allow_deletions_, 4, 0, 1, 2);
+        grid->addWidget(btpk_allow_deletions_, 2, 2, 1, 2);
 
-        grid->addWidget(new QLabel(tr("Keep most recent:")), 5, 0);
+        grid->addWidget(new QLabel(tr("Keep most recent:")), 3, 0);
         btpk_versions_spin_ = new QSpinBox();
         btpk_versions_spin_->setRange(0, 100);
-        grid->addWidget(btpk_versions_spin_, 5, 1);
+        grid->addWidget(btpk_versions_spin_, 3, 1);
 
-        grid->addWidget(new QLabel(tr("Maximum storage (GB):")), 6, 0);
+        grid->addWidget(new QLabel(tr("Maximum storage (GB):")), 3, 2);
         btpk_storage_spin_ = new QSpinBox();
         btpk_storage_spin_->setRange(0, 10000);
-        grid->addWidget(btpk_storage_spin_, 6, 1);
-
-        vbox->addLayout(grid);
+        grid->addWidget(btpk_storage_spin_, 3, 3);
 
         ui_.optionsTab->layout()->addWidget(btpk_options_widget_);
         btpk_options_widget_->hide();
