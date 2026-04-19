@@ -1318,6 +1318,29 @@ void DetailsDialog::refreshUI()
     ui_.editTrackersButton->setEnabled(std::size(ids_) == 1);
 
     ///
+
+    // Mutable options refresh
+    if (btpk_options_widget_ != nullptr)
+    {
+        bool const show_btpk = single && !torrents.empty() && torrents.front()->isBtpk();
+        btpk_options_widget_->setVisible(show_btpk);
+        if (show_btpk)
+        {
+            auto const& tor = *torrents.front();
+            int const mode = tor.btpkUpdateMode();
+            if (btpk_mode_combo_->currentIndex() != mode)
+                btpk_mode_combo_->setCurrentIndex(mode);
+            bool const when_offered = (mode == 1);
+            bool const versioned = (mode == 2);
+            btpk_allow_additional_->setEnabled(when_offered);
+            btpk_allow_renaming_->setEnabled(when_offered);
+            btpk_allow_overwrites_->setEnabled(when_offered);
+            btpk_allow_deletions_->setEnabled(when_offered);
+            btpk_versions_spin_->setEnabled(versioned);
+            btpk_storage_spin_->setEnabled(versioned);
+        }
+    }
+
     ///  Peers tab
     ///
 
