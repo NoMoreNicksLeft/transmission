@@ -20,12 +20,17 @@ jobs:
         with:
           submodules: false
 
-      - name: Init submodules (skip modified dht)
+      - name: Init submodules
         shell: bash
         run: |
           git submodule init
-          git submodule deinit third-party/dht || true
-          git submodule update --recursive --depth 1 || true
+          git submodule deinit third-party/dht 2>/dev/null || true
+          git -c protocol.version=2 submodule update --depth 1 || true
+          # Ensure third-party/dht has content even if submodule fails
+          if [ ! -f third-party/dht/dht.h ]; then
+            git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
+              https://github.com/NoMoreNicksLeft/dht.git third-party/dht
+          fi
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -33,42 +38,44 @@ jobs:
           version: '6.8.*'
           cache: true
 
-      - name: Install dependencies (vcpkg)
-        run: |
-          vcpkg install --triplet x64-windows curl libdeflate libevent miniupnpc libnatpmp libpsl openssl crc32c
-
       - name: Configure
+        shell: pwsh
         run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DENABLE_QT=ON -DENABLE_GTK=OFF -DENABLE_MAC=OFF -DENABLE_CLI=ON -DENABLE_DAEMON=ON -DENABLE_UTILS=ON -DENABLE_TESTS=OFF -DENABLE_NLS=OFF -DUSE_SYSTEM_DHT=OFF -DUSE_SYSTEM_UTP=OFF -DUSE_SYSTEM_B64=OFF -DWITH_CRYPTO=openssl
+          cmake -S . -B build `
+            -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DENABLE_QT=ON `
+            -DENABLE_GTK=OFF `
+            -DENABLE_MAC=OFF `
+            -DENABLE_CLI=ON `
+            -DENABLE_DAEMON=ON `
+            -DENABLE_UTILS=ON `
+            -DENABLE_TESTS=OFF `
+            -DENABLE_NLS=OFF `
+            -DUSE_SYSTEM_DHT=OFF `
+            -DUSE_SYSTEM_UTP=OFF `
+            -DUSE_SYSTEM_B64=OFF `
+            -DUSE_SYSTEM_EVENT2=OFF `
+            -DUSE_SYSTEM_DEFLATE=OFF `
+            -DUSE_SYSTEM_MINIUPNPC=OFF `
+            -DUSE_SYSTEM_NATPMP=OFF `
+            -DUSE_SYSTEM_PSL=OFF `
+            -DWITH_CRYPTO=ccrypto
 
-      - name: Build Qt client
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-qt
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release -j $env:NUMBER_OF_PROCESSORS
 
-      - name: Build CLI tools
-        run: |
-          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-remote
-          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-create
-          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-show
-          cmake --build build --config ${{ env.BUILD_TYPE }} --target transmission-daemon
-
-      - name: Deploy Qt dependencies
+      - name: Deploy
         shell: cmd
         run: |
           mkdir staging
-          copy build\qt\${{ env.BUILD_TYPE }}\transmission-qt.exe staging\
-          copy build\utils\${{ env.BUILD_TYPE }}\transmission-create.exe staging\
-          copy build\utils\${{ env.BUILD_TYPE }}\transmission-show.exe staging\
-          copy build\cli\${{ env.BUILD_TYPE }}\transmission-remote.exe staging\
-          copy build\daemon\${{ env.BUILD_TYPE }}\transmission-daemon.exe staging\
+          copy build\qt\Release\transmission-qt.exe staging\
+          copy build\utils\Release\transmission-create.exe staging\
+          copy build\utils\Release\transmission-show.exe staging\
+          copy build\cli\Release\transmission-remote.exe staging\
+          copy build\daemon\Release\transmission-daemon.exe staging\
           windeployqt staging\transmission-qt.exe
-
-      - name: Copy vcpkg DLLs
-        shell: pwsh
-        run: |
-          $vcpkg_installed = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
-          if (Test-Path $vcpkg_installed) {
-            Copy-Item "$vcpkg_installed\*.dll" staging\ -Force -ErrorAction SilentlyContinue
-          }
 
       - name: Create archive
         shell: pwsh
