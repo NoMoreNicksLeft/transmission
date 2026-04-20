@@ -37,8 +37,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build gettext pkg-config \
-            libgtkmm-4.0-dev \
-            libglibmm-2.68-dev \
+            libgtkmm-3.0-dev \
+            libglibmm-2.4-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             libdeflate-dev \
@@ -66,7 +66,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DENABLE_GTK=ON \
-            -DUSE_GTK_VERSION=4 \
+            -DUSE_GTK_VERSION=3 \
             -DENABLE_QT=OFF \
             -DENABLE_MAC=OFF \
             -DENABLE_CLI=ON \
@@ -104,7 +104,7 @@ jobs:
           printf 'Priority: optional\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Architecture: amd64\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Depends: %s\n' "$DEPS" >> "$PKG_DIR/DEBIAN/control"
-          printf 'Conflicts: transmission-gtk\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Conflicts: transmission-gtk, transmission-gtk4\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Maintainer: John Oyler <john.m.oyler@gmail.com>\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support\n' >> "$PKG_DIR/DEBIAN/control"
           printf ' A fork of Transmission 4.1.1 adding experimental mutable torrent\n' >> "$PKG_DIR/DEBIAN/control"
