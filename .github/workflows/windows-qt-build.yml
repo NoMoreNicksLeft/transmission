@@ -37,35 +37,42 @@ jobs:
 
       - name: Install curl via vcpkg (no toolchain)
         shell: pwsh
-        run: |
-          vcpkg install --triplet x64-windows curl openssl
+        run: vcpkg install --triplet x64-windows curl openssl
 
       - name: Configure
         shell: pwsh
         run: |
           $vcpkg_path = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows'
           $qt_cmake = Join-Path $env:QT_ROOT_DIR 'lib' 'cmake' 'Qt6'
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
-            "-DCMAKE_PREFIX_PATH=$vcpkg_path" `
-            "-DQt6_DIR=$qt_cmake" `
-            "-DCMAKE_BUILD_TYPE=Release" `
-            "-DENABLE_QT=ON" `
-            "-DENABLE_GTK=OFF" `
-            "-DENABLE_MAC=OFF" `
-            "-DENABLE_CLI=ON" `
-            "-DENABLE_DAEMON=ON" `
-            "-DENABLE_UTILS=ON" `
-            "-DENABLE_TESTS=OFF" `
-            "-DENABLE_NLS=OFF" `
-            "-DUSE_SYSTEM_DHT=OFF" `
-            "-DUSE_SYSTEM_UTP=OFF" `
-            "-DUSE_SYSTEM_B64=OFF" `
-            "-DUSE_SYSTEM_EVENT2=OFF" `
-            "-DUSE_SYSTEM_DEFLATE=OFF" `
-            "-DUSE_SYSTEM_MINIUPNPC=OFF" `
-            "-DUSE_SYSTEM_NATPMP=OFF" `
-            "-DUSE_SYSTEM_PSL=OFF" `
-            "-DWITH_CRYPTO=openssl"
+          $args = @(
+            '-S', '.',
+            '-B', 'build',
+            '-G', 'Visual Studio 17 2022',
+            '-A', 'x64',
+            "-DCMAKE_PREFIX_PATH=$vcpkg_path",
+            "-DQt6_DIR=$qt_cmake",
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DENABLE_QT=ON',
+            '-DENABLE_GTK=OFF',
+            '-DENABLE_MAC=OFF',
+            '-DENABLE_CLI=ON',
+            '-DENABLE_DAEMON=ON',
+            '-DENABLE_UTILS=ON',
+            '-DENABLE_TESTS=OFF',
+            '-DENABLE_NLS=OFF',
+            '-DUSE_SYSTEM_DHT=OFF',
+            '-DUSE_SYSTEM_UTP=OFF',
+            '-DUSE_SYSTEM_B64=OFF',
+            '-DUSE_SYSTEM_EVENT2=OFF',
+            '-DUSE_SYSTEM_DEFLATE=OFF',
+            '-DUSE_SYSTEM_MINIUPNPC=OFF',
+            '-DUSE_SYSTEM_NATPMP=OFF',
+            '-DUSE_SYSTEM_PSL=OFF',
+            '-DWITH_CRYPTO=openssl'
+          )
+          echo "Qt6_DIR=$qt_cmake"
+          echo "CMAKE_PREFIX_PATH=$vcpkg_path"
+          & cmake @args
 
       - name: Build
         shell: pwsh
@@ -83,7 +90,7 @@ jobs:
           & windeployqt staging\transmission-qt.exe
           $vcpkg_bin = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows' 'bin'
           if (Test-Path $vcpkg_bin) {
-            Copy-Item (Join-Path $vcpkg_bin '*.dll') staging -Force -ErrorAction SilentlyContinue
+            Copy-Item (Join-Path $vcpkg_bin '*.dll') staging\ -Force -ErrorAction SilentlyContinue
           }
 
       - name: Create archive
