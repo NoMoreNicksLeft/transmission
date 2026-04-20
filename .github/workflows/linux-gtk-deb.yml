@@ -1,4 +1,4 @@
-name: Linux GTK Debian Package
+name: Linux Daemon Debian Package
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  linux-gtk-deb:
+  linux-deb:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -37,8 +37,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake ninja-build gettext pkg-config \
-            libgtkmm-3.0-dev \
-            libglibmm-2.4-dev \
             libcurl4-openssl-dev \
             libssl-dev \
             libdeflate-dev \
@@ -49,24 +47,12 @@ jobs:
             dpkg-dev \
             fakeroot
 
-      - name: Debug GTK deps
-        run: |
-          echo '=== giomm pkg-config ==='
-          pkg-config --list-all | grep -i giomm || echo 'no giomm found'
-          echo '=== gtkmm pkg-config ==='
-          pkg-config --list-all | grep -i gtkmm || echo 'no gtkmm found'
-          echo '=== glibmm pkg-config ==='
-          pkg-config --list-all | grep -i glibmm || echo 'no glibmm found'
-          echo '=== apt-cache search giomm ==='
-          apt-cache search giomm | head -10
-
       - name: Configure
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr \
-            -DENABLE_GTK=ON \
-            -DUSE_GTK_VERSION=3 \
+            -DENABLE_GTK=OFF \
             -DENABLE_QT=OFF \
             -DENABLE_MAC=OFF \
             -DENABLE_CLI=ON \
@@ -94,32 +80,34 @@ jobs:
           fi
           PKG_DIR="${{ github.workspace }}/pkg"
           mkdir -p "$PKG_DIR/DEBIAN"
-          DEPS=$(dpkg-shlibdeps -O "$PKG_DIR/usr/bin/transmission-gtk" "$PKG_DIR/usr/bin/transmission-daemon" "$PKG_DIR/usr/bin/transmission-remote" "$PKG_DIR/usr/bin/transmission-create" 2>/dev/null | sed 's/shlibs:Depends=//') || DEPS=""
+          DEPS=$(dpkg-shlibdeps -O "$PKG_DIR/usr/bin/transmission-daemon" "$PKG_DIR/usr/bin/transmission-remote" "$PKG_DIR/usr/bin/transmission-create" 2>/dev/null | sed 's/shlibs:Depends=//') || DEPS=""
           if [ -z "$DEPS" ]; then
-            DEPS="libgtkmm-4.0-0t64, libcurl4t64, libssl3t64, libevent-2.1-7t64"
+            DEPS="libcurl4t64, libssl3t64, libevent-2.1-7t64"
           fi
-          printf 'Package: transmission-btpk\n' > "$PKG_DIR/DEBIAN/control"
+          printf 'Package: transmission-btpk-daemon\n' > "$PKG_DIR/DEBIAN/control"
           printf 'Version: %s\n' "$VERSION" >> "$PKG_DIR/DEBIAN/control"
           printf 'Section: net\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Priority: optional\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Architecture: amd64\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Depends: %s\n' "$DEPS" >> "$PKG_DIR/DEBIAN/control"
-          printf 'Conflicts: transmission-gtk, transmission-gtk4\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Conflicts: transmission-daemon\n' >> "$PKG_DIR/DEBIAN/control"
           printf 'Maintainer: John Oyler <john.m.oyler@gmail.com>\n' >> "$PKG_DIR/DEBIAN/control"
-          printf 'Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Description: Transmission daemon and CLI with BEP 44/46 mutable torrent support\n' >> "$PKG_DIR/DEBIAN/control"
           printf ' A fork of Transmission 4.1.1 adding experimental mutable torrent\n' >> "$PKG_DIR/DEBIAN/control"
-          printf ' (BEP 44/46) support. Includes GTK4 GUI, daemon, and CLI tools.\n' >> "$PKG_DIR/DEBIAN/control"
-          dpkg-deb --build "$PKG_DIR" "transmission-btpk_${VERSION}_amd64.deb"
+          printf ' (BEP 44/46) support. Includes daemon, web UI, and CLI tools.\n' >> "$PKG_DIR/DEBIAN/control"
+          printf ' Use with transmission-remote, the built-in web UI, or\n' >> "$PKG_DIR/DEBIAN/control"
+          printf ' transmission-remote-gtk for GUI access.\n' >> "$PKG_DIR/DEBIAN/control"
+          dpkg-deb --build "$PKG_DIR" "transmission-btpk-daemon_${VERSION}_amd64.deb"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: transmission-linux-gtk-deb
-          path: transmission-btpk_*.deb
+          name: transmission-linux-daemon-deb
+          path: transmission-btpk-daemon_*.deb
           retention-days: 30
 
       - name: Upload to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: transmission-btpk_*.deb
+          files: transmission-btpk-daemon_*.deb
