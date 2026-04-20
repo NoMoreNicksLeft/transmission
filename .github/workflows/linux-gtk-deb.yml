@@ -72,7 +72,7 @@ jobs:
         run: cmake --build build
 
       - name: Install to staging
-        run: DESTDIR=${{ github.workspace }}/pkg cmake --install build --strip
+        run: DESTDIR="${{ github.workspace }}/pkg" cmake --install build --strip
 
       - name: Create .deb
         run: |
@@ -80,36 +80,25 @@ jobs:
           if [[ "$TAG" =~ ^v ]]; then
             VERSION="${TAG#v}"
           else
-            VERSION="4.1.1~btpk.alpha+git$(echo ${{ github.sha }} | cut -c1-8)"
+            VERSION="4.1.1~btpk.alpha+git$(echo "${{ github.sha }}" | cut -c1-8)"
           fi
           PKG_DIR="${{ github.workspace }}/pkg"
           mkdir -p "$PKG_DIR/DEBIAN"
-          DEPS=$(dpkg-shlibdeps -O \
-            "$PKG_DIR/usr/bin/transmission-gtk" \
-            "$PKG_DIR/usr/bin/transmission-daemon" \
-            "$PKG_DIR/usr/bin/transmission-remote" \
-            "$PKG_DIR/usr/bin/transmission-create" \
-            2>/dev/null | sed 's/shlibs:Depends=//') || DEPS=""
+          DEPS=$(dpkg-shlibdeps -O "$PKG_DIR/usr/bin/transmission-gtk" "$PKG_DIR/usr/bin/transmission-daemon" "$PKG_DIR/usr/bin/transmission-remote" "$PKG_DIR/usr/bin/transmission-create" 2>/dev/null | sed 's/shlibs:Depends=//') || DEPS=""
           if [ -z "$DEPS" ]; then
             DEPS="libgtkmm-4.0-0t64, libcurl4t64, libssl3t64, libevent-2.1-7t64"
           fi
-          cat > "$PKG_DIR/DEBIAN/control" <<CTRL
-Package: transmission-btpk
-Version: ${VERSION}
-Section: net
-Priority: optional
-Architecture: amd64
-Depends: ${DEPS}
-Conflicts: transmission-gtk
-Maintainer: John Oyler <john.m.oyler@gmail.com>
-Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support
- A fork of Transmission 4.1.1 adding experimental mutable torrent
- (BEP 44/46) support. Includes GTK4 GUI client, daemon, and CLI tools.
- .
- Mutable torrents allow a publisher to update a torrent's contents
- using an ed25519 keypair, enabling torrent feeds that update over
- time without requiring new magnet links.
-CTRL
+          printf 'Package: transmission-btpk\n' > "$PKG_DIR/DEBIAN/control"
+          printf 'Version: %s\n' "$VERSION" >> "$PKG_DIR/DEBIAN/control"
+          printf 'Section: net\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Priority: optional\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Architecture: amd64\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Depends: %s\n' "$DEPS" >> "$PKG_DIR/DEBIAN/control"
+          printf 'Conflicts: transmission-gtk\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Maintainer: John Oyler <john.m.oyler@gmail.com>\n' >> "$PKG_DIR/DEBIAN/control"
+          printf 'Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support\n' >> "$PKG_DIR/DEBIAN/control"
+          printf ' A fork of Transmission 4.1.1 adding experimental mutable torrent\n' >> "$PKG_DIR/DEBIAN/control"
+          printf ' (BEP 44/46) support. Includes GTK4 GUI, daemon, and CLI tools.\n' >> "$PKG_DIR/DEBIAN/control"
           dpkg-deb --build "$PKG_DIR" "transmission-btpk_${VERSION}_amd64.deb"
 
       - name: Upload artifact
