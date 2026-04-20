@@ -45,6 +45,9 @@ jobs:
         run: |
           $vcpkg_path = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows'
           $prefix_path = "$env:QT_ROOT_DIR;$vcpkg_path"
+          echo "DEBUG prefix_path=$prefix_path"
+          echo "DEBUG vcpkg_path=$vcpkg_path"
+          echo "DEBUG QT_ROOT_DIR=$env:QT_ROOT_DIR"
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
             "-DCMAKE_PREFIX_PATH=$prefix_path" `
             "-DCMAKE_BUILD_TYPE=Release" `
