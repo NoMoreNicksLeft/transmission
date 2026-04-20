@@ -18,7 +18,6 @@ jobs:
           submodules: false
 
       - name: Init submodules
-        shell: bash
         run: |
           git submodule init
           git submodule deinit third-party/dht 2>/dev/null || true
@@ -28,13 +27,16 @@ jobs:
             git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
               https://github.com/NoMoreNicksLeft/dht.git third-party/dht
           fi
-          cd third-party/libpsl && git submodule update --init --depth 1 || true
+          if [ ! -f third-party/libpsl/list/public_suffix_list.dat ]; then
+            cd third-party/libpsl && git submodule update --init --depth 1 || true
+            cd ../..
+          fi
 
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            cmake ninja-build gettext \
+            cmake ninja-build gettext pkg-config \
             libgtkmm-4.0-dev \
             libglibmm-2.68-dev \
             libgiomm-2.68-dev \
@@ -45,8 +47,8 @@ jobs:
             libminiupnpc-dev \
             libnatpmp-dev \
             libpsl-dev \
-            libcrc32c-dev \
-            dpkg-dev
+            dpkg-dev \
+            fakeroot
 
       - name: Configure
         run: |
@@ -67,51 +69,48 @@ jobs:
             -DWITH_CRYPTO=openssl
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build
 
       - name: Install to staging
-        run: DESTDIR=${{ github.workspace }}/staging cmake --install build --strip
+        run: DESTDIR=${{ github.workspace }}/pkg cmake --install build --strip
 
-      - name: Build .deb
+      - name: Create .deb
         run: |
           TAG="${{ github.ref_name }}"
           if [[ "$TAG" =~ ^v ]]; then
             VERSION="${TAG#v}"
           else
-            VERSION="4.1.1~btpk-alpha+git$(echo ${{ github.sha }} | cut -c1-8)"
+            VERSION="4.1.1~btpk.alpha+git$(echo ${{ github.sha }} | cut -c1-8)"
           fi
-
-          PKG_DIR="${{ github.workspace }}/deb-pkg"
+          PKG_DIR="${{ github.workspace }}/pkg"
           mkdir -p "$PKG_DIR/DEBIAN"
-
-          # Copy installed files
-          cp -a "${{ github.workspace }}/staging/"* "$PKG_DIR/"
-
-          # Get installed size in KB
-          SIZE=$(du -sk "$PKG_DIR" | cut -f1)
-
-          cat > "$PKG_DIR/DEBIAN/control" << CTRL
-          Package: transmission-btpk
-          Version: ${VERSION}
-          Section: net
-          Priority: optional
-          Architecture: amd64
-          Depends: libgtkmm-4.0-0t64 | libgtkmm-4.0-0, libglibmm-2.68-1t64 | libglibmm-2.68-1, libgiomm-2.68-1t64 | libgiomm-2.68-1, libcurl4t64 | libcurl4, libssl3t64 | libssl3, libdeflate0, libevent-2.1-7t64 | libevent-2.1-7, libminiupnpc17 | libminiupnpc18, libnatpmp1, libpsl5t64 | libpsl5, libc6 (>= 2.35)
-          Installed-Size: ${SIZE}
-          Maintainer: John Oyler <john.m.oyler@gmail.com>
-          Homepage: https://github.com/NoMoreNicksLeft/transmission
-          Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support
-           A fork of Transmission 4.1.1 adding experimental mutable torrent
-           (BEP 44/46) support. Includes GTK4 client, daemon, and CLI tools.
-           Mutable torrents allow publishers to update torrent contents using
-           ed25519 keypairs, enabling torrent feeds that update over time.
-          CTRL
-
-          # Remove leading spaces from control file (heredoc indentation)
-          sed -i 's/^          //' "$PKG_DIR/DEBIAN/control"
-
+          DEPS=$(dpkg-shlibdeps -O \
+            "$PKG_DIR/usr/bin/transmission-gtk" \
+            "$PKG_DIR/usr/bin/transmission-daemon" \
+            "$PKG_DIR/usr/bin/transmission-remote" \
+            "$PKG_DIR/usr/bin/transmission-create" \
+            2>/dev/null | sed 's/shlibs:Depends=//') || DEPS=""
+          if [ -z "$DEPS" ]; then
+            DEPS="libgtkmm-4.0-0t64, libcurl4t64, libssl3t64, libevent-2.1-7t64"
+          fi
+          cat > "$PKG_DIR/DEBIAN/control" <<CTRL
+Package: transmission-btpk
+Version: ${VERSION}
+Section: net
+Priority: optional
+Architecture: amd64
+Depends: ${DEPS}
+Conflicts: transmission-gtk
+Maintainer: John Oyler <john.m.oyler@gmail.com>
+Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support
+ A fork of Transmission 4.1.1 adding experimental mutable torrent
+ (BEP 44/46) support. Includes GTK4 GUI client, daemon, and CLI tools.
+ .
+ Mutable torrents allow a publisher to update a torrent's contents
+ using an ed25519 keypair, enabling torrent feeds that update over
+ time without requiring new magnet links.
+CTRL
           dpkg-deb --build "$PKG_DIR" "transmission-btpk_${VERSION}_amd64.deb"
-          ls -lh transmission-btpk_*.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
