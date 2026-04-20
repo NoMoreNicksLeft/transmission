@@ -35,70 +35,36 @@ jobs:
           modules: 'qtactiveqt'
           cache: true
 
-      - name: Install curl via vcpkg (no toolchain)
+      - name: Install curl via vcpkg
         shell: pwsh
         run: vcpkg install --triplet x64-windows curl openssl
 
       - name: Configure
-        shell: pwsh
+        shell: cmd
         run: |
-          $vcpkg_path = Join-Path (Join-Path (Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed') 'x64-windows') '.'
-          $qt_cmake = Join-Path (Join-Path (Join-Path $env:QT_ROOT_DIR 'lib') 'cmake') 'Qt6'
-          $cmakeArgs = @(
-            '-S', '.',
-            '-B', 'build',
-            '-G', 'Visual Studio 17 2022',
-            '-A', 'x64',
-            "-DCMAKE_PREFIX_PATH=$vcpkg_path;$env:QT_ROOT_DIR",
-            "-DQt6_DIR=$qt_cmake",
-            '-DCMAKE_BUILD_TYPE=Release',
-            '-DENABLE_QT=ON',
-            '-DENABLE_GTK=OFF',
-            '-DENABLE_MAC=OFF',
-            '-DENABLE_CLI=ON',
-            '-DENABLE_DAEMON=ON',
-            '-DENABLE_UTILS=ON',
-            '-DENABLE_TESTS=OFF',
-            '-DENABLE_NLS=OFF',
-            '-DUSE_SYSTEM_DHT=OFF',
-            '-DUSE_SYSTEM_UTP=OFF',
-            '-DUSE_SYSTEM_B64=OFF',
-            '-DUSE_SYSTEM_EVENT2=OFF',
-            '-DUSE_SYSTEM_DEFLATE=OFF',
-            '-DUSE_SYSTEM_MINIUPNPC=OFF',
-            '-DUSE_SYSTEM_NATPMP=OFF',
-            '-DUSE_SYSTEM_PSL=OFF',
-            '-DWITH_CRYPTO=openssl'
-          )
-          echo "Qt6_DIR=$qt_cmake"
-          echo "CMAKE_PREFIX_PATH=$vcpkg_path"
-          echo "qt_cmake=$qt_cmake"
-          echo "vcpkg_path=$vcpkg_path"
-          echo "Qt6Config exists: $(Test-Path (Join-Path $qt_cmake 'Qt6Config.cmake'))"
-          echo "ls qt_cmake:"
-          Get-ChildItem $qt_cmake -ErrorAction SilentlyContinue | Select-Object -First 5 Name
-          echo "ls QT_ROOT_DIR/lib/cmake/Qt6:"
-          Get-ChildItem "$env:QT_ROOT_DIR\lib\cmake\Qt6" -ErrorAction SilentlyContinue | Select-Object -First 5 Name
-          & cmake @cmakeArgs
+          set "PREFIX_PATH=%QT_ROOT_DIR%;%VCPKG_INSTALLATION_ROOT%\installed\x64-windows"
+          set "QT6DIR=%QT_ROOT_DIR%\lib\cmake\Qt6"
+          echo PREFIX_PATH=%PREFIX_PATH%
+          echo QT6DIR=%QT6DIR%
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="%PREFIX_PATH%" -DQt6_DIR="%QT6DIR%" -DCMAKE_BUILD_TYPE=Release -DENABLE_QT=ON -DENABLE_GTK=OFF -DENABLE_MAC=OFF -DENABLE_CLI=ON -DENABLE_DAEMON=ON -DENABLE_UTILS=ON -DENABLE_TESTS=OFF -DENABLE_NLS=OFF -DUSE_SYSTEM_DHT=OFF -DUSE_SYSTEM_UTP=OFF -DUSE_SYSTEM_B64=OFF -DUSE_SYSTEM_EVENT2=OFF -DUSE_SYSTEM_DEFLATE=OFF -DUSE_SYSTEM_MINIUPNPC=OFF -DUSE_SYSTEM_NATPMP=OFF -DUSE_SYSTEM_PSL=OFF -DWITH_CRYPTO=openssl
 
       - name: Build
-        shell: pwsh
-        run: cmake --build build --config Release -j $env:NUMBER_OF_PROCESSORS
+        shell: cmd
+        run: cmake --build build --config Release
 
       - name: Deploy
-        shell: pwsh
+        shell: cmd
         run: |
-          New-Item -ItemType Directory -Force staging
-          Copy-Item build\qt\Release\transmission-qt.exe staging\
-          Copy-Item build\utils\Release\transmission-create.exe staging\
-          Copy-Item build\utils\Release\transmission-show.exe staging\
-          Copy-Item build\cli\Release\transmission-remote.exe staging\
-          Copy-Item build\daemon\Release\transmission-daemon.exe staging\
-          & windeployqt staging\transmission-qt.exe
-          $vcpkg_bin = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows' 'bin'
-          if (Test-Path $vcpkg_bin) {
-            Copy-Item (Join-Path $vcpkg_bin '*.dll') staging\ -Force -ErrorAction SilentlyContinue
-          }
+          mkdir staging
+          copy build\qt\Release\transmission-qt.exe staging\
+          copy build\utils\Release\transmission-create.exe staging\
+          copy build\utils\Release\transmission-show.exe staging\
+          copy build\cli\Release\transmission-remote.exe staging\
+          copy build\daemon\Release\transmission-daemon.exe staging\
+          windeployqt staging\transmission-qt.exe
+          if exist "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\bin" (
+            copy "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\bin\*.dll" staging\ 2>nul
+          )
 
       - name: Create archive
         shell: pwsh
