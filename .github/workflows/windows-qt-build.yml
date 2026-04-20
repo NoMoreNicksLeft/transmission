@@ -72,6 +72,9 @@ jobs:
           )
           echo "Qt6_DIR=$qt_cmake"
           echo "CMAKE_PREFIX_PATH=$vcpkg_path"
+          echo "Checking Qt6Config.cmake existence:"
+          Test-Path (Join-Path $qt_cmake "Qt6Config.cmake")
+          Get-ChildItem $qt_cmake -ErrorAction SilentlyContinue | Select-Object -First 5 Name
           & cmake @cmakeArgs
 
       - name: Build
