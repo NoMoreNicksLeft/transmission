@@ -42,10 +42,12 @@ jobs:
       - name: Configure
         shell: cmd
         run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
           set "PREFIX_PATH=%QT_ROOT_DIR%;%VCPKG_INSTALLATION_ROOT%\installed\x64-windows"
           set "QT6DIR=%QT_ROOT_DIR%\lib\cmake\Qt6"
           echo PREFIX_PATH=%PREFIX_PATH%
           echo QT6DIR=%QT6DIR%
+          where midl
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=%PREFIX_PATH% -DQt6_DIR=%QT6DIR% -DCMAKE_BUILD_TYPE=Release -DENABLE_QT=ON -DENABLE_GTK=OFF -DENABLE_MAC=OFF -DENABLE_CLI=ON -DENABLE_DAEMON=ON -DENABLE_UTILS=ON -DENABLE_TESTS=OFF -DENABLE_NLS=OFF -DUSE_SYSTEM_DHT=OFF -DUSE_SYSTEM_UTP=OFF -DUSE_SYSTEM_B64=OFF -DUSE_SYSTEM_EVENT2=OFF -DUSE_SYSTEM_DEFLATE=OFF -DUSE_SYSTEM_MINIUPNPC=OFF -DUSE_SYSTEM_NATPMP=OFF -DUSE_SYSTEM_PSL=OFF -DWITH_CRYPTO=openssl
 
       - name: Build
