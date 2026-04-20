@@ -49,6 +49,17 @@ jobs:
             dpkg-dev \
             fakeroot
 
+      - name: Debug GTK deps
+        run: |
+          echo '=== giomm pkg-config ==='
+          pkg-config --list-all | grep -i giomm || echo 'no giomm found'
+          echo '=== gtkmm pkg-config ==='
+          pkg-config --list-all | grep -i gtkmm || echo 'no gtkmm found'
+          echo '=== glibmm pkg-config ==='
+          pkg-config --list-all | grep -i glibmm || echo 'no glibmm found'
+          echo '=== apt-cache search giomm ==='
+          apt-cache search giomm | head -10
+
       - name: Configure
         run: |
           cmake -S . -B build -G Ninja \
