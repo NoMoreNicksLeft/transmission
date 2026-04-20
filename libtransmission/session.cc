@@ -2435,7 +2435,7 @@ bool tr_session::applyBtpkUpdateInSessionThread(tr_torrent* tor)
         hex[i * 2]     = "0123456789abcdef"[pending_hash[i] >> 4];
         hex[i * 2 + 1] = "0123456789abcdef"[pending_hash[i] & 0xf];
     }
-    hex[40] = ' ';
+    hex[40] = '\0';
     auto const magnet = std::string{ "magnet:?xt=urn:btih:" } + hex;
 
     // 5. Create the staging torrent in the same download directory
