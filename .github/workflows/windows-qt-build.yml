@@ -20,13 +20,22 @@ jobs:
       - name: Init submodules
         shell: bash
         run: |
+          # Init and update all submodules EXCEPT dht (which needs our fork)
           git submodule init
           git submodule deinit third-party/dht 2>/dev/null || true
-          git -c protocol.version=2 submodule update --recursive --depth 1 || true
+          git -c protocol.version=2 submodule update --depth 1 || true
+          # Clone our dht fork
           if [ ! -f third-party/dht/dht.h ]; then
+            rm -rf third-party/dht
             git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
               https://github.com/NoMoreNicksLeft/dht.git third-party/dht
           fi
+          # Now handle nested submodules (libpsl/list)
+          cd third-party/libpsl && git submodule update --init --depth 1 || true
+          cd ../..
+          # Verify critical files
+          ls -la third-party/libpsl/list/public_suffix_list.dat || echo "WARNING: PSL list missing"
+          ls -la third-party/dht/dht.h || echo "WARNING: dht.h missing"
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
