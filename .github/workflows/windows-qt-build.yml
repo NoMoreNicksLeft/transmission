@@ -70,7 +70,7 @@ jobs:
           copy build\qt\Release\transmission-qt.exe staging\
           copy build\utils\Release\transmission-create.exe staging\
           copy build\utils\Release\transmission-show.exe staging\
-          copy build\cli\Release\transmission-remote.exe staging\
+          copy build\utils\Release\transmission-remote.exe staging\
           copy build\daemon\Release\transmission-daemon.exe staging\
           windeployqt staging\transmission-qt.exe
           if exist "%VCPKG_INSTALLATION_ROOT%\installed\x64-windows\bin" (
