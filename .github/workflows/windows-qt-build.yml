@@ -42,14 +42,14 @@ jobs:
       - name: Configure
         shell: pwsh
         run: |
-          $vcpkg_path = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows'
-          $qt_cmake = Join-Path $env:QT_ROOT_DIR 'lib' 'cmake' 'Qt6'
+          $vcpkg_path = Join-Path (Join-Path (Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed') 'x64-windows') '.'
+          $qt_cmake = Join-Path (Join-Path (Join-Path $env:QT_ROOT_DIR 'lib') 'cmake') 'Qt6'
           $cmakeArgs = @(
             '-S', '.',
             '-B', 'build',
             '-G', 'Visual Studio 17 2022',
             '-A', 'x64',
-            "-DCMAKE_PREFIX_PATH=$vcpkg_path",
+            "-DCMAKE_PREFIX_PATH=$vcpkg_path;$env:QT_ROOT_DIR",
             "-DQt6_DIR=$qt_cmake",
             '-DCMAKE_BUILD_TYPE=Release',
             '-DENABLE_QT=ON',
@@ -72,9 +72,13 @@ jobs:
           )
           echo "Qt6_DIR=$qt_cmake"
           echo "CMAKE_PREFIX_PATH=$vcpkg_path"
-          echo "Checking Qt6Config.cmake existence:"
-          Test-Path (Join-Path $qt_cmake "Qt6Config.cmake")
+          echo "qt_cmake=$qt_cmake"
+          echo "vcpkg_path=$vcpkg_path"
+          echo "Qt6Config exists: $(Test-Path (Join-Path $qt_cmake 'Qt6Config.cmake'))"
+          echo "ls qt_cmake:"
           Get-ChildItem $qt_cmake -ErrorAction SilentlyContinue | Select-Object -First 5 Name
+          echo "ls QT_ROOT_DIR/lib/cmake/Qt6:"
+          Get-ChildItem "$env:QT_ROOT_DIR\lib\cmake\Qt6" -ErrorAction SilentlyContinue | Select-Object -First 5 Name
           & cmake @cmakeArgs
 
       - name: Build
