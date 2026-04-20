@@ -44,7 +44,7 @@ jobs:
         run: |
           $vcpkg_path = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows'
           $qt_cmake = Join-Path $env:QT_ROOT_DIR 'lib' 'cmake' 'Qt6'
-          $args = @(
+          $cmakeArgs = @(
             '-S', '.',
             '-B', 'build',
             '-G', 'Visual Studio 17 2022',
@@ -72,7 +72,7 @@ jobs:
           )
           echo "Qt6_DIR=$qt_cmake"
           echo "CMAKE_PREFIX_PATH=$vcpkg_path"
-          & cmake @args
+          & cmake @cmakeArgs
 
       - name: Build
         shell: pwsh
