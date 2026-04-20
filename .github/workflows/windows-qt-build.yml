@@ -22,7 +22,7 @@ jobs:
         run: |
           git submodule init
           git submodule deinit third-party/dht 2>/dev/null || true
-          git -c protocol.version=2 submodule update --depth 1 || true
+          git -c protocol.version=2 submodule update --recursive --depth 1 || true
           if [ ! -f third-party/dht/dht.h ]; then
             git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
               https://github.com/NoMoreNicksLeft/dht.git third-party/dht
