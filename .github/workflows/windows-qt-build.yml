@@ -39,12 +39,12 @@ jobs:
         shell: pwsh
         run: |
           vcpkg install --triplet x64-windows curl openssl
-          echo "VCPKG_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows" >> $env:GITHUB_ENV
 
       - name: Configure
         shell: pwsh
         run: |
-          $prefix_path = "$env:QT_ROOT_DIR" + ";" + "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows"
+          $vcpkg_path = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows'
+          $prefix_path = "$env:QT_ROOT_DIR;$vcpkg_path"
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
             "-DCMAKE_PREFIX_PATH=$prefix_path" `
             "-DCMAKE_BUILD_TYPE=Release" `
@@ -80,9 +80,9 @@ jobs:
           Copy-Item build\cli\Release\transmission-remote.exe staging\
           Copy-Item build\daemon\Release\transmission-daemon.exe staging\
           & windeployqt staging\transmission-qt.exe
-          $vcpkg_bin = "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin"
+          $vcpkg_bin = Join-Path $env:VCPKG_INSTALLATION_ROOT 'installed' 'x64-windows' 'bin'
           if (Test-Path $vcpkg_bin) {
-            Copy-Item "$vcpkg_bin\*.dll" staging\ -Force -ErrorAction SilentlyContinue
+            Copy-Item (Join-Path $vcpkg_bin '*.dll') staging -Force -ErrorAction SilentlyContinue
           }
 
       - name: Create archive
