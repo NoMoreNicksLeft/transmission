@@ -55,8 +55,8 @@ target_sources(${TR_NAME}
         btpk-utils.cc
         btpk-publish.h
         btpk-utils.h
-        crypto-utils-ed25519.cc
     tr-dht-mutable.cc
+        crypto-utils-ed25519.cc
         crypto-utils.h
         error-types.h
         error.cc
@@ -205,6 +205,8 @@ tr_allow_compile_if(
         crypto-utils-mbedtls.cc
     [=[[CRYPTO_PKG STREQUAL "openssl"]]=]
         crypto-utils-openssl.cc
+    [=[[NOT CRYPTO_PKG STREQUAL "openssl"]]=]
+        crypto-utils-ed25519.cc
     [=[[CRYPTO_PKG STREQUAL "wolfssl"]]=]
         crypto-utils-wolfssl.cc
     [=[[ENABLE_UTP]]=]
