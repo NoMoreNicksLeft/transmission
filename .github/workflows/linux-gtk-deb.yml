@@ -1,0 +1,127 @@
+name: Linux GTK Debian Package
+
+on:
+  push:
+    branches:
+      - 'feature/bep44-46-mutable-torrents'
+    tags:
+      - 'v*-btpk-*'
+  workflow_dispatch:
+
+jobs:
+  linux-gtk-deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Init submodules
+        shell: bash
+        run: |
+          git submodule init
+          git submodule deinit third-party/dht 2>/dev/null || true
+          git -c protocol.version=2 submodule update --depth 1 || true
+          if [ ! -f third-party/dht/dht.h ]; then
+            rm -rf third-party/dht
+            git clone --depth 1 --branch feature/bep44-46-mutable-torrents \
+              https://github.com/NoMoreNicksLeft/dht.git third-party/dht
+          fi
+          cd third-party/libpsl && git submodule update --init --depth 1 || true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build gettext \
+            libgtkmm-4.0-dev \
+            libglibmm-2.68-dev \
+            libgiomm-2.68-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libdeflate-dev \
+            libevent-dev \
+            libminiupnpc-dev \
+            libnatpmp-dev \
+            libpsl-dev \
+            libcrc32c-dev \
+            dpkg-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DENABLE_GTK=ON \
+            -DUSE_GTK_VERSION=4 \
+            -DENABLE_QT=OFF \
+            -DENABLE_MAC=OFF \
+            -DENABLE_CLI=ON \
+            -DENABLE_DAEMON=ON \
+            -DENABLE_UTILS=ON \
+            -DENABLE_TESTS=OFF \
+            -DUSE_SYSTEM_DHT=OFF \
+            -DUSE_SYSTEM_UTP=OFF \
+            -DUSE_SYSTEM_B64=OFF \
+            -DWITH_CRYPTO=openssl
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Install to staging
+        run: DESTDIR=${{ github.workspace }}/staging cmake --install build --strip
+
+      - name: Build .deb
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" =~ ^v ]]; then
+            VERSION="${TAG#v}"
+          else
+            VERSION="4.1.1~btpk-alpha+git$(echo ${{ github.sha }} | cut -c1-8)"
+          fi
+
+          PKG_DIR="${{ github.workspace }}/deb-pkg"
+          mkdir -p "$PKG_DIR/DEBIAN"
+
+          # Copy installed files
+          cp -a "${{ github.workspace }}/staging/"* "$PKG_DIR/"
+
+          # Get installed size in KB
+          SIZE=$(du -sk "$PKG_DIR" | cut -f1)
+
+          cat > "$PKG_DIR/DEBIAN/control" << CTRL
+          Package: transmission-btpk
+          Version: ${VERSION}
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Depends: libgtkmm-4.0-0t64 | libgtkmm-4.0-0, libglibmm-2.68-1t64 | libglibmm-2.68-1, libgiomm-2.68-1t64 | libgiomm-2.68-1, libcurl4t64 | libcurl4, libssl3t64 | libssl3, libdeflate0, libevent-2.1-7t64 | libevent-2.1-7, libminiupnpc17 | libminiupnpc18, libnatpmp1, libpsl5t64 | libpsl5, libc6 (>= 2.35)
+          Installed-Size: ${SIZE}
+          Maintainer: John Oyler <john.m.oyler@gmail.com>
+          Homepage: https://github.com/NoMoreNicksLeft/transmission
+          Description: Transmission BitTorrent client with BEP 44/46 mutable torrent support
+           A fork of Transmission 4.1.1 adding experimental mutable torrent
+           (BEP 44/46) support. Includes GTK4 client, daemon, and CLI tools.
+           Mutable torrents allow publishers to update torrent contents using
+           ed25519 keypairs, enabling torrent feeds that update over time.
+          CTRL
+
+          # Remove leading spaces from control file (heredoc indentation)
+          sed -i 's/^          //' "$PKG_DIR/DEBIAN/control"
+
+          dpkg-deb --build "$PKG_DIR" "transmission-btpk_${VERSION}_amd64.deb"
+          ls -lh transmission-btpk_*.deb
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: transmission-linux-gtk-deb
+          path: transmission-btpk_*.deb
+          retention-days: 30
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: transmission-btpk_*.deb
