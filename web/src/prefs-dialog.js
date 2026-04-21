@@ -761,12 +761,93 @@ export class PrefsDialog extends EventTarget {
     };
   }
 
+
+  static _createMutablePage() {
+    const root = document.createElement('div');
+    root.classList.add('prefs-mutable-page');
+    const elements = { root };
+
+    const label = document.createElement('div');
+    label.textContent = 'Update Behavior';
+    label.classList.add('section-label');
+    root.append(label);
+
+    const mode_div = document.createElement('div');
+    mode_div.classList.add('prefs-mutable-mode');
+    const mode_label = document.createElement('label');
+    mode_label.textContent = 'Update:';
+    mode_div.append(mode_label);
+    const mode_select = document.createElement('select');
+    mode_select.dataset.key = 'btpk-update-mode';
+    for (const [value, text] of [[0, 'Never'], [1, 'When offered'], [2, 'Always versioned']]) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = text;
+      mode_select.append(opt);
+    }
+    mode_div.append(mode_select);
+    root.append(mode_div);
+    elements.mode_select = mode_select;
+
+    const changes_label = document.createElement('div');
+    changes_label.textContent = 'Allowed Changes';
+    changes_label.classList.add('section-label');
+    root.append(changes_label);
+
+    const checks = [
+      ['btpk-allow-additional', 'Allow additional files'],
+      ['btpk-allow-renaming', 'Allow file renaming'],
+      ['btpk-allow-overwrites', 'Allow file overwrites'],
+      ['btpk-allow-deletions', 'Allow file deletions'],
+    ];
+    for (const [key, text] of checks) {
+      const div = document.createElement('div');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.key = key;
+      cb.id = `prefs-${key}`;
+      div.append(cb);
+      const cb_label = document.createElement('label');
+      cb_label.htmlFor = cb.id;
+      cb_label.textContent = text;
+      div.append(cb_label);
+      root.append(div);
+      elements[key] = cb;
+    }
+
+    const history_label = document.createElement('div');
+    history_label.textContent = 'Version History';
+    history_label.classList.add('section-label');
+    root.append(history_label);
+
+    for (const [key, text] of [
+      ['btpk-versions-to-keep', 'Keep most recent:'],
+      ['btpk-max-storage-gb', 'Maximum storage (GB):'],
+    ]) {
+      const div = document.createElement('div');
+      const lbl = document.createElement('label');
+      lbl.textContent = text;
+      div.append(lbl);
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.dataset.key = key;
+      input.min = 0;
+      input.classList.add('prefs-number-input');
+      div.append(input);
+      root.append(div);
+      elements[key] = input;
+    }
+
+    return elements;
+  }
+
   static _create() {
     const pages = {
       network: PrefsDialog._createNetworkPage(),
       peers: PrefsDialog._createPeersPage(),
       speed: PrefsDialog._createSpeedPage(),
       torrents: PrefsDialog._createTorrentsPage(),
+      mutable: PrefsDialog._createMutablePage(),
     };
 
     const elements = createTextualTabsContainer('prefs-dialog', [
@@ -774,6 +855,7 @@ export class PrefsDialog extends EventTarget {
       ['prefs-tab-speed', pages.speed.root, 'Speed'],
       ['prefs-tab-peers', pages.peers.root, 'Peers'],
       ['prefs-tab-network', pages.network.root, 'Network'],
+      ['prefs-tab-mutable', pages.mutable.root, 'Mutable'],
     ]);
 
     return { ...elements, ...pages };

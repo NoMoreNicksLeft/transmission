@@ -87,6 +87,10 @@ export class ActionManager extends EventTarget {
         enabled: false,
         text: 'Trash data and remove from list…',
       },
+      'publish-btpk-update': {
+        enabled: false,
+        text: 'Publish Update\u2026',
+      },
       'verify-selected-torrents': {
         enabled: false,
         shortcut: 'V',

@@ -118,6 +118,37 @@ export class Inspector extends EventTarget {
       elements[name] = append_row(text);
     }
 
+    // btpk section (hidden by default, shown for mutable torrents)
+    const btpk_section = document.createElement('div');
+    btpk_section.classList.add('inspector-btpk-section');
+    btpk_section.style.display = 'none';
+    root.append(btpk_section);
+    elements.btpk_section = btpk_section;
+
+    const append_btpk_row = (text) => {
+      const lhs = document.createElement('label');
+      setTextContent(lhs, text);
+      btpk_section.append(lhs);
+      const rhs = document.createElement('span');
+      btpk_section.append(rhs);
+      return rhs;
+    };
+
+    const btpk_title = document.createElement('div');
+    btpk_title.textContent = 'Mutable Torrent';
+    btpk_title.classList.add('section-label');
+    btpk_section.append(btpk_title);
+
+    for (const [name, text] of [
+      ['btpk_format', 'Format:'],
+      ['btpk_pub', 'Public Key:'],
+      ['btpk_salt', 'Salt:'],
+      ['btpk_seq', 'Sequence:'],
+      ['btpk_mode', 'Update Mode:'],
+    ]) {
+      elements[name] = append_btpk_row(text);
+    }
+
     return elements;
   }
 
@@ -163,9 +194,42 @@ export class Inspector extends EventTarget {
     };
   }
 
+
+  static _createHistoryPage() {
+    const root = document.createElement('div');
+    root.classList.add('inspector-history-page');
+
+    const table = document.createElement('table');
+    table.classList.add('history-list');
+    const thead = document.createElement('thead');
+    const header_row = document.createElement('tr');
+    for (const text of ['Version', 'Active', 'Info Hash']) {
+      const th = document.createElement('th');
+      th.textContent = text;
+      header_row.append(th);
+    }
+    thead.append(header_row);
+    table.append(thead);
+
+    const tbody = document.createElement('tbody');
+    table.append(tbody);
+    root.append(table);
+
+    const button_row = document.createElement('div');
+    button_row.classList.add('history-buttons');
+    const start_btn = document.createElement('button');
+    start_btn.textContent = 'Start Version';
+    start_btn.disabled = true;
+    button_row.append(start_btn);
+    root.append(button_row);
+
+    return { root, tbody, start_button: start_btn, table };
+  }
+
   _create() {
     const pages = {
       files: Inspector._createFilesPage(),
+      history: Inspector._createHistoryPage(),
       info: Inspector._createInfoPage(),
       peers: Inspector._createPeersPage(),
       tiers: Inspector._createTiersPage(),
@@ -183,6 +247,7 @@ export class Inspector extends EventTarget {
         ['inspector-tab-peers', pages.peers.root, 'Peers'],
         ['inspector-tab-tiers', pages.tiers.root, 'Tiers'],
         ['inspector-tab-files', pages.files.root, 'Files'],
+        ['inspector-tab-history', pages.history.root, 'History'],
       ],
       on_activated.bind(this),
     );
@@ -225,6 +290,7 @@ export class Inspector extends EventTarget {
   }
 
   _updateCurrentPage() {
+    this._updateHistory();
     const { current_page, elements } = this;
     switch (current_page) {
       case elements.files.root:
@@ -243,6 +309,82 @@ export class Inspector extends EventTarget {
         console.warn('unexpected page');
         console.log(current_page);
     }
+  }
+
+
+  _updateHistory() {
+    const { elements: e, torrents } = this;
+    const show = torrents.length === 1 && torrents[0].isBtpk();
+
+    // Show/hide the History tab
+    const tab = document.getElementById('inspector-tab-history');
+    if (tab) {
+      tab.style.display = show ? '' : 'none';
+    }
+
+    if (!show) return;
+
+    const tor = torrents[0];
+    const history = tor.getBtpkHistory();
+    const tbody = e.history.tbody;
+
+    // Get all torrent hashes in this family for active detection
+    const family_key = tor.getBtpkFamilyKey();
+    const active_hashes = new Set();
+    if (this.controller && this.controller.getAllTorrents) {
+      for (const t of this.controller.getAllTorrents()) {
+        if (t.isBtpk() && t.getBtpkFamilyKey() === family_key) {
+          const hash = t.getHashString();
+          if (hash) active_hashes.add(hash);
+        }
+      }
+    }
+
+    // Rebuild table
+    tbody.innerHTML = '';
+    for (const entry of history) {
+      const row = document.createElement('tr');
+      const seq_cell = document.createElement('td');
+      seq_cell.textContent = entry.seq ?? entry[0] ?? '';
+      row.append(seq_cell);
+
+      const active_cell = document.createElement('td');
+      const hash = entry.hash || entry[1] || '';
+      active_cell.textContent = active_hashes.has(hash) ? 'Yes' : 'No';
+      row.append(active_cell);
+
+      const hash_cell = document.createElement('td');
+      hash_cell.textContent = hash;
+      hash_cell.classList.add('hash-cell');
+      row.append(hash_cell);
+
+      row.dataset.seq = entry.seq ?? entry[0] ?? '';
+      row.addEventListener('click', () => {
+        for (const r of tbody.children) {
+          r.classList.remove('selected');
+        }
+        row.classList.add('selected');
+        e.history.start_button.disabled = active_cell.textContent === 'Yes';
+      });
+
+      tbody.append(row);
+    }
+
+    // Start Version button handler
+    e.history.start_button.onclick = () => {
+      const selected = tbody.querySelector('.selected');
+      if (!selected) return;
+      const seq = parseInt(selected.dataset.seq, 10);
+      if (!isNaN(seq) && this.controller && this.controller.remote) {
+        this.controller.remote.sendRequest({
+          method: 'btpk-start-version',
+          arguments: {
+            ids: [tor.getId()],
+            btpk_seq: seq,
+          },
+        });
+      }
+    };
   }
 
   _updateInfo() {
@@ -362,6 +504,22 @@ export class Inspector extends EventTarget {
       )})`;
     }
     setTextContent(e.info.uploaded, string);
+
+    // btpk fields
+    {
+      const show = torrents.length === 1 && torrents[0].isBtpk();
+      if (e.info.btpk_section) {
+        e.info.btpk_section.style.display = show ? '' : 'none';
+      }
+      if (show) {
+        const tor = torrents[0];
+        setTextContent(e.info.btpk_format, `BitTorrent v${tor.getMetainfoVersion()}`);
+        setTextContent(e.info.btpk_pub, tor.getBtpkPub());
+        setTextContent(e.info.btpk_salt, tor.getBtpkSalt());
+        setTextContent(e.info.btpk_seq, String(tor.getBtpkSeq()));
+        setTextContent(e.info.btpk_mode, tor.getBtpkUpdateModeString());
+      }
+    }
 
     // running time
     if (torrents.length === 0) {

@@ -586,6 +586,66 @@ Torrent._TrackerWaiting = 1;
 Torrent._TrackerQueued = 2;
 Torrent._TrackerActive = 3;
 
+  isBtpk() {
+    return !!this.fields.btpk_pub;
+  }
+
+  getBtpkPub() {
+    return this.fields.btpk_pub || '';
+  }
+
+  getBtpkSalt() {
+    return this.fields.btpk_salt || '';
+  }
+
+  getBtpkSeq() {
+    return this.fields.btpk_seq ?? -1;
+  }
+
+  getBtpkPendingSeq() {
+    return this.fields.btpk_pending_seq ?? -1;
+  }
+
+  getBtpkUpdateMode() {
+    return this.fields.btpk_update_mode ?? 1;
+  }
+
+  getBtpkUpdateModeString() {
+    switch (this.fields.btpk_update_mode) {
+      case 0: return 'Never';
+      case 1: return 'When offered';
+      case 2: return 'Always versioned';
+      default: return 'Unknown';
+    }
+  }
+
+  getBtpkHistory() {
+    return this.fields.btpk_history || [];
+  }
+
+  getBtpkFamilyId() {
+    return this.fields.btpk_family_id || '';
+  }
+
+  getBtpkFamilyKey() {
+    if (this.fields.btpk_family_id) return this.fields.btpk_family_id;
+    if (this.fields.btpk_pub) return this.fields.btpk_pub + ':' + (this.fields.btpk_salt || '');
+    return '';
+  }
+
+  getMetainfoVersion() {
+    return this.fields.metainfo_version ?? 0;
+  }
+
+  getBtpkVersionLabel() {
+    if (!this.isBtpk()) return '';
+    const seq = this.getBtpkSeq();
+    if (seq < 0) return 'seq?';
+    // Check if this is the head (highest seq in family) — caller determines this
+    return `seq${seq}`;
+  }
+
+
 Torrent.Fields = {};
 
 // commonly used fields which only need to be loaded once,
@@ -597,6 +657,10 @@ Torrent.Fields.Metadata = [
   'name',
   'primary_mime_type',
   'total_size',
+  'btpk_pub',
+  'btpk_salt',
+  'btpk_family_id',
+  'metainfo_version',
 ];
 
 // commonly used fields which need to be periodically refreshed
@@ -626,6 +690,9 @@ Torrent.Fields.Stats = [
   'uploaded_ever',
   'upload_ratio',
   'webseeds_sending_to_us',
+  'btpk_seq',
+  'btpk_pending_seq',
+  'btpk_update_mode',
 ];
 
 // fields used by the inspector which only need to be loaded once
@@ -639,6 +706,13 @@ Torrent.Fields.InfoExtra = [
   'magnet_link',
   'piece_count',
   'piece_size',
+  'btpk_history',
+  'btpk_allow_additional',
+  'btpk_allow_renaming',
+  'btpk_allow_overwrites',
+  'btpk_allow_deletions',
+  'btpk_versions_to_keep',
+  'btpk_max_storage_gb',
 ];
 
 // fields used in the inspector which need to be periodically refreshed

@@ -1724,3 +1724,95 @@ dialog {
 .upload-div {
   display: none;
 }
+
+
+/* btpk mutable torrent styles */
+.inspector-btpk-section {
+  display: grid;
+  grid-column: span 2;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: 8px;
+  grid-row-gap: 8px;
+  margin-top: 10px;
+}
+
+.inspector-btpk-section .section-label {
+  font-size: 16px;
+  font-weight: bold;
+  grid-column: span 2;
+  padding-bottom: 5px;
+}
+
+.inspector-btpk-section span {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  font-family: monospace;
+  font-size: 12px;
+  user-select: all;
+}
+
+.inspector-history-page {
+  margin: 20px;
+  padding: 12px;
+}
+
+.history-list {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.history-list th {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 2px solid var(--color-border);
+  font-weight: bold;
+}
+
+.history-list td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.history-list .hash-cell {
+  font-family: monospace;
+  font-size: 12px;
+  user-select: all;
+}
+
+.history-list tr.selected {
+  background-color: var(--color-bg-selected);
+}
+
+.history-buttons {
+  margin-top: 10px;
+}
+
+.history-buttons button {
+  padding: 6px 16px;
+  cursor: pointer;
+}
+
+.prefs-mutable-page {
+  margin: 20px;
+  padding: 12px;
+}
+
+.prefs-mutable-page .section-label {
+  font-size: 16px;
+  font-weight: bold;
+  padding-bottom: 5px;
+  margin-top: 15px;
+}
+
+.prefs-mutable-page .prefs-mutable-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.prefs-mutable-page .prefs-number-input {
+  width: 80px;
+  margin-left: 8px;
+}

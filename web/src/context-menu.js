@@ -190,6 +190,7 @@ export class ContextMenu extends EventTarget {
         new_item('show-labels-dialog'),
         new_separator(),
         new_item('reannounce-selected-torrents'),
+        new_item('publish-btpk-update'),
         new_separator(),
         new_submenu('Select operation', 'select-all', 'deselect-all'),
       );
