@@ -1897,14 +1897,32 @@ dialog {
   }
 
   > summary {
-    list-style: revert;
     cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+  }
+
+  > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  > summary::before {
+    content: '\25B6';
+    font-size: 10px;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    color: var(--color-fg-secondary);
+  }
+
+  &[open] > summary::before {
+    content: '\25BC';
   }
 
   > summary > .torrent {
-    display: inline-grid;
-    width: calc(100% - 20px);
-    vertical-align: middle;
+    display: grid;
+    flex: 1;
   }
 
   > summary > .torrent.btpk-head {
