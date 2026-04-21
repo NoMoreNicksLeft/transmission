@@ -470,6 +470,10 @@ a {
   cursor: pointer;
   margin: 0;
   padding: 0;
+
+  > .torrent:not(.compact) {
+    padding-left: 28px !important;
+  }
   text-align: left;
   width: 100%;
   user-select: none;
@@ -1929,8 +1933,8 @@ dialog {
     border-bottom: none;
   }
 
-  .btpk-member {
-    padding-left: 20px;
+  .btpk-member:not(.compact) {
+    padding-left: 44px !important;
     border-bottom: 1px solid var(--color-border-default);
     opacity: 0.85;
   }
