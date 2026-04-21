@@ -139,7 +139,7 @@ export class ActionManager extends EventTarget {
 
   update(event_) {
     const counts = ActionManager._recount(event_.selected, event_.nonselected);
-    this._updateStates(counts);
+    this._updateStates(counts, event_.selected);
   }
 
   _getAction(name) {
@@ -175,7 +175,7 @@ export class ActionManager extends EventTarget {
     };
   }
 
-  _updateStates(counts) {
+  _updateStates(counts, selected_torrents = []) {
     const set_enabled = (enabled, actions) => {
       for (const action of actions) {
         this._updateActionState(action, enabled);
@@ -212,6 +212,15 @@ export class ActionManager extends EventTarget {
     ]);
 
     set_enabled(counts.selected === 1, ['show-rename-dialog']);
+
+    // publish-btpk-update: exactly one btpk torrent selected
+    set_enabled(
+      counts.selected === 1 &&
+      selected_torrents.length === 1 &&
+      typeof selected_torrents[0].isBtpk === 'function' &&
+      selected_torrents[0].isBtpk(),
+      ['publish-btpk-update'],
+    );
 
     set_enabled(counts.selected < counts.total, ['select-all']);
   }

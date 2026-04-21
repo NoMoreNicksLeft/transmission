@@ -334,7 +334,7 @@ export class Inspector extends EventTarget {
     if (this.controller && this.controller.getAllTorrents) {
       for (const t of this.controller.getAllTorrents()) {
         if (t.isBtpk() && t.getBtpkFamilyKey() === family_key) {
-          const hash = t.getHashString();
+          const hash = t.fields.hash_string || '';
           if (hash) active_hashes.add(hash);
         }
       }
@@ -345,11 +345,11 @@ export class Inspector extends EventTarget {
     for (const entry of history) {
       const row = document.createElement('tr');
       const seq_cell = document.createElement('td');
-      seq_cell.textContent = entry.seq ?? entry[0] ?? '';
+      seq_cell.textContent = entry.btpk_seq ?? '';
       row.append(seq_cell);
 
       const active_cell = document.createElement('td');
-      const hash = entry.hash || entry[1] || '';
+      const hash = entry.hashString || '';
       active_cell.textContent = active_hashes.has(hash) ? 'Yes' : 'No';
       row.append(active_cell);
 
@@ -358,7 +358,7 @@ export class Inspector extends EventTarget {
       hash_cell.classList.add('hash-cell');
       row.append(hash_cell);
 
-      row.dataset.seq = entry.seq ?? entry[0] ?? '';
+      row.dataset.seq = entry.btpk_seq ?? '';
       row.addEventListener('click', () => {
         for (const r of tbody.children) {
           r.classList.remove('selected');
