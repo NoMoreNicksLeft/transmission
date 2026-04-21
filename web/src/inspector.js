@@ -340,12 +340,13 @@ export class Inspector extends EventTarget {
     // Get all torrent hashes in this family for active detection
     const family_key = tor.getBtpkFamilyKey();
     const active_hashes = new Set();
-    if (this.controller && this.controller.getAllTorrents) {
-      for (const t of this.controller.getAllTorrents()) {
-        if (t.isBtpk() && t.getBtpkFamilyKey() === family_key) {
-          const hash = t.fields.hash_string || '';
-          if (hash) active_hashes.add(hash);
-        }
+    const all_torrents = this.controller?._torrents
+      ? Object.values(this.controller._torrents)
+      : [];
+    for (const t of all_torrents) {
+      if (t.isBtpk && t.isBtpk() && t.getBtpkFamilyKey() === family_key) {
+        const hash = t.fields.hash_string || '';
+        if (hash) active_hashes.add(hash);
       }
     }
 
