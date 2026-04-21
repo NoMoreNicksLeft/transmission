@@ -290,8 +290,8 @@ export class Inspector extends EventTarget {
   }
 
   _updateCurrentPage() {
-    this._updateHistory();
     const { current_page, elements } = this;
+    if (!elements) return;
     switch (current_page) {
       case elements.files.root:
         this._updateFiles();
@@ -305,15 +305,22 @@ export class Inspector extends EventTarget {
       case elements.tiers.root:
         this._updateTiers();
         break;
+      case elements.history.root:
+        this._updateHistory();
+        break;
       default:
         console.warn('unexpected page');
         console.log(current_page);
     }
+    // Always update history tab visibility
+    this._updateHistory();
   }
 
 
   _updateHistory() {
-    const { elements: e, torrents } = this;
+    if (!this.elements || !this.elements.history) return;
+    const e = this.elements;
+    const torrents = this.torrents;
     const show = torrents.length === 1 && torrents[0].isBtpk();
 
     // Show/hide the History tab
@@ -359,7 +366,7 @@ export class Inspector extends EventTarget {
       row.append(seq_cell);
 
       const active_cell = document.createElement('td');
-      const hash = entry.hashString || '';
+      const hash = entry.hash_string || entry.hashString || '';
       active_cell.textContent = active_hashes.has(hash) ? 'Yes' : 'No';
       row.append(active_cell);
 
