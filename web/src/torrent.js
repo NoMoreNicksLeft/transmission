@@ -255,7 +255,7 @@ export class Torrent extends EventTarget {
 
   // derived accessors
   hasExtraInfo() {
-    return 'hash_string' in this.fields;
+    return 'comment' in this.fields;
   }
   isSeeding() {
     return this.getStatus() === Torrent._StatusSeed;
