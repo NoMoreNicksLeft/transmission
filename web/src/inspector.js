@@ -322,7 +322,11 @@ export class Inspector extends EventTarget {
       tab.style.display = show ? '' : 'none';
     }
 
-    if (!show) return;
+    if (!show) {
+      e.history.tbody.innerHTML = '';
+      e.history.start_button.disabled = true;
+      return;
+    }
 
     const tor = torrents[0];
     const history = tor.getBtpkHistory();

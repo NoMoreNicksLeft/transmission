@@ -1380,16 +1380,19 @@ a {
     list-style: none;
     padding: 5px 15px;
 
-    &:hover:not(:disabled),
-    &:focus:not(:disabled) {
+    &:hover:not(:disabled):not([disabled]),
+    &:focus:not(:disabled):not([disabled]) {
       background-color: var(--color-bg-hover);
       border-radius: 6px;
       cursor: pointer;
     }
 
-    &:disabled {
+    &:disabled,
+    &[disabled] {
       color: var(--color-fg-disabled);
-      cursor: none;
+      cursor: default;
+      pointer-events: none;
+      opacity: 0.5;
     }
 
     &.warning:hover {
