@@ -325,6 +325,11 @@ export class Inspector extends EventTarget {
     if (!show) {
       e.history.tbody.innerHTML = '';
       e.history.start_button.disabled = true;
+      // If currently viewing history, switch to Info tab
+      if (this.current_page === e.history.root) {
+        const info_tab = document.getElementById('inspector-tab-info');
+        if (info_tab) info_tab.click();
+      }
       return;
     }
 
