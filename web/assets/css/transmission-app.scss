@@ -1860,7 +1860,7 @@ dialog {
 }
 
 
-/* btpk version label badge - overlaid at bottom of icon area */
+/* btpk version label badge - positioned just below icon */
 .torrent-btpk-label {
   grid-area: icon;
   font-size: 9px;
@@ -1871,10 +1871,10 @@ dialog {
   background-color: var(--color-bg-selected);
   color: var(--color-fg-selected);
   white-space: nowrap;
-  align-self: end;
+  align-self: start;
   justify-self: center;
   z-index: 1;
-  margin-bottom: 2px;
+  margin: 58px 0 0 0 !important;
 }
 
 .torrent-btpk-label.compact {
