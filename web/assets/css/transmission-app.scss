@@ -633,8 +633,7 @@ a {
         'icon name labels'
         'icon progress-text progress-text'
         'icon progressbar progressbar'
-        'icon peers peers'
-        'btpk-label . .';
+        'icon peers peers';
       grid-template-columns: var(--icon-size) auto 1fr;
       padding: 6px 12px;
 
@@ -1861,19 +1860,20 @@ dialog {
 }
 
 
-/* btpk version label badge - under icon in full, inline in compact */
+/* btpk version label badge - overlaid at bottom of icon area */
 .torrent-btpk-label {
-  grid-area: btpk-label;
+  grid-area: icon;
   font-size: 9px;
   font-weight: bold;
   text-align: center;
-  padding: 1px 2px;
+  padding: 1px 3px;
   border-radius: 3px;
   background-color: var(--color-bg-selected);
   color: var(--color-fg-selected);
   white-space: nowrap;
+  align-self: end;
   justify-self: center;
-  margin-top: -2px;
+  z-index: 1;
   margin-bottom: 2px;
 }
 
