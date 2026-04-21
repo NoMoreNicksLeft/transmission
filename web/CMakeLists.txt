@@ -14,6 +14,7 @@ set(WEB_SOURCES
     src/overflow-menu.js
     src/prefs-dialog.js
     src/prefs.js
+    src/publish-dialog.js
     src/remote.js
     src/remove-dialog.js
     src/rename-dialog.js
