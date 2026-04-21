@@ -1799,29 +1799,7 @@ dialog {
   cursor: pointer;
 }
 
-.prefs-mutable-page {
-  margin: 20px;
-  padding: 12px;
-}
 
-.prefs-mutable-page .section-label {
-  font-size: 16px;
-  font-weight: bold;
-  padding-bottom: 5px;
-  margin-top: 15px;
-}
-
-.prefs-mutable-page .prefs-mutable-mode {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.prefs-mutable-page .prefs-number-input {
-  width: 80px;
-  margin-left: 8px;
-}
 
 
 /* Publish Update dialog */

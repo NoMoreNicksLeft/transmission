@@ -764,19 +764,22 @@ export class PrefsDialog extends EventTarget {
 
   static _createMutablePage() {
     const root = document.createElement('div');
-    root.classList.add('prefs-mutable-page');
+    root.classList.add('tabs-page');
     const elements = { root };
 
-    const label = document.createElement('div');
-    label.textContent = 'Update Behavior';
-    label.classList.add('section-label');
-    root.append(label);
+    // Collect dependent controls for enabling/disabling
+    const dependents = [];
 
-    const mode_div = document.createElement('div');
-    mode_div.classList.add('prefs-mutable-mode');
-    const mode_label = document.createElement('label');
-    mode_label.textContent = 'Update:';
-    mode_div.append(mode_label);
+    // Update Behavior section
+    const mode_label = document.createElement('div');
+    mode_label.textContent = 'Update Behavior';
+    mode_label.classList.add('section-label');
+    root.append(mode_label);
+
+    const update_label = document.createElement('label');
+    update_label.textContent = 'Update:';
+    root.append(update_label);
+
     const mode_select = document.createElement('select');
     mode_select.dataset.key = 'btpk-update-mode';
     for (const [value, text] of [[0, 'Never'], [1, 'When offered'], [2, 'Always versioned']]) {
@@ -785,14 +788,15 @@ export class PrefsDialog extends EventTarget {
       opt.textContent = text;
       mode_select.append(opt);
     }
-    mode_div.append(mode_select);
-    root.append(mode_div);
+    root.append(mode_select);
     elements.mode_select = mode_select;
 
+    // Allowed Changes section
     const changes_label = document.createElement('div');
     changes_label.textContent = 'Allowed Changes';
     changes_label.classList.add('section-label');
     root.append(changes_label);
+    dependents.push(changes_label);
 
     const checks = [
       ['btpk-allow-additional', 'Allow additional files'],
@@ -813,30 +817,55 @@ export class PrefsDialog extends EventTarget {
       div.append(cb_label);
       root.append(div);
       elements[key] = cb;
+      dependents.push(div);
     }
 
+    // Version History section
     const history_label = document.createElement('div');
     history_label.textContent = 'Version History';
     history_label.classList.add('section-label');
     root.append(history_label);
+    dependents.push(history_label);
 
-    for (const [key, text] of [
-      ['btpk-versions-to-keep', 'Keep most recent:'],
-      ['btpk-max-storage-gb', 'Maximum storage (GB):'],
-    ]) {
-      const div = document.createElement('div');
-      const lbl = document.createElement('label');
-      lbl.textContent = text;
-      div.append(lbl);
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.dataset.key = key;
-      input.min = 0;
-      input.classList.add('prefs-number-input');
-      div.append(input);
-      root.append(div);
-      elements[key] = input;
-    }
+    const keep_label = document.createElement('label');
+    keep_label.textContent = 'Keep most recent:';
+    root.append(keep_label);
+    dependents.push(keep_label);
+
+    const keep_input = document.createElement('input');
+    keep_input.type = 'number';
+    keep_input.dataset.key = 'btpk-versions-to-keep';
+    keep_input.min = 0;
+    root.append(keep_input);
+    elements['btpk-versions-to-keep'] = keep_input;
+    dependents.push(keep_input);
+
+    const storage_label = document.createElement('label');
+    storage_label.textContent = 'Maximum storage (GB):';
+    root.append(storage_label);
+    dependents.push(storage_label);
+
+    const storage_input = document.createElement('input');
+    storage_input.type = 'number';
+    storage_input.dataset.key = 'btpk-max-storage-gb';
+    storage_input.min = 0;
+    root.append(storage_input);
+    elements['btpk-max-storage-gb'] = storage_input;
+    dependents.push(storage_input);
+
+    // Disable/enable dependents based on mode selection
+    const updateDependents = () => {
+      const disabled = mode_select.value === '0';
+      for (const el of dependents) {
+        if (el.tagName === 'INPUT' || el.tagName === 'SELECT') {
+          el.disabled = disabled;
+        } else {
+          el.classList.toggle('disabled', disabled);
+        }
+      }
+    };
+    mode_select.addEventListener('change', updateDependents);
+    updateDependents();
 
     return elements;
   }
