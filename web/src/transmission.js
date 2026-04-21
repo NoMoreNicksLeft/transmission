@@ -1257,6 +1257,9 @@ TODO: fix this when notifications get fixed
 
     // update our implementation fields
     this._rows = rows;
+
+    // Apply family grouping for btpk torrents
+    this._applyFamilyGrouping(list, rows);
     this.dirtyTorrents.clear();
 
     this._updateStatusbar();
@@ -1265,6 +1268,121 @@ TODO: fix this when notifications get fixed
       old_row_count !== countRows()
     ) {
       this._dispatchSelectionChanged();
+    }
+  }
+
+
+  _applyFamilyGrouping(list, rows) {
+    // Group btpk torrents by family key
+    const families = {};
+    const standalone = [];
+
+    for (const row of rows) {
+      const tor = row.getTorrent();
+      const key = tor.getBtpkFamilyKey();
+      if (key) {
+        (families[key] ??= []).push(row);
+      } else {
+        standalone.push(row);
+      }
+    }
+
+    // Remove all children from the list
+    while (list.firstChild) {
+      list.firstChild.remove();
+    }
+
+    // Clean up old family wrappers
+    if (!this._familyElements) {
+      this._familyElements = {};
+    }
+
+    // Track which families are still active
+    const activeFamilies = new Set();
+
+    // Build ordered output: iterate rows in sort order,
+    // emit each standalone row or family group (once, on first encounter)
+    const emitted = new Set();
+    let stripeIndex = 0;
+
+    for (const row of rows) {
+      const tor = row.getTorrent();
+      const key = tor.getBtpkFamilyKey();
+
+      if (!key || families[key].length < 2) {
+        // Standalone row (non-btpk or single-member family)
+        const e = row.getElement();
+        e.classList.remove('btpk-head', 'btpk-member');
+        e.classList.toggle('stripe-even', stripeIndex % 2 === 0);
+        e.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
+        list.append(e);
+        stripeIndex++;
+        continue;
+      }
+
+      // Family group — only emit once per family
+      if (emitted.has(key)) continue;
+      emitted.add(key);
+      activeFamilies.add(key);
+
+      const members = families[key];
+
+      // Find head: highest seq >= 0
+      let head = members[0];
+      for (const m of members) {
+        if (m.getTorrent().getBtpkSeq() > head.getTorrent().getBtpkSeq()) {
+          head = m;
+        }
+      }
+
+      // Get or create <details> wrapper
+      let details = this._familyElements[key];
+      if (!details) {
+        details = document.createElement('details');
+        details.classList.add('btpk-family');
+        details.open = true;
+        const summary = document.createElement('summary');
+        details.append(summary);
+        this._familyElements[key] = details;
+      }
+
+      // Preserve open/closed state
+      const summary = details.querySelector('summary');
+
+      // Clear summary and details content (keep summary element)
+      summary.innerHTML = '';
+      while (details.lastChild !== summary) {
+        details.lastChild.remove();
+      }
+
+      // Apply striping to the details wrapper
+      details.classList.toggle('stripe-even', stripeIndex % 2 === 0);
+      details.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
+
+      // Put head in summary
+      const headEl = head.getElement();
+      headEl.classList.add('btpk-head');
+      headEl.classList.remove('btpk-member');
+      summary.append(headEl);
+
+      // Put other members after summary
+      for (const m of members) {
+        if (m === head) continue;
+        const el = m.getElement();
+        el.classList.add('btpk-member');
+        el.classList.remove('btpk-head');
+        details.append(el);
+      }
+
+      list.append(details);
+      stripeIndex++;
+    }
+
+    // Clean up orphaned family elements
+    for (const key of Object.keys(this._familyElements)) {
+      if (!activeFamilies.has(key)) {
+        delete this._familyElements[key];
+      }
     }
   }
 

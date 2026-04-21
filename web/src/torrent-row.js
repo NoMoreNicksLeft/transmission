@@ -255,7 +255,7 @@ export class TorrentRendererFull {
 
   // eslint-disable-next-line class-methods-use-this
   createRow(torrent) {
-    const root = document.createElement('li');
+    const root = document.createElement('div');
     root.className = 'torrent';
 
     const elements = [
@@ -353,7 +353,7 @@ export class TorrentRendererCompact {
 
   // eslint-disable-next-line class-methods-use-this
   createRow(torrent) {
-    const root = document.createElement('li');
+    const root = document.createElement('div');
     root.className = 'torrent compact';
 
     const elements = [

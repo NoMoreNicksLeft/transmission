@@ -468,7 +468,6 @@ a {
 
 #torrent-list {
   cursor: pointer;
-  list-style-type: none;
   margin: 0;
   padding: 0;
   text-align: left;
@@ -481,11 +480,11 @@ a {
     border-bottom: 1px solid var(--color-border-default);
     display: grid;
 
-    &:nth-child(even) {
+    &.stripe-even {
       background-color: var(--color-bg-even);
     }
 
-    &:nth-child(odd) {
+    &.stripe-odd {
       background-color: var(--color-bg-odd);
     }
 
@@ -1039,11 +1038,11 @@ a {
     margin-bottom: 4px;
     padding: 5px;
 
-    &:nth-child(even) {
+    &.stripe-even {
       background-color: var(--color-bg-even);
     }
 
-    &:nth-child(odd) {
+    &.stripe-odd {
       background-color: var(--color-bg-odd);
     }
 
@@ -1882,4 +1881,43 @@ dialog {
   padding: 0 4px;
   margin: 0;
   align-self: center;
+}
+
+
+/* btpk family grouping with <details>/<summary> */
+.btpk-family {
+  border-bottom: 1px solid var(--color-border-default);
+
+  &.stripe-even {
+    background-color: var(--color-bg-even);
+  }
+
+  &.stripe-odd {
+    background-color: var(--color-bg-odd);
+  }
+
+  > summary {
+    list-style: revert;
+    cursor: pointer;
+  }
+
+  > summary > .torrent {
+    display: inline-grid;
+    width: calc(100% - 20px);
+    vertical-align: middle;
+  }
+
+  > summary > .torrent.btpk-head {
+    border-bottom: none;
+  }
+
+  .btpk-member {
+    padding-left: 20px;
+    border-bottom: 1px solid var(--color-border-default);
+    opacity: 0.85;
+  }
+
+  .btpk-member:last-child {
+    border-bottom: none;
+  }
 }
