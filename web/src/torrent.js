@@ -558,33 +558,6 @@ export class Torrent extends EventTarget {
 
     return torrents;
   }
-}
-
-// Torrent.fields.status
-Torrent._StatusStopped = 0;
-Torrent._StatusCheckWait = 1;
-Torrent._StatusCheck = 2;
-Torrent._StatusDownloadWait = 3;
-Torrent._StatusDownload = 4;
-Torrent._StatusSeedWait = 5;
-Torrent._StatusSeed = 6;
-
-// Torrent.fields.seed_ratio_mode
-Torrent._RatioUseGlobal = 0;
-Torrent._RatioUseLocal = 1;
-Torrent._RatioUnlimited = 2;
-
-// Torrent.fields.error
-Torrent._ErrNone = 0;
-Torrent._ErrTrackerWarning = 1;
-Torrent._ErrTrackerError = 2;
-Torrent._ErrLocalError = 3;
-
-// tracker_stats' announceState
-Torrent._TrackerInactive = 0;
-Torrent._TrackerWaiting = 1;
-Torrent._TrackerQueued = 2;
-Torrent._TrackerActive = 3;
 
   isBtpk() {
     return !!this.fields.btpk_pub;
@@ -641,10 +614,36 @@ Torrent._TrackerActive = 3;
     if (!this.isBtpk()) return '';
     const seq = this.getBtpkSeq();
     if (seq < 0) return 'seq?';
-    // Check if this is the head (highest seq in family) — caller determines this
     return `seq${seq}`;
   }
 
+}
+
+// Torrent.fields.status
+Torrent._StatusStopped = 0;
+Torrent._StatusCheckWait = 1;
+Torrent._StatusCheck = 2;
+Torrent._StatusDownloadWait = 3;
+Torrent._StatusDownload = 4;
+Torrent._StatusSeedWait = 5;
+Torrent._StatusSeed = 6;
+
+// Torrent.fields.seed_ratio_mode
+Torrent._RatioUseGlobal = 0;
+Torrent._RatioUseLocal = 1;
+Torrent._RatioUnlimited = 2;
+
+// Torrent.fields.error
+Torrent._ErrNone = 0;
+Torrent._ErrTrackerWarning = 1;
+Torrent._ErrTrackerError = 2;
+Torrent._ErrLocalError = 3;
+
+// tracker_stats' announceState
+Torrent._TrackerInactive = 0;
+Torrent._TrackerWaiting = 1;
+Torrent._TrackerQueued = 2;
+Torrent._TrackerActive = 3;
 
 Torrent.Fields = {};
 
@@ -659,6 +658,7 @@ Torrent.Fields.Metadata = [
   'total_size',
   'btpk_pub',
   'btpk_salt',
+  'hash_string',
   'btpk_family_id',
   'metainfo_version',
 ];
@@ -701,7 +701,6 @@ Torrent.Fields.InfoExtra = [
   'creator',
   'date_created',
   'files',
-  'hash_string',
   'is_private',
   'magnet_link',
   'piece_count',
