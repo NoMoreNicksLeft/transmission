@@ -377,7 +377,7 @@ export class Inspector extends EventTarget {
       const seq = parseInt(selected.dataset.seq, 10);
       if (!isNaN(seq) && this.controller && this.controller.remote) {
         this.controller.remote.sendRequest({
-          method: 'btpk-start-version',
+          method: 'btpk_start_version',
           arguments: {
             ids: [tor.getId()],
             btpk_seq: seq,

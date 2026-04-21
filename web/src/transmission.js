@@ -11,6 +11,7 @@ import { OpenDialog } from './open-dialog.js';
 import { OverflowMenu } from './overflow-menu.js';
 import { Prefs } from './prefs.js';
 import { PrefsDialog } from './prefs-dialog.js';
+import { PublishDialog } from './publish-dialog.js';
 import { Remote, RPC } from './remote.js';
 import { RemoveDialog } from './remove-dialog.js';
 import { RenameDialog } from './rename-dialog.js';
@@ -221,6 +222,13 @@ export class Transmission extends EventTarget {
         case 'trash-selected-torrents':
           this._removeSelectedTorrents(true);
           break;
+        case 'publish-btpk-update': {
+          const selected = this.getSelectedTorrents();
+          if (selected.length === 1 && selected[0].isBtpk()) {
+            this.setCurrentPopup(new PublishDialog(this, this.remote, selected[0]));
+          }
+          break;
+        }
         case 'verify-selected-torrents':
           this._verifyTorrents(this.getSelectedTorrents());
           break;

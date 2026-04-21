@@ -1816,3 +1816,42 @@ dialog {
   width: 80px;
   margin-left: 8px;
 }
+
+
+/* Publish Update dialog */
+.publish-torrent-name {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.publish-seq-info,
+.publish-pub-info {
+  font-size: 13px;
+  color: var(--color-fg-secondary);
+  margin-bottom: 4px;
+}
+
+.publish-pem-field {
+  width: 100%;
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+  margin: 8px 0;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.publish-option {
+  margin: 8px 0;
+
+  label {
+    margin-left: 6px;
+  }
+}
+
+.publish-status {
+  font-size: 13px;
+  min-height: 20px;
+  margin-top: 8px;
+}
