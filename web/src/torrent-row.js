@@ -72,7 +72,18 @@ const TorrentRendererHelper = {
     progressbar.style.setProperty('--progress', pct_str);
     progressbar.dataset.progress = info.ratio ? '100%' : pct_str;
   },
-  symbol: { down: '▼', up: '▲' },
+  updateBtpkLabel: (root, torrent) => {
+    if (root.btpk_label) {
+      if (torrent.isBtpk()) {
+        root.btpk_label.textContent = torrent.getBtpkVersionLabel();
+        root.btpk_label.style.display = '';
+      } else {
+        root.btpk_label.textContent = '';
+        root.btpk_label.style.display = 'none';
+      }
+    }
+  },
+  symbol: { down: '\u25bc', up: '\u25b2' },
   updateIcon: (e, torrent) => {
     e.dataset.iconMimeType = torrent.getPrimaryMimeType().split('/', 1).pop();
     e.dataset.iconMultifile = torrent.getFileCount() > 1 ? 'true' : 'false';
@@ -222,6 +233,9 @@ export class TorrentRendererFull {
     // name
     setTextContent(name, torrent.getName());
 
+    // btpk version label (inline with name)
+    TorrentRendererHelper.updateBtpkLabel(root, torrent);
+
     // labels
     TorrentRendererHelper.formatLabels(torrent, labels);
 
@@ -247,6 +261,7 @@ export class TorrentRendererFull {
     const elements = [
       ['icon', 'icon'],
       ['name', 'torrent-name'],
+      ['btpk_label', 'torrent-btpk-label'],
       ['labels', 'torrent-labels'],
       ['progress_details', 'torrent-progress-details'],
       ['progressbar', 'torrent-progress-bar'],
@@ -322,6 +337,9 @@ export class TorrentRendererCompact {
     // name
     setTextContent(name, torrent.getName());
 
+    // btpk version label (inline with name)
+    TorrentRendererHelper.updateBtpkLabel(root, torrent);
+
     // labels
     TorrentRendererHelper.formatLabels(torrent, labels);
 
@@ -341,6 +359,7 @@ export class TorrentRendererCompact {
     const elements = [
       ['icon', 'icon'],
       ['name', 'torrent-name compact'],
+      ['btpk_label', 'torrent-btpk-label compact'],
       ['labels', 'torrent-labels compact'],
       ['peer_details', 'torrent-peer-details compact'],
       ['progressbar', 'torrent-progress-bar compact'],
