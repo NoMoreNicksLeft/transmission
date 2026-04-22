@@ -781,7 +781,7 @@ export class PrefsDialog extends EventTarget {
     root.append(update_label);
 
     const mode_select = document.createElement('select');
-    mode_select.dataset.key = 'btpk-update-mode';
+    mode_select.dataset.key = 'btpk_default_update_mode';
     for (const [value, text] of [[0, 'Never'], [1, 'When offered'], [2, 'Always versioned']]) {
       const opt = document.createElement('option');
       opt.value = value;
@@ -799,10 +799,10 @@ export class PrefsDialog extends EventTarget {
     dependents.push(changes_label);
 
     const checks = [
-      ['btpk-allow-additional', 'Allow additional files'],
-      ['btpk-allow-renaming', 'Allow file renaming'],
-      ['btpk-allow-overwrites', 'Allow file overwrites'],
-      ['btpk-allow-deletions', 'Allow file deletions'],
+      ['btpk_default_allow_additional', 'Allow additional files'],
+      ['btpk_default_allow_renaming', 'Allow file renaming'],
+      ['btpk_default_allow_overwrites', 'Allow file overwrites'],
+      ['btpk_default_allow_deletions', 'Allow file deletions'],
     ];
     for (const [key, text] of checks) {
       const div = document.createElement('div');
@@ -834,7 +834,7 @@ export class PrefsDialog extends EventTarget {
 
     const keep_input = document.createElement('input');
     keep_input.type = 'number';
-    keep_input.dataset.key = 'btpk-versions-to-keep';
+    keep_input.dataset.key = 'btpk_default_versions_to_keep';
     keep_input.min = 0;
     root.append(keep_input);
     elements['btpk-versions-to-keep'] = keep_input;
@@ -847,7 +847,7 @@ export class PrefsDialog extends EventTarget {
 
     const storage_input = document.createElement('input');
     storage_input.type = 'number';
-    storage_input.dataset.key = 'btpk-max-storage-gb';
+    storage_input.dataset.key = 'btpk_default_max_storage_gb';
     storage_input.min = 0;
     root.append(storage_input);
     elements['btpk-max-storage-gb'] = storage_input;
@@ -948,6 +948,7 @@ export class PrefsDialog extends EventTarget {
     walk(this.elements.peers);
     walk(this.elements.speed);
     walk(this.elements.torrents);
+    walk(this.elements.mutable);
 
     this.session_manager.addEventListener(
       'session-change',
