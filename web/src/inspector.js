@@ -44,6 +44,52 @@ export class Inspector extends EventTarget {
     this._setTorrents(this.controller.getSelectedTorrents());
 
     document.querySelector('#mainwin-workarea').append(this.elements.root);
+
+    // Wire per-torrent btpk settings to torrent-set RPC
+    this._bindBtpkSettingHandlers();
+  }
+
+  _bindBtpkSettingHandlers() {
+    const e = this.elements;
+    const sendSetting = (key, value) => {
+      if (this.torrents.length !== 1) return;
+      const tor = this.torrents[0];
+      const params = { ids: [tor.getId()] };
+      params[key] = value;
+      this.controller.remote.sendRequest({
+        jsonrpc: '2.0',
+        method: 'torrent_set',
+        params,
+      }, () => {
+        this.controller.refreshTorrents([tor.getId()]);
+      });
+    };
+
+    if (e.info.btpk_setting_mode) {
+      e.info.btpk_setting_mode.addEventListener('change', () => {
+        sendSetting('btpk_update_mode', Number(e.info.btpk_setting_mode.value));
+      });
+    }
+
+    for (const key of ['btpk_allow_additional', 'btpk_allow_renaming', 'btpk_allow_overwrites', 'btpk_allow_deletions']) {
+      const cb = e.info[`btpk_setting_${key}`];
+      if (cb) {
+        cb.addEventListener('change', () => {
+          sendSetting(key, cb.checked);
+        });
+      }
+    }
+
+    if (e.info.btpk_setting_versions) {
+      e.info.btpk_setting_versions.addEventListener('change', () => {
+        sendSetting('btpk_versions_to_keep', Number(e.info.btpk_setting_versions.value));
+      });
+    }
+    if (e.info.btpk_setting_storage) {
+      e.info.btpk_setting_storage.addEventListener('change', () => {
+        sendSetting('btpk_max_storage_gb', Number(e.info.btpk_setting_storage.value));
+      });
+    }
   }
 
   close() {
@@ -148,6 +194,73 @@ export class Inspector extends EventTarget {
     ]) {
       elements[name] = append_btpk_row(text);
     }
+
+    // Per-torrent btpk settings
+    const settings_title = document.createElement('div');
+    settings_title.textContent = 'Per-Torrent Settings';
+    settings_title.classList.add('section-label');
+    btpk_section.append(settings_title);
+
+    // Update mode select
+    const mode_label = document.createElement('label');
+    setTextContent(mode_label, 'Update:');
+    btpk_section.append(mode_label);
+    const mode_select = document.createElement('select');
+    mode_select.dataset.key = 'btpk_update_mode';
+    for (const [value, text] of [[0, 'Never'], [1, 'When offered'], [2, 'Always versioned']]) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = text;
+      mode_select.append(opt);
+    }
+    btpk_section.append(mode_select);
+    elements.btpk_setting_mode = mode_select;
+
+    // Checkboxes
+    const checks = [
+      ['btpk_allow_additional', 'Allow additional files'],
+      ['btpk_allow_renaming', 'Allow file renaming'],
+      ['btpk_allow_overwrites', 'Allow file overwrites'],
+      ['btpk_allow_deletions', 'Allow file deletions'],
+    ];
+    for (const [key, text] of checks) {
+      const div = document.createElement('div');
+      div.style.gridColumn = 'span 2';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.key = key;
+      cb.id = `inspector-${key}`;
+      div.append(cb);
+      const cb_label = document.createElement('label');
+      cb_label.htmlFor = cb.id;
+      cb_label.textContent = ` ${text}`;
+      div.append(cb_label);
+      btpk_section.append(div);
+      elements[`btpk_setting_${key}`] = cb;
+    }
+
+    // Version history numbers
+    const keep_label = document.createElement('label');
+    setTextContent(keep_label, 'Keep most recent:');
+    btpk_section.append(keep_label);
+    const keep_input = document.createElement('input');
+    keep_input.type = 'number';
+    keep_input.min = 0;
+    keep_input.dataset.key = 'btpk_versions_to_keep';
+    keep_input.style.width = '80px';
+    btpk_section.append(keep_input);
+    elements.btpk_setting_versions = keep_input;
+
+    const storage_label = document.createElement('label');
+    setTextContent(storage_label, 'Max storage (GB):');
+    btpk_section.append(storage_label);
+    const storage_input = document.createElement('input');
+    storage_input.type = 'number';
+    storage_input.min = 0;
+    storage_input.dataset.key = 'btpk_max_storage_gb';
+    storage_input.style.width = '80px';
+    btpk_section.append(storage_input);
+    elements.btpk_setting_storage = storage_input;
 
     return elements;
   }
@@ -535,6 +648,30 @@ export class Inspector extends EventTarget {
         setTextContent(e.info.btpk_salt, tor.getBtpkSalt());
         setTextContent(e.info.btpk_seq, String(tor.getBtpkSeq()));
         setTextContent(e.info.btpk_mode, tor.getBtpkUpdateModeString());
+
+        // Per-torrent settings - populate from torrent fields
+        if (e.info.btpk_setting_mode) {
+          e.info.btpk_setting_mode.value = String(tor.getBtpkUpdateMode());
+        }
+        const fields = tor.fields;
+        if (e.info.btpk_setting_btpk_allow_additional) {
+          e.info.btpk_setting_btpk_allow_additional.checked = fields.btpk_allow_additional ?? true;
+        }
+        if (e.info.btpk_setting_btpk_allow_renaming) {
+          e.info.btpk_setting_btpk_allow_renaming.checked = fields.btpk_allow_renaming ?? false;
+        }
+        if (e.info.btpk_setting_btpk_allow_overwrites) {
+          e.info.btpk_setting_btpk_allow_overwrites.checked = fields.btpk_allow_overwrites ?? false;
+        }
+        if (e.info.btpk_setting_btpk_allow_deletions) {
+          e.info.btpk_setting_btpk_allow_deletions.checked = fields.btpk_allow_deletions ?? false;
+        }
+        if (e.info.btpk_setting_versions) {
+          e.info.btpk_setting_versions.value = fields.btpk_versions_to_keep ?? '';
+        }
+        if (e.info.btpk_setting_storage) {
+          e.info.btpk_setting_storage.value = fields.btpk_max_storage_gb ?? '';
+        }
       }
     }
 
