@@ -2264,6 +2264,10 @@ bool tr_torrentBtpkApplyInProgress(tr_torrent const* tor)
 
 std::string tr_sessionGetBtpkArchiveRoot(tr_session const* session)
 {
+    // Environment variable overrides everything (matches TRANSMISSION_HOME behavior)
+    if (auto dir = tr_env_get_string("TRANSMISSION_BTPK_ARCHIVE_ROOT"sv); !dir.empty())
+        return dir;
+
     auto const sv = session->btpkArchiveRoot();
     if (!sv.empty())
         return std::string{ sv };
