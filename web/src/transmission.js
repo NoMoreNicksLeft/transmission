@@ -296,6 +296,8 @@ export class Transmission extends EventTarget {
         this._deselectAll();
       }
     });
+
+
     e.addEventListener('dblclick', () => {
       if (!this.popup[0] || this.popup[0].name !== 'inspector') {
         this.action_manager.click('show-inspector');
@@ -551,7 +553,7 @@ export class Transmission extends EventTarget {
 
   _setSelectedRow(row) {
     const e_sel = row ? row.getElement() : null;
-    for (const e of this.elements.torrent_list.children) {
+    for (const e of this.elements.torrent_list.querySelectorAll('.torrent')) {
       e.classList.toggle('selected', e === e_sel);
     }
     this._dispatchSelectionChanged();
@@ -568,14 +570,14 @@ export class Transmission extends EventTarget {
   }
 
   _selectAll() {
-    for (const e of this.elements.torrent_list.children) {
+    for (const e of this.elements.torrent_list.querySelectorAll('.torrent')) {
       e.classList.add('selected');
     }
     this._dispatchSelectionChanged();
   }
 
   _deselectAll() {
-    for (const e of this.elements.torrent_list.children) {
+    for (const e of this.elements.torrent_list.querySelectorAll('.torrent')) {
       e.classList.remove('selected');
     }
     this._dispatchSelectionChanged();
@@ -1169,6 +1171,16 @@ TODO: fix this when notifications get fixed
         this.filterText.length > 0 ? 'block' : 'none';
     }
 
+    // Flatten any family groups so all rows are direct children of list
+    // (needed for the merge's insertBefore to work correctly)
+    for (const group of list.querySelectorAll('.btpk-family')) {
+      const children = [...group.querySelectorAll('.torrent')];
+      for (const child of children) {
+        group.before(child);
+      }
+      group.remove();
+    }
+
     // rows that overlap with dirtyTorrents need to be refiltered.
     // those that don't are 'clean' and don't need refiltering.
     const clean_rows = [];
@@ -1260,6 +1272,7 @@ TODO: fix this when notifications get fixed
 
     // Apply family grouping for btpk torrents
     this._applyFamilyGrouping(list, rows);
+
     this.dirtyTorrents.clear();
 
     this._updateStatusbar();
@@ -1273,45 +1286,18 @@ TODO: fix this when notifications get fixed
 
 
   _applyFamilyGrouping(list, rows) {
-    // Group btpk torrents by family key
     const families = {};
-    const standalone = [];
 
     for (const row of rows) {
       const tor = row.getTorrent();
       const key = tor.getBtpkFamilyKey();
       if (key) {
         (families[key] ??= []).push(row);
-      } else {
-        standalone.push(row);
       }
     }
-
-    // Build a signature of the current family structure to detect changes
-    const sig = rows.map((r) => {
-      const key = r.getTorrent().getBtpkFamilyKey();
-      return key && families[key] && families[key].length >= 2 ? key : '_';
-    }).join(',');
-
-    if (this._familySignature === sig) {
-      // No structural change — just update stripe classes
-      let stripeIndex = 0;
-      for (const child of list.children) {
-        child.classList.toggle('stripe-even', stripeIndex % 2 === 0);
-        child.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
-        stripeIndex++;
-      }
-      return;
-    }
-    this._familySignature = sig;
 
     if (!this._familyElements) {
       this._familyElements = {};
-    }
-
-    // Remove all children from the list
-    while (list.firstChild) {
-      list.firstChild.remove();
     }
 
     const activeFamilies = new Set();
@@ -1321,14 +1307,15 @@ TODO: fix this when notifications get fixed
     for (const row of rows) {
       const tor = row.getTorrent();
       const key = tor.getBtpkFamilyKey();
+      const el = row.getElement();
 
       if (!key || families[key].length < 2) {
-        // Standalone row
-        const e = row.getElement();
-        e.classList.remove('btpk-head', 'btpk-member');
-        e.classList.toggle('stripe-even', stripeIndex % 2 === 0);
-        e.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
-        list.append(e);
+        el.classList.remove('btpk-head', 'btpk-member');
+        el.classList.toggle('stripe-even', stripeIndex % 2 === 0);
+        el.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
+        if (el.parentElement !== list) {
+          list.append(el);
+        }
         stripeIndex++;
         continue;
       }
@@ -1345,55 +1332,88 @@ TODO: fix this when notifications get fixed
         }
       }
 
-      let details = this._familyElements[key];
-      if (!details) {
-        details = document.createElement('details');
-        details.classList.add('btpk-family');
-        details.open = true;
-        const summary = document.createElement('summary');
-        // Prevent summary click from toggling when clicking on the torrent row
-        summary.addEventListener('click', (ev) => {
-          // Only toggle if clicking the summary itself or the ::before triangle area
-          const rect = summary.getBoundingClientRect();
-          if (ev.clientX > 20) {
-            // Clicked on the torrent row content, not the triangle
-            ev.preventDefault();
+      // Get or create family wrapper div
+      let wrapper = this._familyElements[key];
+      if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.classList.add('btpk-family');
+        wrapper.dataset.open = 'true';
+
+        // Toggle button
+        const toggle = document.createElement('div');
+        toggle.classList.add('btpk-family-toggle');
+        toggle.textContent = '▼';
+        toggle.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const isOpen = wrapper.dataset.open === 'true';
+          wrapper.dataset.open = isOpen ? 'false' : 'true';
+          toggle.textContent = isOpen ? '▶' : '▼';
+          for (const member of wrapper.querySelectorAll('.btpk-member')) {
+            member.style.display = isOpen ? 'none' : '';
           }
         });
-        details.append(summary);
-        this._familyElements[key] = details;
+        wrapper.append(toggle);
+        this._familyElements[key] = wrapper;
       }
 
-      const summary = details.querySelector('summary');
-      summary.innerHTML = '';
-      while (details.lastChild !== summary) {
-        details.lastChild.remove();
-      }
+      const toggle = wrapper.querySelector('.btpk-family-toggle');
 
-      details.classList.toggle('stripe-even', stripeIndex % 2 === 0);
-      details.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
+      wrapper.classList.toggle('stripe-even', stripeIndex % 2 === 0);
+      wrapper.classList.toggle('stripe-odd', stripeIndex % 2 !== 0);
 
+      // Put head as first child after toggle
       const headEl = head.getElement();
       headEl.classList.add('btpk-head');
       headEl.classList.remove('btpk-member');
-      summary.append(headEl);
-
-      for (const m of members) {
-        if (m === head) continue;
-        const el = m.getElement();
-        el.classList.add('btpk-member');
-        el.classList.remove('btpk-head');
-        details.append(el);
+      if (headEl.parentElement !== wrapper) {
+        // Insert after toggle
+        if (toggle.nextSibling) {
+          wrapper.insertBefore(headEl, toggle.nextSibling);
+        } else {
+          wrapper.append(headEl);
+        }
       }
 
-      list.append(details);
+      // Put members after head
+      const isOpen = wrapper.dataset.open === 'true';
+      for (const m of members) {
+        if (m === head) continue;
+        const mel = m.getElement();
+        mel.classList.add('btpk-member');
+        mel.classList.remove('btpk-head');
+        mel.style.display = isOpen ? '' : 'none';
+        if (mel.parentElement !== wrapper) {
+          wrapper.append(mel);
+        }
+      }
+
+      if (wrapper.parentElement !== list) {
+        list.append(wrapper);
+      }
       stripeIndex++;
     }
 
+    // Remove orphaned wrappers
     for (const key of Object.keys(this._familyElements)) {
       if (!activeFamilies.has(key)) {
+        this._familyElements[key].remove();
         delete this._familyElements[key];
       }
+    }
+
+    // Fix DOM order
+    const orderedElements = [];
+    const seen = new Set();
+    for (const row of rows) {
+      const el = row.getElement();
+      const topEl = el.closest('.btpk-family') || el;
+      if (!seen.has(topEl)) {
+        seen.add(topEl);
+        orderedElements.push(topEl);
+      }
+    }
+    for (const el of orderedElements) {
+      list.append(el);
     }
   }
 
