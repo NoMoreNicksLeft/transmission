@@ -1866,9 +1866,12 @@ dialog {
 }
 
 
-/* btpk family grouping with <details>/<summary> */
+/* btpk family grouping */
 .btpk-family {
   border-bottom: 1px solid var(--color-border-default);
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  grid-template-rows: auto;
 
   &.stripe-even {
     background-color: var(--color-bg-even);
@@ -1878,40 +1881,30 @@ dialog {
     background-color: var(--color-bg-odd);
   }
 
-  > summary {
-    cursor: pointer;
-    list-style: none;
+  .btpk-family-toggle {
+    grid-column: 1;
+    grid-row: 1;
     display: flex;
     align-items: center;
-  }
-
-  > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  > summary::before {
-    content: '\25B6';
+    justify-content: center;
+    cursor: pointer;
     font-size: 10px;
-    flex-shrink: 0;
-    width: 16px;
-    text-align: center;
     color: var(--color-fg-secondary);
+    user-select: none;
   }
 
-  &[open] > summary::before {
-    content: '\25BC';
+  .btpk-family-toggle:hover {
+    color: var(--color-fg-primary);
   }
 
-  > summary > .torrent {
-    display: grid;
-    flex: 1;
-  }
-
-  > summary > .torrent.btpk-head {
-    border-bottom: none;
+  .torrent.btpk-head {
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: 0 !important;
   }
 
   .btpk-member:not(.compact) {
+    grid-column: 1 / -1;
     padding-left: 44px !important;
     border-bottom: 1px solid var(--color-border-default);
     opacity: 0.85;
